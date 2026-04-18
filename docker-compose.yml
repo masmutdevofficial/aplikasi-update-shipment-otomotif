@@ -1,7 +1,37 @@
 services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    restart: unless-stopped
+    working_dir: /var/www/html
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+    expose:
+      - "9000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    mem_limit: 512m
+    mem_reservation: 128m
+    cpus: 1.0
+
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - app
+    expose:
+      - "80"
+    mem_limit: 256m
+    mem_reservation: 64m
+    cpus: 0.50
+
   mysql:
     image: mysql:8.4
-    container_name: shipment-mysql
     restart: unless-stopped
     command:
       - mysqld
@@ -11,23 +41,20 @@ services:
       - --performance-schema-consumer-events-statements-history=OFF
       - --performance-schema-consumer-events-statements-history-long=OFF
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-secret}
-      MYSQL_DATABASE: ${DB_DATABASE:-shipment_otomotif}
-      MYSQL_USER: ${DB_USERNAME:-shipment}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
-    ports:
-      - "127.0.0.1:${DB_PORT:-3306}:3306"
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
     volumes:
       - mysql_data:/var/lib/mysql
     mem_limit: 768m
     mem_reservation: 256m
     cpus: 1.0
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD:-secret}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD}"]
       interval: 10s
       timeout: 5s
       retries: 5
 
 volumes:
   mysql_data:
-    driver: local
