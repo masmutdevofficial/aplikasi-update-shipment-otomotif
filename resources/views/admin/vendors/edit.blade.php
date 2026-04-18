@@ -1,7 +1,9 @@
 @extends('layouts.admin')
 
 @section('title', 'Edit Vendor — Shipment Otomotif')
-@section('page-title', 'Edit Vendor: {{ $vendor->vendor_name }}')
+@section('page-title')
+Edit Vendor: {{ $vendor->vendor_name }}
+@endsection
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('admin.vendors.index') }}">Vendor</a></li>
     <li class="breadcrumb-item active">Edit</li>

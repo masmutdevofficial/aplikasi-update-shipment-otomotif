@@ -1,7 +1,9 @@
 @extends('layouts.admin')
 
 @section('title', 'Edit User — Shipment Otomotif')
-@section('page-title', 'Edit User: {{ $user->name }}')
+@section('page-title')
+Edit User: {{ $user->name }}
+@endsection
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('admin.users.index') }}">Users</a></li>
     <li class="breadcrumb-item active">Edit</li>
