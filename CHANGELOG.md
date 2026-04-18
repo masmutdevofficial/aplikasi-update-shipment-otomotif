@@ -14,6 +14,28 @@ dan proyek ini mengikuti [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ---
 
+## [6.5.0] - 2026-04-18
+
+### Added
+- `Dockerfile` — single-container image dengan PHP 8.3-fpm-alpine, Nginx, dan Supervisord
+- `docker/nginx/default.conf` — konfigurasi virtual host Nginx → PHP-FPM di `127.0.0.1:9000`
+- `docker/supervisord.conf` — menjalankan `php-fpm` dan `nginx` dalam satu container dengan log ke stdout/stderr
+- `docker/start.sh` — entrypoint script: clear cache lalu jalankan supervisord
+
+### Changed
+- `.env.example` — diperbarui ke nilai production default (`APP_ENV=production`, `APP_DEBUG=false`, `APP_URL`, placeholder DB Coolify)
+- `readme.md` — ditambah section "Deploy dengan Docker" (build, run, migrate, Coolify guide) dan section Production dipisah (dengan/tanpa Docker)
+- `docs/TSD_Technical_Specification_Document.md` — section 2.3 Deployment Environment diperbarui dengan detail Docker, tabel file Docker, baris Containerization di stack teknologi, Dockerfile ditambahkan ke daftar Deliverable
+
+### Removed
+- `docker-compose.yaml` dan `docker-compose.yml` — dihapus, digantikan oleh Dockerfile
+
+### Fixed
+- `admin/vendors/edit.blade.php` — `@section` shorthand dengan `{{ }}` di dalam string literal menyebabkan raw PHP (`<?php echo e(...); ?>`) tampil sebagai teks di halaman; diperbaiki ke form multi-line `@section` / `@endsection`
+- `admin/users/edit.blade.php` — masalah yang sama seperti di atas
+
+---
+
 ## [6.4.0] - 2026-04-17
 
 ### Added
