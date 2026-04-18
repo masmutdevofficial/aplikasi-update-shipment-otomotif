@@ -93,18 +93,30 @@ Sistem menggunakan arsitektur **monolitik berbasis MVC (Model-View-Controller)**
 | Komponen | Teknologi | Keterangan |
 |---|---|---|
 | Web Server | Nginx / Apache | Reverse proxy & static asset |
-| Backend | PHP 8+ / Laravel 13 | Business logic & API |
+| Backend | PHP 8.3 / Laravel 13 | Business logic & API |
 | Frontend | Bootstrap 5.3.8 + JS | UI Responsif |
 | Database | MySQL 8.4 LTS | Penyimpanan data utama |
 | OCR Engine | Tesseract OCR | Ekstraksi VIN dari gambar |
 | Image Processing | Intervention Image / Imagick | Preprocessing gambar OCR |
 | Session & Auth | Laravel Sanctum / Session | Manajemen autentikasi |
+| Containerization | Docker (php:8.3-fpm-alpine) | Packaging & deployment |
 
 ### 2.3 Deployment Environment
 
-- Aplikasi di-deploy pada environment yang telah disepakati bersama klien.
-- Konfigurasi environment dipisahkan melalui file `.env`.
+- Aplikasi dikemas dalam **Docker image** menggunakan `Dockerfile` yang tersedia di root project.
+- Image menjalankan **Nginx + PHP-FPM** dalam satu container, dikelola oleh **supervisord**.
+- Deployment ditargetkan pada platform yang mendukung Docker (Coolify, Portainer, bare-metal dengan Docker Engine, dsb.).
+- Database **MySQL 8.4** berjalan sebagai service terpisah (bukan di dalam container aplikasi).
+- Konfigurasi environment dipisahkan melalui file `.env` / environment variables container.
 - Tidak ada credential sensitif di dalam source code.
+
+#### Struktur file Docker
+
+| File | Keterangan |
+|---|---|
+| `Dockerfile` | Build image PHP 8.3-fpm-alpine + Nginx + Supervisord |
+| `docker/nginx/default.conf` | Konfigurasi virtual host Nginx → PHP-FPM |
+| `docker/supervisord.conf` | Menjalankan `php-fpm` dan `nginx` dalam satu container |
 
 ---
 
@@ -582,10 +594,11 @@ Sistem wajib mencatat perubahan data pada semua entitas utama.
 1. Source code aplikasi
 2. Database schema / migration files
 3. File konfigurasi contoh untuk deployment (`.env.example`)
-4. Dokumentasi teknis (TSD)
-5. Panduan penggunaan (System User Guide + User Guide)
-6. Hasil pengujian fungsi utama
-7. Aplikasi yang dapat dijalankan pada environment yang disepakati
+4. Dockerfile + konfigurasi Docker (`docker/nginx/default.conf`, `docker/supervisord.conf`)
+5. Dokumentasi teknis (TSD)
+6. Panduan penggunaan (System User Guide + User Guide)
+7. Hasil pengujian fungsi utama
+8. Aplikasi yang dapat dijalankan pada environment yang disepakati
 
 ---
 

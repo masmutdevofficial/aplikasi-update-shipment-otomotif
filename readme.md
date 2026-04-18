@@ -10,6 +10,7 @@ Aplikasi berbasis web untuk mencatat, memantau, dan memperbarui status pengirima
 - [Stack Teknologi](#stack-teknologi)
 - [Persyaratan Sistem](#persyaratan-sistem)
 - [Instalasi Lokal](#instalasi-lokal)
+- [Deploy dengan Docker](#deploy-dengan-docker)
 - [Konfigurasi Environment](#konfigurasi-environment)
 - [Menjalankan Aplikasi](#menjalankan-aplikasi)
 - [Level Pengguna](#level-pengguna)
@@ -89,17 +90,64 @@ npm install
 npm run build
 ```
 
-### Opsi C — Menggunakan Docker (MySQL)
+---
 
-Jika tidak punya MySQL lokal, gunakan Docker Compose yang sudah disediakan:
+## Deploy dengan Docker
 
-```bash
-docker compose up -d
+Aplikasi sudah dilengkapi `Dockerfile` yang menjalankan **Nginx + PHP-FPM** dalam satu container (via supervisord). Cocok untuk deployment ke Coolify, Portainer, atau server apapun yang mendukung Docker.
+
+### Struktur file Docker
+
+```
+Dockerfile
+docker/
+├── nginx/
+│   └── default.conf      # Konfigurasi Nginx
+└── supervisord.conf       # Menjalankan php-fpm + nginx
 ```
 
-Ini akan menjalankan:
-- **MySQL 8.4** di port `3306` (user: `shipment`, pass: `secret`, db: `shipment_otomotif`)
-- **phpMyAdmin** di `http://localhost:8080`
+### Build image
+
+```bash
+docker build -t shipment-otomotif:latest .
+```
+
+### Jalankan container
+
+```bash
+docker run -d \
+  --name shipment-otomotif \
+  -p 80:80 \
+  -e APP_KEY=base64:... \
+  -e APP_ENV=production \
+  -e APP_DEBUG=false \
+  -e APP_URL=https://shipment.masmut.dev \
+  -e DB_HOST=<HOST_MYSQL> \
+  -e DB_PORT=3306 \
+  -e DB_DATABASE=shipment_otomotif \
+  -e DB_USERNAME=shipment \
+  -e DB_PASSWORD=<PASSWORD_MYSQL> \
+  -e RESEND_API_KEY=re_xxxx \
+  -e MAIL_FROM_ADDRESS=noreply@yourdomain.com \
+  shipment-otomotif:latest
+```
+
+### Jalankan migrasi (pertama kali)
+
+```bash
+docker exec shipment-otomotif php artisan migrate --force
+docker exec shipment-otomotif php artisan db:seed --class=SuperadminSeeder
+```
+
+### Deploy via Coolify
+
+1. Buat **New Resource** → **Docker Image** atau **Git Repository** (Dockerfile)
+2. Set environment variables sesuai `.env.example`
+3. Pastikan `APP_KEY` sudah di-generate: `php artisan key:generate --show`
+4. Set **Port** ke `80`
+5. Deploy
+
+> Database MySQL perlu disediakan terpisah (bisa via Coolify Resource MySQL/MariaDB, atau managed DB eksternal).
 
 ---
 
@@ -168,7 +216,7 @@ Perintah ini menjalankan secara bersamaan:
 - Log viewer (Pail)
 - Vite dev server (hot reload)
 
-### Production
+### Production (server langsung / tanpa Docker)
 
 ```bash
 php artisan config:cache
@@ -183,6 +231,10 @@ Pastikan di `.env` production:
 APP_ENV=production
 APP_DEBUG=false
 ```
+
+### Production (Docker)
+
+Lihat bagian [Deploy dengan Docker](#deploy-dengan-docker) di atas. Container sudah menangani Nginx + PHP-FPM secara otomatis; tidak perlu menjalankan perintah server secara manual.
 
 ---
 
