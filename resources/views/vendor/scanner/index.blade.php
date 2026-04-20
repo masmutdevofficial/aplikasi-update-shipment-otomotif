@@ -174,19 +174,56 @@
         btnProcess.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Memproses...';
 
         try {
-            const imageData = canvas.toDataURL('image/png');
+            const imageData = canvas.toDataURL('image/jpeg', 0.85);
+            const sizeKB = Math.round(imageData.length * 0.75 / 1024);
 
-            const response = await fetch('{{ route("vendor.scanner.scan") }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Accept': 'application/json',
-                },
-                body: JSON.stringify({ image: imageData }),
-            });
+            if (sizeKB > 2500) {
+                showResult('warning', 'Ukuran gambar terlalu besar (' + sizeKB + ' KB). Silakan input VIN secara manual.');
+                return;
+            }
 
-            const data = await response.json();
+            let response;
+            try {
+                response = await fetch('{{ route("vendor.scanner.scan") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({ image: imageData }),
+                });
+            } catch (networkErr) {
+                const url = '{{ route("vendor.scanner.scan") }}';
+                const isHttps = location.protocol === 'https:';
+                const urlIsHttp = url.startsWith('http://');
+                let hint = '';
+                if (isHttps && urlIsHttp) {
+                    hint = ' (Mixed content: halaman HTTPS mencoba request ke HTTP — hubungi administrator.)';
+                } else {
+                    hint = ' Periksa koneksi internet Anda.';
+                }
+                showResult('danger', 'Gagal menghubungi server: ' + escapeHtml(networkErr.message) + hint);
+                return;
+            }
+
+            if (response.status === 419) {
+                showResult('danger', 'Sesi kedaluwarsa (419). Silakan <a href="" onclick="location.reload()">muat ulang halaman</a> dan coba lagi.');
+                return;
+            }
+
+            if (response.status === 413) {
+                showResult('warning', 'Gambar terlalu besar untuk diproses server (413). Silakan input VIN secara manual.');
+                return;
+            }
+
+            let data;
+            try {
+                data = await response.json();
+            } catch (parseErr) {
+                showResult('danger', 'Respons server tidak valid (HTTP ' + response.status + '). Kemungkinan server error — hubungi administrator.');
+                return;
+            }
 
             if (data.success && data.vin) {
                 vinInput.value = data.vin;
@@ -195,8 +232,6 @@
             } else {
                 showResult('warning', escapeHtml(data.error || 'OCR gagal. Silakan input VIN secara manual.'));
             }
-        } catch (err) {
-            showResult('danger', 'Terjadi kesalahan: ' + escapeHtml(err.message));
         } finally {
             btnProcess.disabled = false;
             btnProcess.innerHTML = '<i class="fas fa-microchip"></i> Proses OCR';
@@ -217,20 +252,49 @@
             const docLinkEl = document.getElementById('document-link');
             const documentLink = docLinkEl ? docLinkEl.value.trim() : '';
 
-            const response = await fetch('{{ route("vendor.scanner.confirm") }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Accept': 'application/json',
-                },
-                body: JSON.stringify({
-                    no_rangka: vin,
-                    document_link: documentLink || null,
-                }),
-            });
+            let response;
+            try {
+                response = await fetch('{{ route("vendor.scanner.confirm") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        no_rangka: vin,
+                        document_link: documentLink || null,
+                    }),
+                });
+            } catch (networkErr) {
+                const url = '{{ route("vendor.scanner.confirm") }}';
+                const isHttps = location.protocol === 'https:';
+                const urlIsHttp = url.startsWith('http://');
+                let hint = '';
+                if (isHttps && urlIsHttp) {
+                    hint = ' (Mixed content: halaman HTTPS mencoba request ke HTTP — hubungi administrator.)';
+                } else {
+                    hint = ' Periksa koneksi internet Anda.';
+                }
+                showResult('danger', 'Gagal menghubungi server: ' + escapeHtml(networkErr.message) + hint);
+                btnConfirm.disabled = false;
+                return;
+            }
 
-            const data = await response.json();
+            if (response.status === 419) {
+                showResult('danger', 'Sesi kedaluwarsa (419). Silakan <a href="" onclick="location.reload()">muat ulang halaman</a> dan coba lagi.');
+                btnConfirm.disabled = false;
+                return;
+            }
+
+            let data;
+            try {
+                data = await response.json();
+            } catch (parseErr) {
+                showResult('danger', 'Respons server tidak valid (HTTP ' + response.status + '). Kemungkinan server error — hubungi administrator.');
+                btnConfirm.disabled = false;
+                return;
+            }
 
             if (data.success) {
                 showResult('success',
@@ -246,9 +310,6 @@
                 showResult('danger', escapeHtml(data.error || 'Gagal menyimpan data.'));
                 btnConfirm.disabled = false;
             }
-        } catch (err) {
-            showResult('danger', 'Terjadi kesalahan: ' + escapeHtml(err.message));
-            btnConfirm.disabled = false;
         } finally {
             btnConfirm.innerHTML = '<i class="fas fa-check-circle"></i> Simpan Hasil Scan';
         }
