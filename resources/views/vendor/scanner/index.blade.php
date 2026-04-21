@@ -37,6 +37,9 @@
                     <button id="btn-retake" class="btn btn-default" onclick="retakePhoto()" style="display: none;">
                         <i class="fas fa-redo"></i> Ulangi
                     </button>
+                    <button id="btn-crop" class="btn btn-info" onclick="openCrop()" style="display: none;">
+                        <i class="fas fa-crop-alt"></i> Crop
+                    </button>
                     <button id="btn-process" class="btn btn-warning" onclick="processOcr()" style="display: none;">
                         <i class="fas fa-microchip"></i> Proses OCR
                     </button>
@@ -84,6 +87,28 @@
         </div>
     </div>
 </div>
+
+{{-- Crop Modal --}}
+<div id="crop-modal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.85); flex-direction:column; align-items:center; justify-content:center;">
+    <div style="width:100%; max-width:700px; padding:12px; box-sizing:border-box;">
+        <p class="text-white text-center mb-2" style="font-size:.85rem;">
+            <i class="fas fa-info-circle"></i> Seret untuk memindahkan, seret sudut/tepi untuk mengubah ukuran area crop.
+        </p>
+        {{-- Crop canvas wrapper (scrollable on small screens) --}}
+        <div style="position:relative; display:inline-block; width:100%; touch-action:none;">
+            <canvas id="crop-canvas" style="display:block; width:100%; cursor:crosshair; border:2px solid #fff; border-radius:6px;"></canvas>
+            {{-- SVG overlay — drawn by JS --}}
+        </div>
+        <div class="d-flex gap-2 justify-content-center mt-3">
+            <button class="btn btn-secondary" onclick="closeCrop()">
+                <i class="fas fa-times"></i> Batal
+            </button>
+            <button class="btn btn-success" onclick="applyCrop()">
+                <i class="fas fa-check"></i> Terapkan Crop
+            </button>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -99,7 +124,8 @@
     const vinCounter = document.getElementById('vin-counter');
     const btnStartCamera = document.getElementById('btn-start-camera');
     const btnCapture = document.getElementById('btn-capture');
-    const btnRetake = document.getElementById('btn-retake');
+    const btnRetake  = document.getElementById('btn-retake');
+    const btnCrop    = document.getElementById('btn-crop');
     const btnProcess = document.getElementById('btn-process');
     const btnConfirm = document.getElementById('btn-confirm');
     const resultSection = document.getElementById('result-section');
@@ -158,16 +184,200 @@
         }
 
         btnCapture.style.display = 'none';
-        btnRetake.style.display = 'inline-block';
+        btnRetake.style.display  = 'inline-block';
+        btnCrop.style.display    = 'inline-block';
         btnProcess.style.display = 'inline-block';
     }
 
     function retakePhoto() {
         capturedImg.style.display = 'none';
-        btnRetake.style.display = 'none';
-        btnProcess.style.display = 'none';
+        btnRetake.style.display   = 'none';
+        btnCrop.style.display     = 'none';
+        btnProcess.style.display  = 'none';
         startCamera();
     }
+
+    // ─── Crop tool ────────────────────────────────────────────────────────────
+    const cropModal  = document.getElementById('crop-modal');
+    const cropCanvas = document.getElementById('crop-canvas');
+    const cropCtx    = cropCanvas.getContext('2d');
+
+    // Internal (unscaled) image dimensions stored in canvas
+    let cropImg   = new Image();
+    let cropBox   = { x: 0, y: 0, w: 0, h: 0 };   // in canvas pixels
+    let dragState = null;   // { mode, startX, startY, origBox }
+    const HANDLE  = 16;     // handle hit-area in DISPLAY pixels
+
+    function openCrop() {
+        // Load current captured image into crop canvas at full resolution
+        cropImg = new Image();
+        cropImg.onload = () => {
+            cropCanvas.width  = cropImg.naturalWidth;
+            cropCanvas.height = cropImg.naturalHeight;
+            // Default crop box: 60% centred
+            const mw = Math.round(cropImg.naturalWidth  * 0.6);
+            const mh = Math.round(cropImg.naturalHeight * 0.6);
+            cropBox = {
+                x: Math.round((cropImg.naturalWidth  - mw) / 2),
+                y: Math.round((cropImg.naturalHeight - mh) / 2),
+                w: mw,
+                h: mh,
+            };
+            drawCrop();
+        };
+        cropImg.src = capturedImg.src;
+        cropModal.style.display = 'flex';
+    }
+
+    function closeCrop() {
+        cropModal.style.display = 'none';
+    }
+
+    function drawCrop() {
+        const cw = cropCanvas.width;
+        const ch = cropCanvas.height;
+        cropCtx.clearRect(0, 0, cw, ch);
+        cropCtx.drawImage(cropImg, 0, 0);
+
+        // Darken outside crop area
+        cropCtx.fillStyle = 'rgba(0,0,0,0.5)';
+        cropCtx.fillRect(0, 0, cw, cropBox.y);                                         // top
+        cropCtx.fillRect(0, cropBox.y + cropBox.h, cw, ch - cropBox.y - cropBox.h);    // bottom
+        cropCtx.fillRect(0, cropBox.y, cropBox.x, cropBox.h);                          // left
+        cropCtx.fillRect(cropBox.x + cropBox.w, cropBox.y, cw - cropBox.x - cropBox.w, cropBox.h); // right
+
+        // Crop border
+        cropCtx.strokeStyle = '#fff';
+        cropCtx.lineWidth   = Math.max(2, cw / 400);
+        cropCtx.strokeRect(cropBox.x, cropBox.y, cropBox.w, cropBox.h);
+
+        // Rule-of-thirds grid
+        cropCtx.strokeStyle = 'rgba(255,255,255,0.35)';
+        cropCtx.lineWidth   = 1;
+        for (let i = 1; i < 3; i++) {
+            const gx = cropBox.x + cropBox.w * i / 3;
+            const gy = cropBox.y + cropBox.h * i / 3;
+            cropCtx.beginPath(); cropCtx.moveTo(gx, cropBox.y); cropCtx.lineTo(gx, cropBox.y + cropBox.h); cropCtx.stroke();
+            cropCtx.beginPath(); cropCtx.moveTo(cropBox.x, gy); cropCtx.lineTo(cropBox.x + cropBox.w, gy); cropCtx.stroke();
+        }
+
+        // Corner handles
+        const hs = Math.max(8, Math.round(cw / 60));
+        cropCtx.fillStyle = '#fff';
+        [
+            [cropBox.x,             cropBox.y],
+            [cropBox.x + cropBox.w, cropBox.y],
+            [cropBox.x,             cropBox.y + cropBox.h],
+            [cropBox.x + cropBox.w, cropBox.y + cropBox.h],
+        ].forEach(([hx, hy]) => cropCtx.fillRect(hx - hs/2, hy - hs/2, hs, hs));
+    }
+
+    function applyCrop() {
+        // Draw cropped region onto the main canvas and update preview
+        canvas.width  = cropBox.w;
+        canvas.height = cropBox.h;
+        canvas.getContext('2d').drawImage(
+            cropImg,
+            cropBox.x, cropBox.y, cropBox.w, cropBox.h,
+            0, 0, cropBox.w, cropBox.h
+        );
+        capturedImg.src = canvas.toDataURL('image/png');
+        closeCrop();
+    }
+
+    // Scale display pixels → canvas pixels
+    function toCanvasCoords(clientX, clientY) {
+        const rect  = cropCanvas.getBoundingClientRect();
+        const scaleX = cropCanvas.width  / rect.width;
+        const scaleY = cropCanvas.height / rect.height;
+        return [
+            (clientX - rect.left) * scaleX,
+            (clientY - rect.top)  * scaleY,
+        ];
+    }
+
+    function hitTest(cx, cy) {
+        const rect  = cropCanvas.getBoundingClientRect();
+        const scaleX = cropCanvas.width  / rect.width;
+        const H = HANDLE * scaleX;   // handle size in canvas pixels
+        const { x, y, w, h } = cropBox;
+        // Corners first (priority)
+        if (Math.abs(cx - x)     < H && Math.abs(cy - y)     < H) return 'nw';
+        if (Math.abs(cx - x - w) < H && Math.abs(cy - y)     < H) return 'ne';
+        if (Math.abs(cx - x)     < H && Math.abs(cy - y - h) < H) return 'sw';
+        if (Math.abs(cx - x - w) < H && Math.abs(cy - y - h) < H) return 'se';
+        // Edges
+        if (Math.abs(cy - y)     < H && cx > x && cx < x + w) return 'n';
+        if (Math.abs(cy - y - h) < H && cx > x && cx < x + w) return 's';
+        if (Math.abs(cx - x)     < H && cy > y && cy < y + h) return 'w';
+        if (Math.abs(cx - x - w) < H && cy > y && cy < y + h) return 'e';
+        // Inside → move
+        if (cx > x && cx < x + w && cy > y && cy < y + h) return 'move';
+        return null;
+    }
+
+    function clampBox(b) {
+        const minSz = 20;
+        b.x = Math.max(0, Math.min(b.x, cropCanvas.width  - minSz));
+        b.y = Math.max(0, Math.min(b.y, cropCanvas.height - minSz));
+        b.w = Math.max(minSz, Math.min(b.w, cropCanvas.width  - b.x));
+        b.h = Math.max(minSz, Math.min(b.h, cropCanvas.height - b.y));
+        return b;
+    }
+
+    function onCropPointerDown(e) {
+        e.preventDefault();
+        const [cx, cy] = toCanvasCoords(
+            e.touches ? e.touches[0].clientX : e.clientX,
+            e.touches ? e.touches[0].clientY : e.clientY
+        );
+        const mode = hitTest(cx, cy);
+        if (!mode) return;
+        dragState = { mode, startX: cx, startY: cy, origBox: { ...cropBox } };
+    }
+
+    function onCropPointerMove(e) {
+        e.preventDefault();
+        if (!dragState) return;
+        const [cx, cy] = toCanvasCoords(
+            e.touches ? e.touches[0].clientX : e.clientX,
+            e.touches ? e.touches[0].clientY : e.clientY
+        );
+        const dx = cx - dragState.startX;
+        const dy = cy - dragState.startY;
+        const o  = dragState.origBox;
+        let b = { ...o };
+
+        switch (dragState.mode) {
+            case 'move': b.x = o.x + dx; b.y = o.y + dy; break;
+            case 'nw':   b.x = o.x + dx; b.y = o.y + dy; b.w = o.w - dx; b.h = o.h - dy; break;
+            case 'ne':                    b.y = o.y + dy; b.w = o.w + dx; b.h = o.h - dy; break;
+            case 'sw':   b.x = o.x + dx;                  b.w = o.w - dx; b.h = o.h + dy; break;
+            case 'se':                                     b.w = o.w + dx; b.h = o.h + dy; break;
+            case 'n':                     b.y = o.y + dy;                  b.h = o.h - dy; break;
+            case 's':                                                       b.h = o.h + dy; break;
+            case 'w':    b.x = o.x + dx;                  b.w = o.w - dx;                  break;
+            case 'e':                                      b.w = o.w + dx;                  break;
+        }
+        cropBox = clampBox(b);
+        drawCrop();
+    }
+
+    function onCropPointerUp(e) {
+        e.preventDefault();
+        dragState = null;
+    }
+
+    // Mouse events
+    cropCanvas.addEventListener('mousedown',  onCropPointerDown);
+    cropCanvas.addEventListener('mousemove',  onCropPointerMove);
+    cropCanvas.addEventListener('mouseup',    onCropPointerUp);
+    cropCanvas.addEventListener('mouseleave', onCropPointerUp);
+    // Touch events
+    cropCanvas.addEventListener('touchstart', onCropPointerDown, { passive: false });
+    cropCanvas.addEventListener('touchmove',  onCropPointerMove, { passive: false });
+    cropCanvas.addEventListener('touchend',   onCropPointerUp,   { passive: false });
+    // ─── End crop tool ────────────────────────────────────────────────────────
 
     async function processOcr() {
         btnProcess.disabled = true;
