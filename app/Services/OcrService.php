@@ -31,12 +31,12 @@ class OcrService
         // Re-encode binary to base64 data-URL for OpenAI
         $base64DataUrl = 'data:' . $mimeType . ';base64,' . base64_encode($imageData);
 
-        $model = env('OPENAI_MODEL', 'gpt-4.5-nano');
+        $model = env('OPENAI_MODEL', 'gpt-5.4-nano');
 
         $response = OpenAI::chat()->create([
             'model'           => $model,
             'response_format' => ['type' => 'json_object'],
-            'max_tokens'      => 100,
+            'max_completion_tokens'      => 100,
             'messages'        => [
                 [
                     'role'    => 'system',
