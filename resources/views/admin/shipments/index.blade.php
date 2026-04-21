@@ -9,9 +9,14 @@
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-3">
     <span></span>
-    <a href="{{ route('admin.shipments.create') }}" class="btn btn-primary">
-        <i class="fas fa-plus"></i> Tambah Shipment
-    </a>
+    <div class="d-flex gap-2">
+        <a href="{{ route('admin.shipments.import.form') }}" class="btn btn-success">
+            <i class="fas fa-file-excel"></i> Upload Excel
+        </a>
+        <a href="{{ route('admin.shipments.create') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Tambah Shipment
+        </a>
+    </div>
 </div>
 
 {{-- Table --}}

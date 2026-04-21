@@ -621,6 +621,12 @@
                             <button class="btn-close-alert" onclick="this.closest('.alert').remove()">&times;</button>
                         </div>
                     @endif
+                    @if (session('warning'))
+                        <div class="alert alert-warning">
+                            <div class="alert-content">{!! session('warning') !!}</div>
+                            <button class="btn-close-alert" onclick="this.closest('.alert').remove()">&times;</button>
+                        </div>
+                    @endif
                     @if ($errors->any())
                         <div class="alert alert-danger">
                             <div class="alert-content">

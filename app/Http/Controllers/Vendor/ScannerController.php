@@ -50,8 +50,16 @@ class ScannerController extends Controller
             return response()->json(['error' => 'Gagal memproses gambar.'], 422);
         }
 
-        // OCR processing
-        $vinResult = $this->ocrService->extractVin($imageData);
+        // OCR processing via OpenAI Vision
+        try {
+            $vinResult = $this->ocrService->extractVin($imageData);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'error' => 'Layanan OCR tidak tersedia saat ini: ' . $e->getMessage(),
+            ], 503);
+        }
 
         if (!$vinResult) {
             return response()->json([

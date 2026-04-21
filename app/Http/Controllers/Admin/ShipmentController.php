@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\ShipmentTemplateExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreShipmentRequest;
 use App\Http\Requests\Admin\UpdateShipmentRequest;
+use App\Imports\ShipmentImport;
 use App\Models\Shipment;
 use App\Services\ShipmentService;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ShipmentController extends Controller
 {
@@ -61,5 +64,50 @@ class ShipmentController extends Controller
 
         return redirect()->route('admin.shipments.index')
             ->with('success', 'Data shipment berhasil dihapus.');
+    }
+
+    public function showImport()
+    {
+        return view('admin.shipments.import');
+    }
+
+    public function importExcel(Request $request)
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:5120'],
+        ], [
+            'file.required' => 'Pilih file Excel terlebih dahulu.',
+            'file.mimes'    => 'File harus berformat .xlsx, .xls, atau .csv.',
+            'file.max'      => 'Ukuran file maksimal 5 MB.',
+        ]);
+
+        $import = new ShipmentImport(createdBy: auth()->id());
+
+        Excel::import($import, $request->file('file'));
+
+        $failCount = count($import->errors);
+
+        $message = "Import selesai: {$import->importedCount} data berhasil diimpor";
+
+        if ($import->skippedCount > 0) {
+            $message .= ", {$import->skippedCount} di-skip (VIN sudah terdaftar)";
+        }
+
+        if ($failCount > 0) {
+            $errorMessages = collect($import->errors)->map(function ($e) {
+                return "Baris {$e['baris']}: {$e['pesan']}";
+            })->join('<br>');
+
+            return redirect()->route('admin.shipments.index')
+                ->with('warning', $message . ".<br><strong>{$failCount} baris gagal:</strong><br>{$errorMessages}");
+        }
+
+        return redirect()->route('admin.shipments.index')
+            ->with('success', $message . '.');
+    }
+
+    public function downloadTemplate()
+    {
+        return Excel::download(new ShipmentTemplateExport(), 'Format_Upload.xlsx');
     }
 }

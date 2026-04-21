@@ -62,6 +62,9 @@ Route::middleware('auth')->group(function () {
 
             // Shipment Management
             Route::resource('shipments', ShipmentController::class)->except(['show']);
+            Route::get('/shipments/import', [ShipmentController::class, 'showImport'])->name('shipments.import.form');
+            Route::post('/shipments/import', [ShipmentController::class, 'importExcel'])->name('shipments.import');
+            Route::get('/shipments/template', [ShipmentController::class, 'downloadTemplate'])->name('shipments.template');
 
             // Reports
             Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
