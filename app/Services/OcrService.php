@@ -1,4 +1,6 @@
-﻿<?php
+<?php
+
+declare(strict_types=1);
 
 namespace App\Services;
 
@@ -12,7 +14,8 @@ class OcrService
      *
      * @param  string  $imageData  Raw binary image data (PNG / JPEG / WEBP)
      * @return string|null         17-character VIN or null on failure
-     * @throws \InvalidArgumentException  when the image MIME type is not supported
+     *
+     * @throws \InvalidArgumentException when the image MIME type is not supported
      */
     public function extractVin(string $imageData): ?string
     {
@@ -21,7 +24,7 @@ class OcrService
         $mimeType = $finfo->buffer($imageData);
 
         $supported = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
-        if (!in_array($mimeType, $supported, true)) {
+        if (! in_array($mimeType, $supported, true)) {
             throw new \InvalidArgumentException('Format gambar tidak valid.');
         }
 
@@ -60,14 +63,14 @@ class OcrService
 
         $content = $response->choices[0]->message->content ?? null;
 
-        if (!$content) {
+        if (! $content) {
             return null;
         }
 
         $decoded = json_decode($content, true);
         $vin     = $decoded['vin'] ?? null;
 
-        if (!$vin || !is_string($vin)) {
+        if (! $vin || ! is_string($vin)) {
             return null;
         }
 
