@@ -1,0 +1,45 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shipment_app
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    env_file:
+      - .env
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - shipment_net
+
+  db:
+    image: mysql:8.0
+    container_name: shipment_db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: shipment_otomotif
+      MYSQL_USER: shipment
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: rootsecret
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "shipment", "-psecret"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - shipment_net
+
+volumes:
+  db_data:
+
+networks:
+  shipment_net:
+    driver: bridge

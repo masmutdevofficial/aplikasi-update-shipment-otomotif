@@ -89,6 +89,10 @@ class ShipmentController extends Controller
 
         $message = "Import selesai: {$import->importedCount} data berhasil diimpor";
 
+        if ($import->updatedCount > 0) {
+            $message .= ", {$import->updatedCount} data kapal diperbarui";
+        }
+
         if ($import->skippedCount > 0) {
             $message .= ", {$import->skippedCount} di-skip (VIN sudah terdaftar)";
         }

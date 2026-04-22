@@ -11,6 +11,7 @@ use Maatwebsite\Excel\Concerns\WithHeadingRow;
 class ShipmentImport implements ToCollection, WithHeadingRow
 {
     public int $importedCount = 0;
+    public int $updatedCount  = 0;
     public int $skippedCount  = 0;
 
     /** @var array<array{baris: int, pesan: string}> */
@@ -111,13 +112,6 @@ class ShipmentImport implements ToCollection, WithHeadingRow
             if (empty($keluar_dari_pdc_raw)) {
                 $rowErrors[] = 'Kolom Tanggal Keluar dari PDC wajib diisi';
             }
-            if (empty($nama_kapal)) {
-                $rowErrors[] = 'Kolom Nama/Jenis Kapal wajib diisi';
-            }
-            if (empty($keberangkatan_raw)) {
-                $rowErrors[] = 'Kolom Tanggal Keberangkatan/ATD wajib diisi';
-            }
-
             if (!empty($rowErrors)) {
                 foreach ($rowErrors as $msg) {
                     $this->errors[] = ['baris' => $rowNum, 'pesan' => $msg];
@@ -125,10 +119,9 @@ class ShipmentImport implements ToCollection, WithHeadingRow
                 continue;
             }
 
-            // Parse tanggal
-            $terima_do           = $this->parseDate($terima_do_raw);
-            $keluar_dari_pdc     = $this->parseDate($keluar_dari_pdc_raw);
-            $keberangkatan_kapal = $this->parseDate($keberangkatan_raw);
+            // Parse tanggal wajib
+            $terima_do       = $this->parseDate($terima_do_raw);
+            $keluar_dari_pdc = $this->parseDate($keluar_dari_pdc_raw);
 
             if (!$terima_do) {
                 $this->errors[] = ['baris' => $rowNum, 'pesan' => 'Format tanggal Terima DO tidak dikenali. Gunakan format seperti 2026-04-01 atau 01/04/2026'];
@@ -138,36 +131,63 @@ class ShipmentImport implements ToCollection, WithHeadingRow
                 $this->errors[] = ['baris' => $rowNum, 'pesan' => 'Format tanggal Keluar dari PDC tidak dikenali. Gunakan format seperti 2026-04-01 atau 01/04/2026'];
                 continue;
             }
-            if (!$keberangkatan_kapal) {
-                $this->errors[] = ['baris' => $rowNum, 'pesan' => 'Format tanggal Keberangkatan Kapal tidak dikenali. Gunakan format seperti 2026-04-01 atau 01/04/2026'];
-                continue;
+
+            // --- Mode deteksi berdasarkan keberadaan data kapal ---
+            $hasKapalData = !empty($nama_kapal) || !empty($keberangkatan_raw);
+
+            if ($hasKapalData) {
+                // MODE UPDATE KAPAL: tambahkan data kapal ke shipment yang sudah ada
+                $shipment = Shipment::where('no_rangka', $no_rangka)->first();
+
+                if (!$shipment) {
+                    $this->errors[] = [
+                        'baris' => $rowNum,
+                        'pesan' => "No. Rangka \"{$no_rangka}\" belum terdaftar. Upload data kapal hanya untuk shipment yang sudah ada.",
+                    ];
+                    continue;
+                }
+
+                // Parse tanggal keberangkatan
+                $keberangkatan_kapal = $this->parseDate($keberangkatan_raw);
+                if (!empty($keberangkatan_raw) && !$keberangkatan_kapal) {
+                    $this->errors[] = ['baris' => $rowNum, 'pesan' => 'Format tanggal Keberangkatan Kapal tidak dikenali. Gunakan format seperti 2026-04-01 atau 01/04/2026'];
+                    continue;
+                }
+
+                $shipment->update([
+                    'nama_kapal'          => !empty($nama_kapal) ? trim((string) $nama_kapal) : $shipment->nama_kapal,
+                    'keberangkatan_kapal' => $keberangkatan_kapal ?? $shipment->keberangkatan_kapal,
+                    'updated_by'          => $this->createdBy,
+                ]);
+
+                $this->updatedCount++;
+            } else {
+                // MODE SHIPMENT BARU: buat entri baru, data kapal boleh kosong
+                if (Shipment::where('no_rangka', $no_rangka)->exists()) {
+                    $this->skippedCount++;
+                    continue;
+                }
+
+                Shipment::create([
+                    'lokasi'              => trim((string) $lokasi),
+                    'no_do'               => trim((string) $no_do),
+                    'type_kendaraan'      => trim((string) $type_kendaraan),
+                    'no_rangka'           => $no_rangka,
+                    'no_engine'           => trim((string) $no_engine),
+                    'warna'               => trim((string) $warna),
+                    'asal_pdc'            => trim((string) $asal_pdc),
+                    'kota'                => trim((string) $kota),
+                    'tujuan_pengiriman'   => trim((string) $tujuan_pengiriman),
+                    'terima_do'           => $terima_do,
+                    'keluar_dari_pdc'     => $keluar_dari_pdc,
+                    'nama_kapal'          => null,
+                    'keberangkatan_kapal' => null,
+                    'created_by'          => $this->createdBy,
+                    'updated_by'          => $this->createdBy,
+                ]);
+
+                $this->importedCount++;
             }
-
-            // Skip jika VIN sudah terdaftar
-            if (Shipment::where('no_rangka', $no_rangka)->exists()) {
-                $this->skippedCount++;
-                continue;
-            }
-
-            Shipment::create([
-                'lokasi'               => trim((string) $lokasi),
-                'no_do'                => trim((string) $no_do),
-                'type_kendaraan'       => trim((string) $type_kendaraan),
-                'no_rangka'            => $no_rangka,
-                'no_engine'            => trim((string) $no_engine),
-                'warna'                => trim((string) $warna),
-                'asal_pdc'             => trim((string) $asal_pdc),
-                'kota'                 => trim((string) $kota),
-                'tujuan_pengiriman'    => trim((string) $tujuan_pengiriman),
-                'terima_do'            => $terima_do,
-                'keluar_dari_pdc'      => $keluar_dari_pdc,
-                'nama_kapal'           => trim((string) $nama_kapal),
-                'keberangkatan_kapal'  => $keberangkatan_kapal,
-                'created_by'           => $this->createdBy,
-                'updated_by'           => $this->createdBy,
-            ]);
-
-            $this->importedCount++;
         }
     }
 
