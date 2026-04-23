@@ -4,6 +4,7 @@ namespace Tests\Feature\Auth;
 
 use App\Models\User;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 class LoginTest extends TestCase
@@ -28,7 +29,7 @@ class LoginTest extends TestCase
             'email' => 'admin@test.com',
         ]);
 
-        $response = $this->post('/login', [
+        $response = $this->postWithCsrf('/login', [
             'email' => 'admin@test.com',
             'password' => 'Test@Password123!',
         ]);
@@ -37,13 +38,56 @@ class LoginTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
+    public function test_same_account_can_have_multiple_active_sessions(): void
+    {
+        $user = User::factory()->admin()->create([
+            'email' => 'multi-session@test.com',
+        ]);
+
+        $sessionCookie = config('session.cookie');
+
+        $firstLoginResponse = $this->postWithCsrf('/login', [
+            'email' => 'multi-session@test.com',
+            'password' => 'Test@Password123!',
+        ], [
+            $sessionCookie => 'browser-session-a',
+        ]);
+
+        $secondLoginResponse = $this->postWithCsrf('/login', [
+            'email' => 'multi-session@test.com',
+            'password' => 'Test@Password123!',
+        ], [
+            $sessionCookie => 'browser-session-b',
+        ]);
+
+        $firstLoginResponse->assertRedirect('/admin/dashboard');
+        $secondLoginResponse->assertRedirect('/admin/dashboard');
+
+        $firstSessionId = collect($firstLoginResponse->headers->getCookies())
+            ->first(fn ($cookie) => $cookie->getName() === $sessionCookie)?->getValue();
+        $secondSessionId = collect($secondLoginResponse->headers->getCookies())
+            ->first(fn ($cookie) => $cookie->getName() === $sessionCookie)?->getValue();
+
+        $this->assertNotEmpty($firstSessionId);
+        $this->assertNotEmpty($secondSessionId);
+        $this->assertNotSame($firstSessionId, $secondSessionId);
+
+        $this->withCookie($sessionCookie, $firstSessionId)
+            ->get('/admin/dashboard')
+            ->assertOk();
+
+        $this->withCookie($sessionCookie, $secondSessionId)
+            ->get('/admin/dashboard')
+            ->assertOk();
+    }
+
     public function test_vendor_redirected_to_vendor_dashboard(): void
     {
         $user = User::factory()->vendor()->create([
             'email' => 'vendor@test.com',
         ]);
 
-        $response = $this->post('/login', [
+        $response = $this->postWithCsrf('/login', [
             'email' => 'vendor@test.com',
             'password' => 'Test@Password123!',
         ]);
@@ -58,7 +102,7 @@ class LoginTest extends TestCase
             'email' => 'admin@test.com',
         ]);
 
-        $response = $this->post('/login', [
+        $response = $this->postWithCsrf('/login', [
             'email' => 'admin@test.com',
             'password' => 'WrongPassword123!',
         ]);
@@ -74,7 +118,7 @@ class LoginTest extends TestCase
             'email' => 'inactive@test.com',
         ]);
 
-        $response = $this->post('/login', [
+        $response = $this->postWithCsrf('/login', [
             'email' => 'inactive@test.com',
             'password' => 'Test@Password123!',
         ]);
@@ -91,13 +135,13 @@ class LoginTest extends TestCase
         ]);
 
         for ($i = 0; $i < 5; $i++) {
-            $this->post('/login', [
+            $this->postWithCsrf('/login', [
                 'email' => 'throttle@test.com',
                 'password' => 'WrongPassword!',
             ]);
         }
 
-        $response = $this->post('/login', [
+        $response = $this->postWithCsrf('/login', [
             'email' => 'throttle@test.com',
             'password' => 'Test@Password123!',
         ]);
@@ -109,7 +153,7 @@ class LoginTest extends TestCase
 
     public function test_login_validation_requires_email(): void
     {
-        $response = $this->post('/login', [
+        $response = $this->postWithCsrf('/login', [
             'email' => '',
             'password' => 'Test@Password123!',
         ]);
@@ -119,7 +163,7 @@ class LoginTest extends TestCase
 
     public function test_login_validation_requires_password(): void
     {
-        $response = $this->post('/login', [
+        $response = $this->postWithCsrf('/login', [
             'email' => 'test@test.com',
             'password' => '',
         ]);
@@ -139,9 +183,29 @@ class LoginTest extends TestCase
     {
         $user = User::factory()->admin()->create();
 
-        $response = $this->actingAs($user)->post('/logout');
+        $token = 'logout-test-token';
+
+        $response = $this->actingAs($user)
+            ->withSession(['_token' => $token])
+            ->post('/logout', ['_token' => $token]);
 
         $response->assertRedirect('/login');
         $this->assertGuest();
+    }
+
+    protected function postWithCsrf(string $uri, array $data = [], array $cookies = []): TestResponse
+    {
+        $token = 'test-csrf-token';
+
+        $request = $this->withSession(['_token' => $token]);
+
+        foreach ($cookies as $name => $value) {
+            $request = $request->withCookie($name, $value);
+        }
+
+        return $request->post($uri, [
+            ...$data,
+            '_token' => $token,
+        ]);
     }
 }

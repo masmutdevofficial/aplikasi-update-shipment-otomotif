@@ -52,10 +52,10 @@
                             <td>{{ $shipment->warna }}</td>
                             <td>{{ $shipment->asal_pdc }}</td>
                             <td>{{ $shipment->tujuan_pengiriman }}</td>
-                            <td>{{ $shipment->terima_do->format('d-M-y') }}</td>
-                            <td>{{ $shipment->keluar_dari_pdc->format('d-M-y') }}</td>
-                            <td>{{ $shipment->nama_kapal }}</td>
-                            <td>{{ $shipment->keberangkatan_kapal->format('d-M-y') }}</td>
+                            <td>{{ $shipment->terima_do?->format('d-M-y') ?? '-' }}</td>
+                            <td>{{ $shipment->keluar_dari_pdc?->format('d-M-y') ?? '-' }}</td>
+                            <td>{{ $shipment->nama_kapal ?? '-' }}</td>
+                            <td>{{ $shipment->keberangkatan_kapal?->format('d-M-y') ?? '-' }}</td>
                             <td>
                                 <div class="d-flex gap-1">
                                     <a href="{{ route('admin.shipments.edit', $shipment) }}"
