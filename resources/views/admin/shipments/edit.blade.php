@@ -164,7 +164,7 @@
                                    class="form-control @error('terima_do') is-invalid @enderror"
                                    id="terima_do"
                                    name="terima_do"
-                                   value="{{ old('terima_do', $shipment->terima_do->format('Y-m-d')) }}"
+                                   value="{{ old('terima_do', $shipment->terima_do?->format('Y-m-d')) }}"
                                    required>
                             @error('terima_do')
                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -178,7 +178,7 @@
                                    class="form-control @error('keluar_dari_pdc') is-invalid @enderror"
                                    id="keluar_dari_pdc"
                                    name="keluar_dari_pdc"
-                                   value="{{ old('keluar_dari_pdc', $shipment->keluar_dari_pdc->format('Y-m-d')) }}"
+                                   value="{{ old('keluar_dari_pdc', $shipment->keluar_dari_pdc?->format('Y-m-d')) }}"
                                    required>
                             @error('keluar_dari_pdc')
                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -207,7 +207,7 @@
                                    class="form-control @error('keberangkatan_kapal') is-invalid @enderror"
                                    id="keberangkatan_kapal"
                                    name="keberangkatan_kapal"
-                                   value="{{ old('keberangkatan_kapal', $shipment->keberangkatan_kapal->format('Y-m-d')) }}"
+                                   value="{{ old('keberangkatan_kapal', $shipment->keberangkatan_kapal?->format('Y-m-d')) }}"
                                    required>
                             @error('keberangkatan_kapal')
                                 <div class="invalid-feedback">{{ $message }}</div>

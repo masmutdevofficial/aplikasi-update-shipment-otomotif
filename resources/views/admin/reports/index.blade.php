@@ -86,10 +86,10 @@
                             <td>{{ $shipment->asal_pdc }}</td>
                             <td>{{ $shipment->kota }}</td>
                             <td>{{ $shipment->tujuan_pengiriman }}</td>
-                            <td>{{ $shipment->terima_do->format('d-M-y') }}</td>
-                            <td>{{ $shipment->keluar_dari_pdc->format('d-M-y') }}</td>
-                            <td>{{ $shipment->nama_kapal }}</td>
-                            <td>{{ $shipment->keberangkatan_kapal->format('d-M-y') }}</td>
+                            <td>{{ $shipment->terima_do?->format('d-M-y') ?? '-' }}</td>
+                            <td>{{ $shipment->keluar_dari_pdc?->format('d-M-y') ?? '-' }}</td>
+                            <td>{{ $shipment->nama_kapal ?? '-' }}</td>
+                            <td>{{ $shipment->keberangkatan_kapal?->format('d-M-y') ?? '-' }}</td>
                             @foreach(\App\Models\Vendor::positions() as $pos)
                                 <td class="text-center">
                                     @if($update = $updates->get($pos))

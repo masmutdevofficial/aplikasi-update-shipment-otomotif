@@ -66,7 +66,7 @@
                         <tr>
                             <td><code>{{ $shipment->no_rangka }}</code></td>
                             <td>{{ $shipment->tujuan_pengiriman }}</td>
-                            <td>{{ $shipment->keberangkatan_kapal->format('d-M-y') }}</td>
+                            <td>{{ $shipment->keberangkatan_kapal?->format('d-M-y') ?? '-' }}</td>
                         </tr>
                         @empty
                         <tr>
