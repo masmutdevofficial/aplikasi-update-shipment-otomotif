@@ -18,6 +18,11 @@ use Illuminate\Support\Facades\Route;
 | Guest Routes
 |--------------------------------------------------------------------------
 */
+Route::view('/contact', 'public.contact')->name('contact');
+Route::view('/kontak', 'public.contact')->name('kontak');
+Route::view('/privacy', 'public.privacy')->name('privacy');
+Route::view('/kebijakan-privasi', 'public.privacy')->name('kebijakan-privasi');
+
 Route::middleware('guest')->group(function () {
     Route::get('/', fn () => redirect()->route('login'));
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');

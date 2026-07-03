@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="robots" content="noindex, nofollow, noarchive">
 
     <title>@yield('title', config('app.name', 'Shipment Otomotif'))</title>
 
@@ -97,12 +98,21 @@
             display: flex; align-items: flex-start; gap: 10px; border: 1px solid transparent; font-size: 14px;
         }
         .alert-success { background: #d4edda; border-color: #c3e6cb; color: #155724; }
+        .alert-info { background: #e8f4ff; border-color: #b6dcff; color: #084b83; }
         .alert-danger  { background: #f8d7da; border-color: #f5c6cb; color: #721c24; }
         .alert .alert-content { flex: 1; }
         .alert .btn-close-alert { background: none; border: none; cursor: pointer; color: inherit; opacity: .6; font-size: 18px; }
         .login-links { text-align: center; margin-top: 16px; font-size: 13px; color: #6c757d; }
         .login-links a { color: var(--primary); }
         .form-text { font-size: 12px; color: #6c757d; margin-top: 4px; }
+        .guest-footer {
+            text-align: center; margin-top: 18px; line-height: 1.5;
+            font-size: 12px; color: #6c757d;
+        }
+        .guest-footer strong { color: #495057; }
+        .guest-footer-links { margin-top: 8px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        .info-list { margin: 8px 0 0 18px; color: inherit; }
+        .info-list li { margin-top: 4px; }
 
         @stack('styles')
     </style>
@@ -113,6 +123,7 @@
             <i class="fas fa-truck"></i>
             <h1>Shipment Otomotif</h1>
             <p>PT. Serasi Logistics Indonesia</p>
+            <p>Environment internal sementara</p>
         </div>
 
         @if (session('success'))
@@ -129,6 +140,21 @@
         @endif
 
         @yield('content')
+
+        <div class="guest-footer">
+            <strong>Website Internal Shipment Otomotif</strong><br>
+            Akses terbatas untuk pengguna terdaftar.
+            Jika Anda tidak mengenali aplikasi ini, jangan memasukkan kredensial.
+            @if (config('app.admin_contact_email'))
+                <br>Kontak administrator: <a href="mailto:{{ config('app.admin_contact_email') }}">{{ config('app.admin_contact_email') }}</a>
+            @else
+                <br>Untuk bantuan akses, hubungi administrator sistem.
+            @endif
+            <div class="guest-footer-links">
+                <a href="{{ route('contact') }}">Kontak</a>
+                <a href="{{ route('privacy') }}">Kebijakan Privasi</a>
+            </div>
+        </div>
     </div>
 
     @stack('scripts')

@@ -8,6 +8,23 @@
         <i class="fas fa-sign-in-alt"></i> Login
     </div>
     <div class="login-card-body">
+        <div class="alert alert-info">
+            <div class="alert-content">
+                <strong>Portal Internal Shipment Otomotif</strong><br>
+                Aplikasi ini hanya untuk pengguna internal yang telah diberi akses resmi.
+                Jangan masukkan email atau password jika Anda bukan pengguna terdaftar.
+                <br><br>
+                Domain ini digunakan sebagai environment internal sementara untuk aplikasi operasional.
+                Aplikasi ini tidak meminta password layanan eksternal, OTP, PIN, atau data pembayaran.
+                <br><br>
+                @if (config('app.admin_contact_email'))
+                    Bantuan akses: <a href="mailto:{{ config('app.admin_contact_email') }}">{{ config('app.admin_contact_email') }}</a>
+                @else
+                    Untuk bantuan akses, hubungi administrator sistem.
+                @endif
+            </div>
+        </div>
+
         @if ($errors->any())
             <div class="alert alert-danger">
                 <div class="alert-content">
@@ -59,6 +76,10 @@
 
             <div class="login-links">
                 <a href="{{ route('password.request') }}">Lupa password?</a>
+                <span aria-hidden="true"> | </span>
+                <a href="{{ route('contact') }}">Kontak</a>
+                <span aria-hidden="true"> | </span>
+                <a href="{{ route('privacy') }}">Privasi</a>
             </div>
         </form>
     </div>
