@@ -156,13 +156,26 @@ class ShipmentCrudTest extends TestCase
         $response->assertStatus(403);
     }
 
-    public function test_dates_are_required(): void
+    public function test_do_and_shipment_dates_are_optional(): void
     {
-        $response = $this->actingAs($this->admin)->post(
-            route('admin.shipments.store'),
-            $this->validShipmentData(['terima_do' => '', 'keluar_dari_pdc' => ''])
-        );
+        $data = $this->validShipmentData([
+            'no_do' => '',
+            'terima_do' => '',
+            'keluar_dari_pdc' => '',
+            'nama_kapal' => '',
+            'keberangkatan_kapal' => '',
+        ]);
 
-        $response->assertSessionHasErrors(['terima_do', 'keluar_dari_pdc']);
+        $response = $this->actingAs($this->admin)->post(route('admin.shipments.store'), $data);
+
+        $response->assertRedirect(route('admin.shipments.index'));
+        $this->assertDatabaseHas('shipments', [
+            'no_rangka' => 'MHFAA8GS4N0000001',
+            'no_do' => null,
+            'terima_do' => null,
+            'keluar_dari_pdc' => null,
+            'nama_kapal' => null,
+            'keberangkatan_kapal' => null,
+        ]);
     }
 }

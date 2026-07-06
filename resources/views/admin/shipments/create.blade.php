@@ -36,14 +36,13 @@
 
                         {{-- No. DO --}}
                         <div class="col-md-6">
-                            <label for="no_do" class="form-label fw-semibold">No. DO <span class="text-danger">*</span></label>
+                            <label for="no_do" class="form-label fw-semibold">No. DO</label>
                             <input type="text"
                                    class="form-control @error('no_do') is-invalid @enderror"
                                    id="no_do"
                                    name="no_do"
                                    value="{{ old('no_do') }}"
-                                   maxlength="50"
-                                   required>
+                                   maxlength="50">
                             @error('no_do')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -158,13 +157,12 @@
 
                         {{-- Terima DO --}}
                         <div class="col-md-6">
-                            <label for="terima_do" class="form-label fw-semibold">Tanggal Terima DO <span class="text-danger">*</span></label>
+                            <label for="terima_do" class="form-label fw-semibold">Tanggal Terima DO</label>
                             <input type="date"
                                    class="form-control @error('terima_do') is-invalid @enderror"
                                    id="terima_do"
                                    name="terima_do"
-                                   value="{{ old('terima_do') }}"
-                                   required>
+                                   value="{{ old('terima_do') }}">
                             @error('terima_do')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -172,13 +170,12 @@
 
                         {{-- Keluar dari PDC --}}
                         <div class="col-md-6">
-                            <label for="keluar_dari_pdc" class="form-label fw-semibold">Tanggal Keluar dari PDC <span class="text-danger">*</span></label>
+                            <label for="keluar_dari_pdc" class="form-label fw-semibold">Tanggal Keluar dari PDC</label>
                             <input type="date"
                                    class="form-control @error('keluar_dari_pdc') is-invalid @enderror"
                                    id="keluar_dari_pdc"
                                    name="keluar_dari_pdc"
-                                   value="{{ old('keluar_dari_pdc') }}"
-                                   required>
+                                   value="{{ old('keluar_dari_pdc') }}">
                             @error('keluar_dari_pdc')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -186,14 +183,13 @@
 
                         {{-- Nama Kapal --}}
                         <div class="col-md-6">
-                            <label for="nama_kapal" class="form-label fw-semibold">Nama Kapal <span class="text-danger">*</span></label>
+                            <label for="nama_kapal" class="form-label fw-semibold">Nama Kapal</label>
                             <input type="text"
                                    class="form-control @error('nama_kapal') is-invalid @enderror"
                                    id="nama_kapal"
                                    name="nama_kapal"
                                    value="{{ old('nama_kapal') }}"
-                                   maxlength="100"
-                                   required>
+                                   maxlength="100">
                             @error('nama_kapal')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -201,13 +197,12 @@
 
                         {{-- Keberangkatan Kapal --}}
                         <div class="col-md-6">
-                            <label for="keberangkatan_kapal" class="form-label fw-semibold">Tanggal Keberangkatan Kapal <span class="text-danger">*</span></label>
+                            <label for="keberangkatan_kapal" class="form-label fw-semibold">Tanggal Keberangkatan Kapal</label>
                             <input type="date"
                                    class="form-control @error('keberangkatan_kapal') is-invalid @enderror"
                                    id="keberangkatan_kapal"
                                    name="keberangkatan_kapal"
-                                   value="{{ old('keberangkatan_kapal') }}"
-                                   required>
+                                   value="{{ old('keberangkatan_kapal') }}">
                             @error('keberangkatan_kapal')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror

@@ -41,7 +41,7 @@ class ShipmentTemplateExport implements FromArray, WithHeadings, WithStyles, Wit
         return [
             [
                 'Jakarta Utara',
-                'DO-2026-00001',
+                '',
                 'AVANZA 1.3 E M/T',
                 'MHKM1BA3JFK123456',
                 'K3VE1234567',
@@ -50,9 +50,9 @@ class ShipmentTemplateExport implements FromArray, WithHeadings, WithStyles, Wit
                 'Surabaya',
                 'Dealer ABC Surabaya',
                 '2026-04-01',
-                '2026-04-03',
-                'KM MERATUS BARITO',
-                '2026-04-05',
+                '',
+                '',
+                '',
             ],
         ];
     }

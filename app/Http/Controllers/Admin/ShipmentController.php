@@ -100,7 +100,7 @@ class ShipmentController extends Controller
         $message = "Import selesai: {$import->importedCount} data berhasil diimpor";
 
         if ($import->updatedCount > 0) {
-            $message .= ", {$import->updatedCount} data kapal diperbarui";
+            $message .= ", {$import->updatedCount} data diperbarui";
         }
 
         if ($import->skippedCount > 0) {

@@ -38,9 +38,11 @@
                     <div class="alert alert-info">
                         <h6 class="alert-heading"><i class="fas fa-info-circle"></i> Ketentuan Upload</h6>
                         <ul class="mb-2 ps-3">
-                            <li>Baris pertama harus berupa <strong>header kolom</strong> sesuai format template.</li>
+                            <li>File harus memiliki <strong>header kolom</strong> sesuai format template atau manifest kapal.</li>
                             <li>Kolom <strong>No. Rangka (VIN)</strong> harus tepat 17 karakter alfanumerik.</li>
-                            <li>Data yang No. Rangka-nya sudah terdaftar akan <strong>di-skip otomatis</strong>.</li>
+                            <li><strong>No. DO</strong>, <strong>Terima DO</strong>, <strong>Keluar dari PDC</strong>, <strong>Nama Kapal</strong>, dan <strong>Keberangkatan Kapal</strong> boleh kosong jika belum tersedia.</li>
+                            <li>Data yang No. Rangka-nya sudah terdaftar akan <strong>diperbarui otomatis</strong> jika file berisi data DO, tanggal, kapal, atau ATD terbaru.</li>
+                            <li>File manifest kapal dengan kop/header di tengah file akan dideteksi otomatis selama memiliki kolom <strong>No. Rangka</strong>.</li>
                             <li>Format tanggal: <code>YYYY-MM-DD</code> atau <code>DD/MM/YYYY</code>.</li>
                         </ul>
                         <a href="{{ route('admin.shipments.template') }}" class="btn btn-sm btn-outline-info">

@@ -15,7 +15,7 @@ class StoreShipmentRequest extends FormRequest
     {
         return [
             'lokasi' => ['required', 'string', 'max:50'],
-            'no_do' => ['required', 'string', 'max:50'],
+            'no_do' => ['nullable', 'string', 'max:50'],
             'type_kendaraan' => ['required', 'string', 'max:50'],
             'no_rangka' => ['required', 'string', 'size:17', 'regex:/^[A-HJ-NPR-Z0-9]{17}$/', 'unique:shipments,no_rangka'],
             'no_engine' => ['required', 'string', 'max:50'],
@@ -23,10 +23,10 @@ class StoreShipmentRequest extends FormRequest
             'asal_pdc' => ['required', 'string', 'max:100'],
             'kota' => ['required', 'string', 'max:100'],
             'tujuan_pengiriman' => ['required', 'string', 'max:100'],
-            'terima_do' => ['required', 'date'],
-            'keluar_dari_pdc' => ['required', 'date'],
-            'nama_kapal' => ['required', 'string', 'max:100'],
-            'keberangkatan_kapal' => ['required', 'date'],
+            'terima_do' => ['nullable', 'date'],
+            'keluar_dari_pdc' => ['nullable', 'date'],
+            'nama_kapal' => ['nullable', 'string', 'max:100'],
+            'keberangkatan_kapal' => ['nullable', 'date'],
         ];
     }
 
