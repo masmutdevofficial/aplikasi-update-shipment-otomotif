@@ -66,6 +66,16 @@ class ShipmentController extends Controller
             ->with('success', 'Data shipment berhasil dihapus.');
     }
 
+    public function destroyAll()
+    {
+        abort_unless(auth()->user()?->isSuperadmin(), 403);
+
+        $deletedCount = $this->shipmentService->deleteAllShipments();
+
+        return redirect()->route('admin.shipments.index')
+            ->with('success', "{$deletedCount} data shipment berhasil dihapus.");
+    }
+
     public function showImport()
     {
         return view('admin.shipments.import');

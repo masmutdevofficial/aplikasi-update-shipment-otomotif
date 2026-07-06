@@ -66,6 +66,7 @@ Route::middleware('auth')->group(function () {
             Route::resource('vendors', VendorController::class)->except(['show']);
 
             // Shipment Management
+            Route::delete('/shipments/destroy-all', [ShipmentController::class, 'destroyAll'])->name('shipments.destroy-all');
             Route::resource('shipments', ShipmentController::class)->except(['show']);
             Route::get('/shipments/import', [ShipmentController::class, 'showImport'])->name('shipments.import.form');
             Route::post('/shipments/import', [ShipmentController::class, 'importExcel'])->name('shipments.import');

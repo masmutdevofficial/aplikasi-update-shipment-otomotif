@@ -51,4 +51,9 @@ class ShipmentService
     {
         $shipment->delete();
     }
+
+    public function deleteAllShipments(): int
+    {
+        return Shipment::query()->delete();
+    }
 }

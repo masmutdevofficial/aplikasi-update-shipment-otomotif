@@ -10,6 +10,16 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <span></span>
     <div class="d-flex gap-2">
+        @if(auth()->user()?->isSuperadmin())
+            <form method="POST" action="{{ route('admin.shipments.destroy-all') }}"
+                  onsubmit="return confirm('Hapus semua data shipment? Tindakan ini tidak dapat dibatalkan.')">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="btn btn-danger" {{ $shipments->isEmpty() ? 'disabled' : '' }}>
+                    <i class="fas fa-trash-alt"></i> Hapus Semua Data
+                </button>
+            </form>
+        @endif
         <a href="{{ route('admin.shipments.import.form') }}" class="btn btn-success">
             <i class="fas fa-file-excel"></i> Upload Excel
         </a>
