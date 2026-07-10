@@ -151,6 +151,39 @@ class UserService
     }
 
     /**
+     * Delete multiple users while preserving at least one superadmin.
+     *
+     * @param \Illuminate\Support\Collection<int, User> $users
+     * @return array{success: bool, message: string}
+     */
+    public function deleteUsers(\Illuminate\Support\Collection $users): array
+    {
+        $superadminsToDelete = $users->where('level', 'superadmin')->count();
+        $remainingSuperadmins = User::where('level', 'superadmin')->count() - $superadminsToDelete;
+
+        if ($remainingSuperadmins < 1) {
+            return [
+                'success' => false,
+                'message' => 'Tidak dapat menghapus semua superadmin. Minimal satu superadmin harus tersisa.',
+            ];
+        }
+
+        DB::transaction(function () use ($users) {
+            $userIds = $users->pluck('id');
+
+            DB::table('sessions')->whereIn('user_id', $userIds)->delete();
+            User::whereIn('id', $userIds)->delete();
+        });
+
+        $count = $users->count();
+
+        return [
+            'success' => true,
+            'message' => "{$count} user berhasil dihapus.",
+        ];
+    }
+
+    /**
      * Get available levels based on current user's level.
      */
     public function getAvailableLevels(User $currentUser): array

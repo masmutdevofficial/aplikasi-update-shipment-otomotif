@@ -119,6 +119,44 @@ class UserCrudTest extends TestCase
         $this->assertDatabaseHas('users', ['id' => $this->superadmin->id]);
     }
 
+    public function test_superadmin_can_bulk_delete_selected_users(): void
+    {
+        $vendor = User::factory()->vendor()->create();
+        $admin = User::factory()->admin()->create();
+
+        $response = $this->actingAs($this->superadmin)->delete(route('admin.users.bulk-destroy'), [
+            'user_ids' => [$vendor->id, $admin->id],
+        ]);
+
+        $response->assertRedirect(route('admin.users.index'));
+        $this->assertDatabaseMissing('users', ['id' => $vendor->id]);
+        $this->assertDatabaseMissing('users', ['id' => $admin->id]);
+    }
+
+    public function test_bulk_delete_cannot_delete_the_current_user(): void
+    {
+        $superadmin2 = User::factory()->superadmin()->create();
+
+        $response = $this->actingAs($superadmin2)->delete(route('admin.users.bulk-destroy'), [
+            'user_ids' => [$this->superadmin->id, $superadmin2->id],
+        ]);
+
+        $response->assertSessionHas('error');
+        $this->assertDatabaseHas('users', ['id' => $this->superadmin->id]);
+        $this->assertDatabaseHas('users', ['id' => $superadmin2->id]);
+    }
+
+    public function test_admin_can_only_bulk_delete_vendor_users(): void
+    {
+        $vendor = User::factory()->vendor()->create();
+        $response = $this->actingAs($this->admin)->delete(route('admin.users.bulk-destroy'), [
+            'user_ids' => [$vendor->id, $this->superadmin->id],
+        ]);
+
+        $response->assertStatus(403);
+        $this->assertDatabaseHas('users', ['id' => $vendor->id]);
+    }
+
     public function test_toggle_status_works(): void
     {
         $user = User::factory()->vendor()->create(['is_active' => true]);

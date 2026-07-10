@@ -113,39 +113,17 @@ class ShipmentCrudTest extends TestCase
         $this->assertDatabaseMissing('shipments', ['id' => $shipment->id]);
     }
 
-    public function test_superadmin_can_delete_all_shipments(): void
+    public function test_admin_can_bulk_delete_selected_shipments(): void
     {
-        $superadmin = User::factory()->superadmin()->create();
-        Shipment::factory()->count(3)->create();
+        $shipments = Shipment::factory()->count(2)->create();
 
-        $response = $this->actingAs($superadmin)->delete(route('admin.shipments.destroy-all'));
+        $response = $this->actingAs($this->admin)->delete(route('admin.shipments.bulk-destroy'), [
+            'shipment_ids' => $shipments->pluck('id')->all(),
+        ]);
 
         $response->assertRedirect(route('admin.shipments.index'));
-        $response->assertSessionHas('success', '3 data shipment berhasil dihapus.');
-        $this->assertDatabaseCount('shipments', 0);
-    }
-
-    public function test_admin_cannot_delete_all_shipments(): void
-    {
-        Shipment::factory()->count(2)->create();
-
-        $response = $this->actingAs($this->admin)->delete(route('admin.shipments.destroy-all'));
-
-        $response->assertStatus(403);
-        $this->assertDatabaseCount('shipments', 2);
-    }
-
-    public function test_delete_all_button_only_visible_for_superadmin(): void
-    {
-        $superadmin = User::factory()->superadmin()->create();
-
-        $this->actingAs($this->admin)
-            ->get(route('admin.shipments.index'))
-            ->assertDontSee(route('admin.shipments.destroy-all'));
-
-        $this->actingAs($superadmin)
-            ->get(route('admin.shipments.index'))
-            ->assertSee(route('admin.shipments.destroy-all'));
+        $this->assertDatabaseMissing('shipments', ['id' => $shipments[0]->id]);
+        $this->assertDatabaseMissing('shipments', ['id' => $shipments[1]->id]);
     }
 
     public function test_vendor_cannot_access_shipments(): void

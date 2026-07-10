@@ -15,9 +15,19 @@
             Kelola semua akun pengguna
         @endif
     </p>
-    <a href="{{ route('admin.users.create') }}" class="btn btn-primary">
-        <i class="fas fa-plus"></i> Tambah User
-    </a>
+    <div class="d-flex align-items-center">
+        <form id="bulk-delete-form" method="POST" action="{{ route('admin.users.bulk-destroy') }}" class="mr-2 d-none">
+            @csrf
+            @method('DELETE')
+            <span id="selected-users-count" class="text-muted mr-2"></span>
+            <button type="submit" class="btn btn-danger">
+                <i class="fas fa-trash"></i> Hapus Terpilih
+            </button>
+        </form>
+        <a href="{{ route('admin.users.create') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Tambah User
+        </a>
+    </div>
 </div>
 
 {{-- Table --}}
@@ -27,6 +37,9 @@
             <table id="table-users" class="table table-hover mb-0">
                 <thead>
                     <tr>
+                        <th class="text-center" style="width: 40px;">
+                            <input type="checkbox" id="select-all-users" aria-label="Pilih semua user">
+                        </th>
                         <th>Nama</th>
                         <th>Username</th>
                         <th>Email</th>
@@ -38,6 +51,11 @@
                 <tbody>
                     @foreach($users as $user)
                         <tr>
+                            <td class="text-center">
+                                @if($user->id !== auth()->id())
+                                    <input type="checkbox" class="user-select" value="{{ $user->id }}" aria-label="Pilih {{ $user->name }}">
+                                @endif
+                            </td>
                             <td>{{ $user->name }}</td>
                             <td><code>{{ $user->username }}</code></td>
                             <td>{{ $user->email }}</td>
@@ -110,7 +128,7 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    $('#table-users').DataTable({
+    const usersTable = $('#table-users').DataTable({
         pageLength: 10,
         lengthMenu: [[10, 25, 50, -1], ['10', '25', '50', 'Semua']],
         language: {
@@ -123,7 +141,62 @@ document.addEventListener('DOMContentLoaded', function () {
             zeroRecords: 'Tidak ada data yang cocok',
             paginate: { first: '«', last: '»', next: '›', previous: '‹' }
         },
-        columnDefs: [{ orderable: false, targets: -1 }]
+        columnDefs: [{ orderable: false, targets: [0, -1] }]
+    });
+
+    const selectAll = document.getElementById('select-all-users');
+    const bulkDeleteForm = document.getElementById('bulk-delete-form');
+    const selectedCount = document.getElementById('selected-users-count');
+
+    function getUserCheckboxes() {
+        return Array.from($(usersTable.rows().nodes()).find('.user-select'));
+    }
+
+    function updateBulkDeleteState() {
+        const checkboxes = getUserCheckboxes();
+        const selected = checkboxes.filter((checkbox) => checkbox.checked);
+
+        bulkDeleteForm.classList.toggle('d-none', selected.length === 0);
+        selectedCount.textContent = `${selected.length} user dipilih`;
+        selectAll.checked = checkboxes.length > 0 && selected.length === checkboxes.length;
+        selectAll.indeterminate = selected.length > 0 && selected.length < checkboxes.length;
+    }
+
+    selectAll.addEventListener('change', function () {
+        getUserCheckboxes().forEach((checkbox) => {
+            checkbox.checked = selectAll.checked;
+        });
+        updateBulkDeleteState();
+    });
+
+    document.addEventListener('change', function (event) {
+        if (event.target.classList.contains('user-select')) {
+            updateBulkDeleteState();
+        }
+    });
+
+    $('#table-users').on('draw.dt', updateBulkDeleteState);
+
+    bulkDeleteForm.addEventListener('submit', function (event) {
+        const selected = getUserCheckboxes().filter((checkbox) => checkbox.checked);
+
+        if (selected.length === 0) {
+            event.preventDefault();
+            return;
+        }
+
+        if (!confirm(`Yakin ingin menghapus ${selected.length} user terpilih? Tindakan ini tidak dapat dibatalkan.`)) {
+            event.preventDefault();
+            return;
+        }
+
+        selected.forEach((checkbox) => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'user_ids[]';
+            input.value = checkbox.value;
+            bulkDeleteForm.appendChild(input);
+        });
     });
 });
 </script>

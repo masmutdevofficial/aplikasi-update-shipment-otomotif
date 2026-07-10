@@ -9,17 +9,15 @@
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-3">
     <span></span>
-    <div class="d-flex gap-2">
-        @if(auth()->user()?->isSuperadmin())
-            <form method="POST" action="{{ route('admin.shipments.destroy-all') }}"
-                  onsubmit="return confirm('Hapus semua data shipment? Tindakan ini tidak dapat dibatalkan.')">
-                @csrf
-                @method('DELETE')
-                <button type="submit" class="btn btn-danger" {{ $shipments->isEmpty() ? 'disabled' : '' }}>
-                    <i class="fas fa-trash-alt"></i> Hapus Semua Data
-                </button>
-            </form>
-        @endif
+    <div class="d-flex gap-2 flex-wrap justify-content-end">
+        <form id="bulk-delete-shipments-form" method="POST" action="{{ route('admin.shipments.bulk-destroy') }}" class="d-none">
+            @csrf
+            @method('DELETE')
+            <span id="selected-shipments-count" class="text-muted mr-2"></span>
+            <button type="submit" class="btn btn-danger">
+                <i class="fas fa-trash"></i> Hapus Terpilih
+            </button>
+        </form>
         <a href="{{ route('admin.shipments.import.form') }}" class="btn btn-success">
             <i class="fas fa-file-excel"></i> Upload Excel
         </a>
@@ -32,10 +30,13 @@
 {{-- Table --}}
 <div class="card">
     <div class="card-body p-0">
-        <div class="table-responsive">
+        <div class="shipment-table-scroll">
             <table id="table-shipments" class="table table-hover mb-0">
                 <thead>
                     <tr>
+                        <th class="text-center" style="width: 40px;">
+                            <input type="checkbox" class="select-all-shipments" aria-label="Pilih semua shipment">
+                        </th>
                         <th>No</th>
                         <th>Lokasi</th>
                         <th>No. DO</th>
@@ -54,6 +55,9 @@
                 <tbody>
                     @foreach($shipments as $shipment)
                         <tr>
+                            <td class="text-center">
+                                <input type="checkbox" class="shipment-select" value="{{ $shipment->id }}" aria-label="Pilih shipment {{ $shipment->no_rangka }}">
+                            </td>
                             <td>{{ $loop->iteration }}</td>
                             <td>{{ $shipment->lokasi }}</td>
                             <td>{{ $shipment->no_do }}</td>
@@ -94,8 +98,9 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    $('#table-shipments').DataTable({
+    const shipmentsTable = $('#table-shipments').DataTable({
         pageLength: 10,
+        scrollX: true,
         lengthMenu: [[10, 25, 50, 100, -1], ['10', '25', '50', '100', 'Semua']],
         language: {
             search: 'Cari:',
@@ -108,10 +113,61 @@ document.addEventListener('DOMContentLoaded', function () {
             paginate: { first: '«', last: '»', next: '›', previous: '‹' }
         },
         columnDefs: [
-            { orderable: false, targets: [0, -1] },
-            { type: 'date', targets: [8, 9, 11] }
+            { orderable: false, targets: [0, 1, -1] },
+            { type: 'date', targets: [9, 10, 12] }
         ],
-        order: [[1, 'asc']]
+        order: [[2, 'asc']]
+    });
+
+    const tableContainer = $(shipmentsTable.table().container());
+    const selectAll = tableContainer.find('.select-all-shipments');
+    const bulkDeleteForm = document.getElementById('bulk-delete-shipments-form');
+    const selectedCount = document.getElementById('selected-shipments-count');
+
+    function getShipmentCheckboxes() {
+        return Array.from($(shipmentsTable.rows().nodes()).find('.shipment-select'));
+    }
+
+    function updateBulkDeleteState() {
+        const checkboxes = getShipmentCheckboxes();
+        const selected = checkboxes.filter((checkbox) => checkbox.checked);
+
+        bulkDeleteForm.classList.toggle('d-none', selected.length === 0);
+        selectedCount.textContent = `${selected.length} shipment dipilih`;
+        selectAll.prop('checked', checkboxes.length > 0 && selected.length === checkboxes.length);
+        selectAll.prop('indeterminate', selected.length > 0 && selected.length < checkboxes.length);
+    }
+
+    tableContainer.on('change', '.select-all-shipments', function () {
+        getShipmentCheckboxes().forEach((checkbox) => {
+            checkbox.checked = this.checked;
+        });
+        updateBulkDeleteState();
+    });
+
+    document.addEventListener('change', function (event) {
+        if (event.target.classList.contains('shipment-select')) {
+            updateBulkDeleteState();
+        }
+    });
+
+    $('#table-shipments').on('draw.dt', updateBulkDeleteState);
+
+    bulkDeleteForm.addEventListener('submit', function (event) {
+        const selected = getShipmentCheckboxes().filter((checkbox) => checkbox.checked);
+
+        if (selected.length === 0 || !confirm(`Yakin ingin menghapus ${selected.length} shipment terpilih? Tindakan ini tidak dapat dibatalkan.`)) {
+            event.preventDefault();
+            return;
+        }
+
+        selected.forEach((checkbox) => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'shipment_ids[]';
+            input.value = checkbox.value;
+            bulkDeleteForm.appendChild(input);
+        });
     });
 });
 </script>

@@ -59,6 +59,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/dashboard', fn () => view('admin.dashboard'))->name('dashboard');
 
             // User Management
+            Route::delete('/users/bulk-delete', [UserController::class, 'bulkDestroy'])->name('users.bulk-destroy');
             Route::resource('users', UserController::class)->except(['show']);
             Route::patch('/users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
 
@@ -66,7 +67,7 @@ Route::middleware('auth')->group(function () {
             Route::resource('vendors', VendorController::class)->except(['show']);
 
             // Shipment Management
-            Route::delete('/shipments/destroy-all', [ShipmentController::class, 'destroyAll'])->name('shipments.destroy-all');
+            Route::delete('/shipments/bulk-delete', [ShipmentController::class, 'bulkDestroy'])->name('shipments.bulk-destroy');
             Route::resource('shipments', ShipmentController::class)->except(['show']);
             Route::get('/shipments/import', [ShipmentController::class, 'showImport'])->name('shipments.import.form');
             Route::post('/shipments/import', [ShipmentController::class, 'importExcel'])->name('shipments.import');

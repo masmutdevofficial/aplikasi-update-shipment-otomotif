@@ -66,11 +66,17 @@ class ShipmentController extends Controller
             ->with('success', 'Data shipment berhasil dihapus.');
     }
 
-    public function destroyAll()
+    /**
+     * Remove the selected shipments.
+     */
+    public function bulkDestroy(Request $request)
     {
-        abort_unless(auth()->user()?->isSuperadmin(), 403);
+        $data = $request->validate([
+            'shipment_ids' => ['required', 'array', 'min:1'],
+            'shipment_ids.*' => ['required', 'uuid', 'distinct', 'exists:shipments,id'],
+        ]);
 
-        $deletedCount = $this->shipmentService->deleteAllShipments();
+        $deletedCount = $this->shipmentService->deleteShipments($data['shipment_ids']);
 
         return redirect()->route('admin.shipments.index')
             ->with('success', "{$deletedCount} data shipment berhasil dihapus.");

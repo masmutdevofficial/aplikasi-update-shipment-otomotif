@@ -138,4 +138,32 @@ class UserController extends Controller
             ->route('admin.users.index')
             ->with($result['success'] ? 'success' : 'error', $result['message']);
     }
+
+    /**
+     * Remove the selected users.
+     */
+    public function bulkDestroy(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'user_ids' => ['required', 'array', 'min:1'],
+            'user_ids.*' => ['required', 'uuid', 'distinct', 'exists:users,id'],
+        ]);
+
+        $currentUser = $request->user();
+        $users = User::whereIn('id', $data['user_ids'])->get();
+
+        if ($currentUser->isAdmin() && $users->contains(fn (User $user) => $user->level !== 'vendor')) {
+            abort(403, 'Akses ditolak.');
+        }
+
+        if ($users->contains('id', $currentUser->id)) {
+            return back()->with('error', 'Anda tidak dapat menghapus akun sendiri.');
+        }
+
+        $result = $this->userService->deleteUsers($users);
+
+        return redirect()
+            ->route('admin.users.index')
+            ->with($result['success'] ? 'success' : 'error', $result['message']);
+    }
 }

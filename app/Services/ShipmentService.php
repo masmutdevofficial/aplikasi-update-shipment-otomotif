@@ -52,8 +52,14 @@ class ShipmentService
         $shipment->delete();
     }
 
-    public function deleteAllShipments(): int
+    /**
+     * Delete the shipments identified by their UUIDs.
+     *
+     * @param array<int, string> $shipmentIds
+     */
+    public function deleteShipments(array $shipmentIds): int
     {
-        return Shipment::query()->delete();
+        return Shipment::whereIn('id', $shipmentIds)->delete();
     }
+
 }
