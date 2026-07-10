@@ -594,25 +594,15 @@
                                 <p>{{ auth()->user()->isSuperadmin() ? 'Kelola Users' : 'Kelola Vendor' }}</p>
                             </a>
                         </li>
-                        <div class="nav-header">Dokumentasi</div>
-                        <li class="nav-item">
-                            <a href="{{ route('admin.docs.tsd') }}" class="nav-link @if(request()->routeIs('admin.docs.tsd')) active @endif">
-                                <i class="nav-icon fas fa-file-alt"></i>
-                                <p>TSD</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('admin.docs.user-guide-admin') }}" class="nav-link @if(request()->routeIs('admin.docs.user-guide-admin')) active @endif">
-                                <i class="nav-icon fas fa-book"></i>
-                                <p>Panduan Admin</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('admin.docs.user-guide-vendor') }}" class="nav-link @if(request()->routeIs('admin.docs.user-guide-vendor')) active @endif">
-                                <i class="nav-icon fas fa-book-open"></i>
-                                <p>Panduan Vendor</p>
-                            </a>
-                        </li>
+                        @if(auth()->user()->isSuperadmin() || auth()->user()->isAdmin())
+                            <div class="nav-header">Dokumentasi</div>
+                            <li class="nav-item">
+                                <a href="{{ route('admin.docs.user-guide-admin') }}" class="nav-link @if(request()->routeIs('admin.docs.user-guide-admin')) active @endif">
+                                    <i class="nav-icon fas fa-book"></i>
+                                    <p>Panduan Admin</p>
+                                </a>
+                            </li>
+                        @endif
                     </ul>
                 </nav>
             </div>
