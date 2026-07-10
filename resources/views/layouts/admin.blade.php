@@ -159,6 +159,7 @@
             margin-left: var(--sidebar-width);
             margin-top: var(--navbar-height);
             min-height: calc(100vh - var(--navbar-height));
+            min-width: 0;
             background: var(--content-bg);
             transition: margin-left .3s ease;
             flex: 1;
@@ -178,7 +179,7 @@
         .breadcrumb-item a { color: var(--primary); }
         .breadcrumb-item + .breadcrumb-item::before { content: "/"; margin-right: 4px; color: #adb5bd; }
         .breadcrumb-item.active { color: #495057; }
-        .content { padding: 0 24px 24px; flex: 1; }
+        .content { padding: 0 24px 24px; flex: 1; min-width: 0; }
         .container-fluid { width: 100%; }
 
         /* === FOOTER === */
@@ -394,10 +395,21 @@
         .fs-1 { font-size: 2rem; }
         .opacity-50 { opacity: .5; }
         .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        .shipment-table-scroll,
-        .shipment-table-scroll .dt-container,
-        .shipment-table-scroll .dt-scroll-body {
+        .shipment-table-scroll {
+            width: 100%;
+            min-width: 0;
             max-width: 100%;
+            overflow: hidden;
+        }
+        .shipment-table-scroll .dt-container,
+        .shipment-table-scroll .dt-scroll {
+            width: 100% !important;
+            min-width: 0;
+            max-width: 100%;
+        }
+        .shipment-table-scroll .dt-scroll-head,
+        .shipment-table-scroll .dt-scroll-body {
+            max-width: 100% !important;
         }
         .shipment-table-scroll .dt-scroll-body {
             overflow-x: auto !important;
