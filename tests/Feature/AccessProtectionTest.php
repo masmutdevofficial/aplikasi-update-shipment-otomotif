@@ -80,6 +80,15 @@ class AccessProtectionTest extends TestCase
         $response->assertStatus(200);
     }
 
+    public function test_authenticated_vendor_is_redirected_to_vendor_dashboard_from_login(): void
+    {
+        $vendor = User::factory()->vendor()->create();
+
+        $response = $this->actingAs($vendor)->get('/login');
+
+        $response->assertRedirect('/vendor/dashboard');
+    }
+
     public function test_change_password_accessible_by_any_authenticated_user(): void
     {
         $user = User::factory()->admin()->create();

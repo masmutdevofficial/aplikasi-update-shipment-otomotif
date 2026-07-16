@@ -5,6 +5,7 @@ use App\Http\Middleware\CheckVendorStatus;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -26,7 +27,11 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->redirectGuestsTo('/login');
-        $middleware->redirectUsersTo('/admin/dashboard');
+        $middleware->redirectUsersTo(function (Request $request): string {
+            return $request->user()?->level === 'vendor'
+                ? '/vendor/dashboard'
+                : '/admin/dashboard';
+        });
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
