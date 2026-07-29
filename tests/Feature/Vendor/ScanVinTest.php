@@ -5,12 +5,13 @@ namespace Tests\Feature\Vendor;
 use App\Models\Shipment;
 use App\Models\User;
 use App\Models\Vendor;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class ScanVinTest extends TestCase
 {
-
     private User $vendorUser;
+
     private Vendor $vendor;
 
     protected function setUp(): void
@@ -97,6 +98,64 @@ class ScanVinTest extends TestCase
 
         $response->assertStatus(404);
         $response->assertJson(['error' => 'No. Rangka tidak ditemukan di data shipment.']);
+    }
+
+    public function test_vendor_can_save_unknown_vin_as_pending_after_warning(): void
+    {
+        $vin = 'MHFAA8GS4N9999999';
+
+        $this->actingAs($this->vendorUser)
+            ->postJson(route('vendor.scanner.confirm'), ['no_rangka' => $vin])
+            ->assertStatus(404)
+            ->assertJsonPath('pending_allowed', true);
+
+        $this->actingAs($this->vendorUser)
+            ->postJson(route('vendor.scanner.confirm'), [
+                'no_rangka' => $vin,
+                'save_as_pending' => true,
+            ])
+            ->assertStatus(201)
+            ->assertJsonPath('pending', true);
+
+        $this->assertDatabaseHas('pending_vins', [
+            'no_rangka' => $vin,
+            'vendor_id' => $this->vendor->id,
+            'position' => 'AT Storage Port',
+        ]);
+    }
+
+    public function test_dooring_vendor_stores_captured_document_in_system_storage(): void
+    {
+        Storage::fake('r2');
+        $admin = User::factory()->admin()->create();
+        $shipment = Shipment::factory()->create([
+            'no_rangka' => 'MHFAA8GS4N0000001',
+            'created_by' => $admin->id,
+            'updated_by' => $admin->id,
+        ]);
+        $dooringUser = User::factory()->vendor()->create();
+        $dooringVendor = Vendor::create([
+            'user_id' => $dooringUser->id,
+            'vendor_name' => 'PTD Dooring Test',
+            'position' => 'AT PtD (Dooring)',
+            'created_by' => $admin->id,
+            'updated_by' => $admin->id,
+        ]);
+
+        $image = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9J3V8AAAAASUVORK5CYII=';
+
+        $this->actingAs($dooringUser)
+            ->postJson(route('vendor.scanner.confirm'), [
+                'no_rangka' => $shipment->no_rangka,
+                'document_image' => $image,
+            ])
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        $update = $shipment->shipmentUpdates()->first();
+        $this->assertSame($dooringVendor->id, $update->vendor_id);
+        $this->assertNotNull($update->document_path);
+        Storage::disk('r2')->assertExists($update->document_path);
     }
 
     public function test_confirm_fails_for_duplicate_position_scan(): void

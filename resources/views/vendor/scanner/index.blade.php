@@ -66,10 +66,8 @@
         {{-- Document Link — Only for AT PtD (Dooring) --}}
         <div class="card mb-3">
             <div class="card-body">
-                <h6 class="fw-bold mb-3"><i class="fas fa-link"></i> Link Dokumen (Opsional)</h6>
-                <input type="url" id="document-link" class="form-control"
-                       placeholder="https://drive.google.com/...">
-                <small class="text-muted">Link Google Drive / Sharepoint untuk dokumen pendukung.</small>
+                <h6 class="fw-bold mb-2"><i class="fas fa-image"></i> Dokumen Hasil Scan</h6>
+                <p class="text-muted mb-0">Foto dari kamera akan disimpan otomatis ke sistem saat hasil scan disimpan. Ambil foto terlebih dahulu sebelum konfirmasi.</p>
             </div>
         </div>
         @endif
@@ -448,10 +446,18 @@
         }
     }
 
-    async function confirmScan() {
+    async function confirmScan(saveAsPending = false) {
         const vin = vinInput.value.trim();
         if (vin.length !== 17) {
             showResult('danger', 'VIN harus tepat 17 karakter.');
+            return;
+        }
+
+        const isDooring = {{ auth()->user()->vendor && auth()->user()->vendor->position === 'AT PtD (Dooring)' ? 'true' : 'false' }};
+        const documentImage = capturedImg.src && capturedImg.style.display !== 'none' ? capturedImg.src : null;
+
+        if (isDooring && !documentImage) {
+            showResult('warning', 'Untuk PTD Dooring, ambil foto dokumen/hasil scan terlebih dahulu.');
             return;
         }
 
@@ -459,9 +465,6 @@
         btnConfirm.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Menyimpan...';
 
         try {
-            const docLinkEl = document.getElementById('document-link');
-            const documentLink = docLinkEl ? docLinkEl.value.trim() : '';
-
             let response;
             try {
                 response = await fetch('{{ route("vendor.scanner.confirm") }}', {
@@ -473,7 +476,8 @@
                     },
                     body: JSON.stringify({
                         no_rangka: vin,
-                        document_link: documentLink || null,
+                        document_image: documentImage,
+                        save_as_pending: saveAsPending,
                     }),
                 });
             } catch (networkErr) {
@@ -506,6 +510,19 @@
                 return;
             }
 
+            if (response.status === 404 && data.pending_allowed) {
+                const shouldSavePending = window.confirm(data.warning || 'VIN belum ditemukan. Simpan sebagai pending?');
+
+                if (shouldSavePending) {
+                    await confirmScan(true);
+                    return;
+                }
+
+                showResult('warning', 'VIN tidak disimpan. Periksa kembali nomor rangka atau batalkan proses scan.');
+                btnConfirm.disabled = false;
+                return;
+            }
+
             if (data.success) {
                 showResult('success',
                     '<i class="fas fa-check-circle"></i> ' + escapeHtml(data.message) +
@@ -514,8 +531,13 @@
                 // Reset form for next scan
                 vinInput.value = '';
                 vinInput.dispatchEvent(new Event('input'));
-                const docLinkReset = document.getElementById('document-link');
-                if (docLinkReset) docLinkReset.value = '';
+                capturedImg.src = '';
+                capturedImg.style.display = 'none';
+                btnRetake.style.display = 'none';
+                btnCrop.style.display = 'none';
+                btnProcess.style.display = 'none';
+                btnStartCamera.style.display = 'inline-block';
+                placeholder.style.display = 'block';
             } else {
                 showResult('danger', escapeHtml(data.error || 'Gagal menyimpan data.'));
                 btnConfirm.disabled = false;

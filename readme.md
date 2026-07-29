@@ -31,6 +31,7 @@ Aplikasi berbasis web untuk mencatat, memantau, dan memperbarui status pengirima
 | OCR | Tesseract OCR + `thiagoalessio/tesseract_ocr` |
 | Image Processing | `intervention/image` v4 |
 | Export Excel | `maatwebsite/excel` |
+| Penyimpanan dokumen scan | Cloudflare R2 (S3-compatible) |
 | Email | Resend (`resend/resend-laravel`) |
 | Build Tool | Vite 8 + `laravel-vite-plugin` |
 
@@ -184,6 +185,23 @@ RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxx
 ```
 
 > **Catatan:** `MAIL_FROM_ADDRESS` harus menggunakan domain yang sudah diverifikasi di Resend.
+
+### Dokumen Scan (Cloudflare R2)
+
+Foto dokumen hasil scan PTD Dooring disimpan pada Cloudflare R2 dan dibuka melalui CDN publik. Isi environment berikut pada deployment; jangan menyimpan kredensial asli di repository.
+
+```env
+DOCUMENT_STORAGE_DISK=r2
+R2_ACCESS_KEY_ID=<ACCESS_KEY_ID_R2>
+R2_SECRET_ACCESS_KEY=<SECRET_ACCESS_KEY_R2>
+R2_BUCKET=one-led-io
+R2_ENDPOINT=https://<ACCOUNT_ID>.r2.cloudflarestorage.com
+R2_REGION=auto
+R2_CDN_URL=https://cdn.one-led.io
+R2_PUBLIC_PREFIXES=*
+```
+
+Pastikan custom domain CDN telah dihubungkan ke bucket dan memiliki akses baca untuk objek dokumen scan.
 
 ### Password Default Superadmin
 
@@ -374,4 +392,3 @@ npm audit
 | Changelog | [CHANGELOG.md](CHANGELOG.md) |
 
 ---
-

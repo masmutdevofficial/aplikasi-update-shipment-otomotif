@@ -101,11 +101,11 @@
                             @endforeach
                             <td>
                                 @php
-                                    $docLink = $shipment->shipmentUpdates->first(fn ($u) => $u->document_link);
+                                    $document = $shipment->shipmentUpdates->first(fn ($u) => $u->document_path);
                                 @endphp
-                                @if($docLink)
-                                    <a href="{{ $docLink->document_link }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">
-                                        <i class="fas fa-link"></i>
+                                @if($document)
+                                    <a href="{{ \Illuminate\Support\Facades\Storage::disk(config('filesystems.document_disk'))->url($document->document_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-image"></i>
                                     </a>
                                 @else
                                     <span class="text-muted">-</span>

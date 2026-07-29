@@ -113,6 +113,10 @@ class ShipmentController extends Controller
             $message .= ", {$import->skippedCount} di-skip (VIN sudah terdaftar)";
         }
 
+        if ($import->matchedPendingCount > 0) {
+            $message .= ", {$import->matchedPendingCount} VIN pending berhasil dicocokkan";
+        }
+
         if ($failCount > 0) {
             $errorMessages = collect($import->errors)->map(function ($e) {
                 return "Baris {$e['baris']}: {$e['pesan']}";

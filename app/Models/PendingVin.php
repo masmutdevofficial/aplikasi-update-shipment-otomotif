@@ -6,16 +6,15 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class ShipmentUpdate extends Model
+class PendingVin extends Model
 {
     use HasUuids;
 
     protected $fillable = [
-        'shipment_id',
+        'no_rangka',
         'vendor_id',
         'position',
         'scan_date',
-        'document_link',
         'document_path',
         'created_by',
         'updated_by',
@@ -23,14 +22,7 @@ class ShipmentUpdate extends Model
 
     protected function casts(): array
     {
-        return [
-            'scan_date' => 'date',
-        ];
-    }
-
-    public function shipment(): BelongsTo
-    {
-        return $this->belongsTo(Shipment::class);
+        return ['scan_date' => 'date'];
     }
 
     public function vendor(): BelongsTo
@@ -41,10 +33,5 @@ class ShipmentUpdate extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
-    }
-
-    public function updater(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'updated_by');
     }
 }

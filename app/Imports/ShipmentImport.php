@@ -3,6 +3,7 @@
 namespace App\Imports;
 
 use App\Models\Shipment;
+use App\Services\PendingVinService;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\ToCollection;
@@ -12,6 +13,7 @@ class ShipmentImport implements ToCollection
     public int $importedCount = 0;
     public int $updatedCount  = 0;
     public int $skippedCount  = 0;
+    public int $matchedPendingCount = 0;
 
     /** @var array<array{baris: int, pesan: string}> */
     public array $errors = [];
@@ -208,6 +210,8 @@ class ShipmentImport implements ToCollection
                 $this->skippedCount++;
             }
 
+            $this->matchedPendingCount += app(PendingVinService::class)->matchForShipment($shipment->fresh());
+
             return;
         }
 
@@ -229,7 +233,7 @@ class ShipmentImport implements ToCollection
             return;
         }
 
-        Shipment::create([
+        $shipment = Shipment::create([
             'lokasi'              => trim((string) $lokasi),
             'no_do'               => $no_do !== null ? trim((string) $no_do) : null,
             'type_kendaraan'      => trim((string) $type_kendaraan),
@@ -246,6 +250,8 @@ class ShipmentImport implements ToCollection
             'created_by'          => $this->createdBy,
             'updated_by'          => $this->createdBy,
         ]);
+
+        $this->matchedPendingCount += app(PendingVinService::class)->matchForShipment($shipment);
 
         $this->importedCount++;
     }

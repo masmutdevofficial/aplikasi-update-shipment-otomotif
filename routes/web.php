@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\ShipmentController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\VendorController;
+use App\Http\Controllers\Admin\PendingVinController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Vendor\DashboardController as VendorDashboardController;
@@ -72,6 +73,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/shipments/import', [ShipmentController::class, 'showImport'])->name('shipments.import.form');
             Route::post('/shipments/import', [ShipmentController::class, 'importExcel'])->name('shipments.import');
             Route::get('/shipments/template', [ShipmentController::class, 'downloadTemplate'])->name('shipments.template');
+            Route::get('/pending-vins', [PendingVinController::class, 'index'])->name('pending-vins.index');
 
             // Reports
             Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');

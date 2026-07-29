@@ -6,6 +6,7 @@ use App\Models\Shipment;
 use App\Models\Vendor;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Storage;
 
 class ReportService
 {
@@ -78,12 +79,13 @@ class ReportService
         // Add vendor position dates
         foreach ($positions as $position) {
             $update = $updates->get($position);
-            $row['pos_' . md5($position)] = $update?->scan_date?->format('d-M-y') ?? '-';
+            $row['pos_'.md5($position)] = $update?->scan_date?->format('d-M-y') ?? '-';
         }
 
-        // Document link (take from any update that has one)
-        $docLink = $shipment->shipmentUpdates->firstWhere(fn ($u) => $u->document_link);
-        $row['document_link'] = $docLink?->document_link ?? '-';
+        $documentPath = $shipment->shipmentUpdates->firstWhere(fn ($u) => $u->document_path);
+        $row['document_scan'] = $documentPath
+            ? Storage::disk(config('filesystems.document_disk'))->url($documentPath->document_path)
+            : '-';
 
         return $row;
     }

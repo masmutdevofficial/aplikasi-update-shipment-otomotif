@@ -574,6 +574,12 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a href="{{ route('admin.pending-vins.index') }}" class="nav-link @if(request()->routeIs('admin.pending-vins.*')) active @endif">
+                                <i class="nav-icon fas fa-clock"></i>
+                                <p>VIN Pending</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a href="{{ route('admin.vendors.index') }}" class="nav-link @if(request()->routeIs('admin.vendors.*')) active @endif">
                                 <i class="nav-icon fas fa-warehouse"></i>
                                 <p>Vendor</p>

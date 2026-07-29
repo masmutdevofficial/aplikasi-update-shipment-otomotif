@@ -40,7 +40,7 @@ class ShipmentExport implements FromArray, WithHeadings, WithStyles
             $headings[] = $position;
         }
 
-        $headings[] = 'Link Dokumen';
+        $headings[] = 'Dokumen Scan';
 
         return $headings;
     }
