@@ -2,10 +2,12 @@
 
 namespace Tests\Feature\Vendor;
 
+use App\Models\ScanHistory;
 use App\Models\Shipment;
 use App\Models\User;
 use App\Models\Vendor;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 class ScanVinTest extends TestCase
@@ -124,7 +126,7 @@ class ScanVinTest extends TestCase
         ]);
     }
 
-    public function test_dooring_vendor_stores_captured_document_in_system_storage(): void
+    public function test_dooring_vendor_can_upload_document_from_scan_history(): void
     {
         Storage::fake('r2');
         $admin = User::factory()->admin()->create();
@@ -142,20 +144,41 @@ class ScanVinTest extends TestCase
             'updated_by' => $admin->id,
         ]);
 
-        $image = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9J3V8AAAAASUVORK5CYII=';
-
         $this->actingAs($dooringUser)
             ->postJson(route('vendor.scanner.confirm'), [
                 'no_rangka' => $shipment->no_rangka,
-                'document_image' => $image,
             ])
             ->assertOk()
             ->assertJsonPath('success', true);
+
+        $history = ScanHistory::where('user_id', $dooringUser->id)->firstOrFail();
+        $this->assertNull($shipment->shipmentUpdates()->first()->document_path);
+
+        $this->actingAs($dooringUser)
+            ->post(route('vendor.history.document.upload', $history), [
+                'document' => UploadedFile::fake()->image('surat-jalan.png'),
+            ])
+            ->assertRedirect(route('vendor.history'));
 
         $update = $shipment->shipmentUpdates()->first();
         $this->assertSame($dooringVendor->id, $update->vendor_id);
         $this->assertNotNull($update->document_path);
         Storage::disk('r2')->assertExists($update->document_path);
+    }
+
+    public function test_non_dooring_vendor_cannot_upload_document_from_scan_history(): void
+    {
+        $history = ScanHistory::create([
+            'user_id' => $this->vendorUser->id,
+            'no_rangka' => 'MHFAA8GS4N0000001',
+            'scan_date' => today(),
+        ]);
+
+        $this->actingAs($this->vendorUser)
+            ->post(route('vendor.history.document.upload', $history), [
+                'document' => UploadedFile::fake()->image('surat-jalan.png'),
+            ])
+            ->assertForbidden();
     }
 
     public function test_confirm_fails_for_duplicate_position_scan(): void

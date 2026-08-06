@@ -62,18 +62,6 @@
             </div>
         </div>
 
-        @if(auth()->user()->vendor && auth()->user()->vendor->position === 'AT PtD (Dooring)')
-        {{-- Document upload - only for AT PtD (Dooring) --}}
-        <div class="card mb-3">
-            <div class="card-body">
-                <h6 class="fw-bold mb-2"><i class="fas fa-file-image"></i> Foto Dokumen</h6>
-                <p class="text-muted small">Ambil atau pilih foto dokumen secara terpisah dari foto yang digunakan untuk membaca VIN. Format PNG/JPEG, maksimal 2 MB.</p>
-                <input type="file" id="document-image-input" class="form-control" accept="image/png,image/jpeg" capture="environment">
-                <img id="document-image-preview" class="img-fluid rounded border mt-3" style="max-height: 320px; display: none;" alt="Pratinjau dokumen">
-            </div>
-        </div>
-        @endif
-
         {{-- Confirm Button --}}
         <div style="width:100%;">
             <button id="btn-confirm" class="btn btn-primary btn-lg btn-block" onclick="confirmScan()" disabled>
@@ -130,43 +118,6 @@
     const btnConfirm = document.getElementById('btn-confirm');
     const resultSection = document.getElementById('result-section');
     const resultAlert = document.getElementById('result-alert');
-    const documentImageInput = document.getElementById('document-image-input');
-    const documentImagePreview = document.getElementById('document-image-preview');
-    let documentImage = null;
-
-    if (documentImageInput) {
-        documentImageInput.addEventListener('change', function () {
-            const [file] = this.files;
-            documentImage = null;
-            documentImagePreview.src = '';
-            documentImagePreview.style.display = 'none';
-
-            if (!file) {
-                return;
-            }
-
-            if (!['image/jpeg', 'image/png'].includes(file.type)) {
-                this.value = '';
-                showResult('warning', 'Foto dokumen harus berformat PNG atau JPEG.');
-                return;
-            }
-
-            if (file.size > 2 * 1024 * 1024) {
-                this.value = '';
-                showResult('warning', 'Ukuran foto dokumen maksimal 2 MB.');
-                return;
-            }
-
-            const reader = new FileReader();
-            reader.onload = function (event) {
-                documentImage = event.target.result;
-                documentImagePreview.src = documentImage;
-                documentImagePreview.style.display = 'block';
-            };
-            reader.readAsDataURL(file);
-        });
-    }
-
     // VIN input counter and validation
     vinInput.addEventListener('input', function() {
         this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -491,12 +442,6 @@
             return;
         }
 
-        const isDooring = {{ auth()->user()->vendor && auth()->user()->vendor->position === 'AT PtD (Dooring)' ? 'true' : 'false' }};
-        if (isDooring && !documentImage) {
-            showResult('warning', 'Untuk PTD Dooring, unggah atau ambil foto dokumen terlebih dahulu.');
-            return;
-        }
-
         btnConfirm.disabled = true;
         btnConfirm.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Menyimpan...';
 
@@ -512,7 +457,6 @@
                     },
                     body: JSON.stringify({
                         no_rangka: vin,
-                        document_image: documentImage,
                         save_as_pending: saveAsPending,
                     }),
                 });
@@ -574,12 +518,6 @@
                 btnProcess.style.display = 'none';
                 btnStartCamera.style.display = 'inline-block';
                 placeholder.style.display = 'block';
-                if (documentImageInput) {
-                    documentImageInput.value = '';
-                    documentImage = null;
-                    documentImagePreview.src = '';
-                    documentImagePreview.style.display = 'none';
-                }
             } else {
                 showResult('danger', escapeHtml(data.error || 'Gagal menyimpan data.'));
                 btnConfirm.disabled = false;

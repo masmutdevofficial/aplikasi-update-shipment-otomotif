@@ -247,16 +247,17 @@ Fitur **Riwayat Scan** memungkinkan Anda melihat daftar kendaraan yang telah And
 |---|---|
 | No. Rangka | VIN kendaraan yang di-scan |
 | Tanggal Scan | Tanggal saat scan dilakukan (format: `DD-Mon-YY`) |
+| Dokumen | Untuk vendor PTD Dooring, unggah atau ganti foto dokumen PNG/JPEG maksimal 2 MB pada VIN terkait |
 
 **Contoh tampilan riwayat:**
 
-| No. | No. Rangka | Tanggal Scan |
-|---|---|---|
-| 1 | MHKAA1AC2TJ036972 | 02-Apr-26 |
-| 2 | MHKAB1AA9TJ025351 | 02-Apr-26 |
-| 3 | MHKAC3BB1TJ012345 | 03-Apr-26 |
+| No. | No. Rangka | Tanggal Scan | Dokumen (PTD Dooring) |
+|---|---|---|---|
+| 1 | MHKAA1AC2TJ036972 | 02-Apr-26 | Upload |
+| 2 | MHKAB1AA9TJ025351 | 02-Apr-26 | Lihat / Ganti |
+| 3 | MHKAC3BB1TJ012345 | 03-Apr-26 | Upload |
 
-> **Catatan:** Riwayat scan hanya menampilkan data scan yang dilakukan oleh akun Anda sendiri.
+> **Catatan:** Riwayat scan hanya menampilkan data scan yang dilakukan oleh akun Anda sendiri. Kolom dokumen hanya tersedia untuk vendor PTD Dooring.
 
 ---
 

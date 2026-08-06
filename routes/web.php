@@ -99,6 +99,7 @@ Route::middleware('auth')->group(function () {
             Route::post('/scanner/scan', [ScannerController::class, 'scan'])->name('scanner.scan');
             Route::post('/scanner/confirm', [ScannerController::class, 'confirm'])->name('scanner.confirm');
             Route::get('/history', HistoryController::class)->name('history');
+            Route::post('/history/{history}/document', [HistoryController::class, 'uploadDocument'])->name('history.document.upload');
 
             // Documentation
             Route::get('/docs/user-guide', fn () => view('vendor.docs.user-guide'))->name('docs.user-guide');

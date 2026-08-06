@@ -10,9 +10,6 @@ use App\Models\ShipmentUpdate;
 use App\Services\OcrService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 
 class ScannerController extends Controller
 {
@@ -82,7 +79,6 @@ class ScannerController extends Controller
         $request->validate([
             'no_rangka' => ['required', 'string', 'size:17', 'regex:/^[A-HJ-NPR-Z0-9]{17}$/'],
             'save_as_pending' => ['nullable', 'boolean'],
-            'document_image' => ['nullable', 'string', 'max:3000000'],
         ]);
 
         $user = auth()->user();
@@ -90,14 +86,6 @@ class ScannerController extends Controller
 
         if (! $vendor || ! $vendor->position) {
             return response()->json(['error' => 'Posisi vendor belum ditetapkan.'], 403);
-        }
-
-        $isDooringPosition = $vendor->position === 'AT PtD (Dooring)';
-
-        if ($isDooringPosition) {
-            $request->validate([
-                'document_image' => ['required', 'string', 'max:3000000'],
-            ]);
         }
 
         $noRangka = strtoupper($request->input('no_rangka'));
@@ -124,33 +112,22 @@ class ScannerController extends Controller
                 ], 409);
             }
 
-            $documentPath = $this->storeDocumentImage($request->input('document_image'), $noRangka);
+            DB::transaction(function () use ($vendor, $user, $noRangka) {
+                PendingVin::create([
+                    'no_rangka' => $noRangka,
+                    'vendor_id' => $vendor->id,
+                    'position' => $vendor->position,
+                    'scan_date' => today(),
+                    'created_by' => $user->id,
+                    'updated_by' => $user->id,
+                ]);
 
-            try {
-                DB::transaction(function () use ($vendor, $user, $noRangka, $documentPath) {
-                    PendingVin::create([
-                        'no_rangka' => $noRangka,
-                        'vendor_id' => $vendor->id,
-                        'position' => $vendor->position,
-                        'scan_date' => today(),
-                        'document_path' => $documentPath,
-                        'created_by' => $user->id,
-                        'updated_by' => $user->id,
-                    ]);
-
-                    ScanHistory::create([
-                        'user_id' => $user->id,
-                        'no_rangka' => $noRangka,
-                        'scan_date' => today(),
-                    ]);
-                });
-            } catch (\Throwable $e) {
-                if ($documentPath) {
-                    Storage::disk(config('filesystems.document_disk'))->delete($documentPath);
-                }
-
-                throw $e;
-            }
+                ScanHistory::create([
+                    'user_id' => $user->id,
+                    'no_rangka' => $noRangka,
+                    'scan_date' => today(),
+                ]);
+            });
 
             return response()->json([
                 'success' => true,
@@ -175,35 +152,22 @@ class ScannerController extends Controller
             ], 409);
         }
 
-        $documentPath = $this->storeDocumentImage($request->input('document_image'), $noRangka);
+        DB::transaction(function () use ($shipment, $vendor, $user, $noRangka) {
+            ShipmentUpdate::create([
+                'shipment_id' => $shipment->id,
+                'vendor_id' => $vendor->id,
+                'position' => $vendor->position,
+                'scan_date' => today(),
+                'created_by' => $user->id,
+                'updated_by' => $user->id,
+            ]);
 
-        try {
-            DB::transaction(function () use ($shipment, $vendor, $user, $noRangka, $documentPath) {
-                // Save shipment update
-                ShipmentUpdate::create([
-                    'shipment_id' => $shipment->id,
-                    'vendor_id' => $vendor->id,
-                    'position' => $vendor->position,
-                    'scan_date' => today(),
-                    'document_path' => $documentPath,
-                    'created_by' => $user->id,
-                    'updated_by' => $user->id,
-                ]);
-
-                // Save scan history
-                ScanHistory::create([
-                    'user_id' => $user->id,
-                    'no_rangka' => $noRangka,
-                    'scan_date' => today(),
-                ]);
-            });
-        } catch (\Throwable $e) {
-            if ($documentPath) {
-                Storage::disk(config('filesystems.document_disk'))->delete($documentPath);
-            }
-
-            throw $e;
-        }
+            ScanHistory::create([
+                'user_id' => $user->id,
+                'no_rangka' => $noRangka,
+                'scan_date' => today(),
+            ]);
+        });
 
         return response()->json([
             'success' => true,
@@ -216,31 +180,4 @@ class ScannerController extends Controller
         ]);
     }
 
-    private function storeDocumentImage(?string $encodedImage, string $noRangka): ?string
-    {
-        if (! $encodedImage) {
-            return null;
-        }
-
-        if (! preg_match('#^data:image/(png|jpe?g);base64,([A-Za-z0-9+/=\s]+)$#i', $encodedImage, $matches)) {
-            throw ValidationException::withMessages([
-                'document_image' => 'Foto dokumen harus berupa gambar PNG atau JPEG yang valid.',
-            ]);
-        }
-
-        $binary = base64_decode($matches[2], true);
-
-        if ($binary === false || strlen($binary) > 2 * 1024 * 1024 || ! getimagesizefromstring($binary)) {
-            throw ValidationException::withMessages([
-                'document_image' => 'Foto dokumen tidak valid atau ukurannya melebihi 2 MB.',
-            ]);
-        }
-
-        $extension = strtolower($matches[1]) === 'png' ? 'png' : 'jpg';
-        $path = "shipment-documents/{$noRangka}/".Str::uuid().".{$extension}";
-
-        Storage::disk(config('filesystems.document_disk'))->put($path, $binary);
-
-        return $path;
-    }
 }

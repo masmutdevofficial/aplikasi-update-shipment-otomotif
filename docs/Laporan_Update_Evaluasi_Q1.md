@@ -12,16 +12,16 @@ Perbaikan dilakukan berdasarkan dua masukan klien: pemisahan foto dokumen PTD Do
 | Area | Perubahan | Status |
 | --- | --- | --- |
 | PTD Dooring - scan VIN | Scan/OCR dan input manual VIN 17 karakter tetap dipertahankan. | Selesai |
-| PTD Dooring - foto dokumen | Ditambahkan input foto dokumen tersendiri. Foto ini tidak lagi memakai gambar yang digunakan untuk OCR VIN. Pengguna dapat mengambil foto dari kamera perangkat atau memilih berkas PNG/JPEG hingga 2 MB, melihat pratinjau, lalu menyimpannya bersama update shipment. | Selesai |
+| PTD Dooring - foto dokumen | Upload dokumen dipindahkan ke Riwayat Scan. Pada setiap VIN milik vendor PTD Dooring tersedia aksi Upload/Ganti Dokumen untuk berkas PNG/JPEG hingga 2 MB. | Selesai |
 | VIN Pending - alur impor | Pending VIN dengan nomor rangka yang sama tetap dipindahkan ke timeline shipment ketika shipment diimpor. | Selesai |
 | VIN Pending - tambah manual | Pencocokan yang sama kini dijalankan pula saat admin menambahkan shipment secara manual. Data pending dipindahkan ke shipment update dan dihapus dari daftar pending. | Selesai |
 
 ## Alur Pengguna PTD Dooring
 
 1. Vendor memindai VIN melalui kamera/OCR atau memasukkan VIN secara manual.
-2. Vendor mengambil atau memilih foto dokumen pada bagian **Foto Dokumen**.
-3. Sistem memastikan VIN berjumlah 17 karakter dan foto dokumen tersedia.
-4. Saat disimpan, data update shipment dan foto dokumen tersimpan terpisah dari gambar pembacaan VIN.
+2. Vendor membuka **Riwayat Scan** dan mencari nomor rangka yang diinginkan.
+3. Vendor mengambil atau memilih foto dokumen pada baris VIN tersebut.
+4. Sistem menyimpan foto dokumen pada update shipment atau VIN Pending terkait, terpisah dari gambar pembacaan VIN.
 
 ## Alur VIN Pending
 
