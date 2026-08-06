@@ -65,6 +65,7 @@ COPY . .
 
 # Konfigurasi web/proses
 COPY docker/nginx/default.conf /etc/nginx/http.d/default.conf
+COPY docker/php/uploads.ini /usr/local/etc/php/conf.d/uploads.ini
 COPY docker/supervisord.conf /etc/supervisord.conf
 COPY docker/start.sh /usr/local/bin/start.sh
 

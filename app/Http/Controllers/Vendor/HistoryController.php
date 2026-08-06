@@ -53,15 +53,23 @@ class HistoryController extends Controller
         abort_unless($vendor && $vendor->position === 'AT PtD (Dooring)', 403);
 
         $request->validate([
-            'document' => ['required', 'file', 'image', 'mimes:jpeg,jpg,png', 'max:2048'],
+            'document' => ['bail', 'required', 'file', 'image', 'mimes:jpeg,jpg,png', 'max:2048'],
         ], [
             'document.required' => 'Pilih foto dokumen terlebih dahulu.',
+            'document.uploaded' => 'Upload foto gagal. Pastikan koneksi stabil, lalu gunakan foto PNG/JPEG dengan ukuran maksimal 2 MB.',
             'document.image' => 'Dokumen harus berupa gambar PNG atau JPEG.',
             'document.mimes' => 'Dokumen harus berformat PNG atau JPEG.',
-            'document.max' => 'Ukuran dokumen maksimal 2 MB.',
+            'document.max' => 'Ukuran dokumen maksimal 2 MB. Silakan kompres foto lalu coba lagi.',
         ]);
 
-        $newPath = $documentService->store($request->file('document'), $history->no_rangka);
+        try {
+            $newPath = $documentService->store($request->file('document'), $history->no_rangka);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return redirect()->route('vendor.history')
+                ->with('error', 'Foto gagal disimpan ke server. Dokumen sebelumnya tetap aman. Silakan coba lagi.');
+        }
 
         try {
             $oldPath = DB::transaction(function () use ($history, $vendor, $user, $newPath) {
@@ -97,8 +105,10 @@ class HistoryController extends Controller
             });
         } catch (\Throwable $exception) {
             $documentService->delete($newPath);
+            report($exception);
 
-            throw $exception;
+            return redirect()->route('vendor.history')
+                ->with('error', 'Foto gagal diperbarui. Dokumen sebelumnya tetap aman. Silakan coba lagi.');
         }
 
         if ($oldPath && $oldPath !== $newPath) {

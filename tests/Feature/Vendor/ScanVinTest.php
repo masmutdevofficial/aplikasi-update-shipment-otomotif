@@ -181,6 +181,31 @@ class ScanVinTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_dooring_vendor_sees_a_clear_message_when_no_document_is_selected(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $dooringUser = User::factory()->vendor()->create();
+        Vendor::create([
+            'user_id' => $dooringUser->id,
+            'vendor_name' => 'PTD Dooring Test',
+            'position' => 'AT PtD (Dooring)',
+            'created_by' => $admin->id,
+            'updated_by' => $admin->id,
+        ]);
+        $history = ScanHistory::create([
+            'user_id' => $dooringUser->id,
+            'no_rangka' => 'MHFAA8GS4N0000001',
+            'scan_date' => today(),
+        ]);
+
+        $this->actingAs($dooringUser)
+            ->post(route('vendor.history.document.upload', $history))
+            ->assertRedirect(route('vendor.history'))
+            ->assertSessionHasErrors([
+                'document' => 'Pilih foto dokumen terlebih dahulu.',
+            ]);
+    }
+
     public function test_confirm_fails_for_duplicate_position_scan(): void
     {
         $admin = User::factory()->admin()->create();

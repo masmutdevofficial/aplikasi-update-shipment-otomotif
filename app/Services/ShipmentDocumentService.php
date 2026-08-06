@@ -5,6 +5,7 @@ namespace App\Services;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use RuntimeException;
 
 class ShipmentDocumentService
 {
@@ -13,7 +14,9 @@ class ShipmentDocumentService
         $extension = $document->extension() === 'png' ? 'png' : 'jpg';
         $path = "shipment-documents/{$noRangka}/".Str::uuid().".{$extension}";
 
-        Storage::disk(config('filesystems.document_disk'))->put($path, $document->get());
+        if (! Storage::disk(config('filesystems.document_disk'))->put($path, $document->get())) {
+            throw new RuntimeException('Penyimpanan dokumen menolak file yang diunggah.');
+        }
 
         return $path;
     }
