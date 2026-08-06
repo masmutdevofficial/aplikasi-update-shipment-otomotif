@@ -3,7 +3,9 @@
 namespace Tests\Feature\Admin;
 
 use App\Models\Shipment;
+use App\Models\PendingVin;
 use App\Models\User;
+use App\Models\Vendor;
 use Tests\TestCase;
 
 class ShipmentCrudTest extends TestCase
@@ -52,6 +54,40 @@ class ShipmentCrudTest extends TestCase
 
         $response->assertRedirect(route('admin.shipments.index'));
         $this->assertDatabaseHas('shipments', ['no_rangka' => 'MHFAA8GS4N0000001']);
+    }
+
+    public function test_manual_shipment_creation_matches_pending_vin(): void
+    {
+        $vendorUser = User::factory()->vendor()->create();
+        $vendor = Vendor::create([
+            'user_id' => $vendorUser->id,
+            'vendor_name' => 'PT Vendor Pending',
+            'position' => 'AT Storage Port',
+            'created_by' => $this->admin->id,
+            'updated_by' => $this->admin->id,
+        ]);
+
+        PendingVin::create([
+            'no_rangka' => 'MHFAA8GS4N0000001',
+            'vendor_id' => $vendor->id,
+            'position' => $vendor->position,
+            'scan_date' => '2026-08-06',
+            'created_by' => $vendorUser->id,
+            'updated_by' => $vendorUser->id,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.shipments.store'), $this->validShipmentData())
+            ->assertRedirect(route('admin.shipments.index'));
+
+        $shipment = Shipment::where('no_rangka', 'MHFAA8GS4N0000001')->firstOrFail();
+
+        $this->assertDatabaseMissing('pending_vins', ['no_rangka' => $shipment->no_rangka]);
+        $this->assertDatabaseHas('shipment_updates', [
+            'shipment_id' => $shipment->id,
+            'vendor_id' => $vendor->id,
+            'position' => 'AT Storage Port',
+        ]);
     }
 
     public function test_vin_must_be_exactly_17_characters(): void

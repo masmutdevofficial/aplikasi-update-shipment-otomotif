@@ -4,9 +4,14 @@ namespace App\Services;
 
 use App\Models\Shipment;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
 class ShipmentService
 {
+    public function __construct(
+        protected PendingVinService $pendingVinService,
+    ) {}
+
     public function getShipments(?string $search = null, int $perPage = 15): LengthAwarePaginator
     {
         return Shipment::query()
@@ -32,10 +37,15 @@ class ShipmentService
 
     public function createShipment(array $data, string $createdBy): Shipment
     {
-        $data['created_by'] = $createdBy;
-        $data['updated_by'] = $createdBy;
+        return DB::transaction(function () use ($data, $createdBy) {
+            $data['created_by'] = $createdBy;
+            $data['updated_by'] = $createdBy;
 
-        return Shipment::create($data);
+            $shipment = Shipment::create($data);
+            $this->pendingVinService->matchForShipment($shipment);
+
+            return $shipment;
+        });
     }
 
     public function updateShipment(Shipment $shipment, array $data, string $updatedBy): Shipment
