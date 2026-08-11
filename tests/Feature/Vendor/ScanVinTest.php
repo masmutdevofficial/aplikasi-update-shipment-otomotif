@@ -156,7 +156,7 @@ class ScanVinTest extends TestCase
 
         $this->actingAs($dooringUser)
             ->post(route('vendor.history.document.upload', $history), [
-                'document' => UploadedFile::fake()->image('surat-jalan.png'),
+                'document' => UploadedFile::fake()->image('surat-jalan.png')->size(5120),
             ])
             ->assertRedirect(route('vendor.history'));
 

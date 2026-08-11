@@ -212,7 +212,7 @@
         <div class="step-item"><span class="step-number">1</span><span>Dari menu navigasi, klik <strong>Riwayat Scan</strong>.</span></div>
         <div class="step-item"><span class="step-number">2</span><span>Tabel menampilkan No. Rangka dan Tanggal Scan. Untuk vendor PTD Dooring, tersedia kolom Dokumen.</span></div>
         <div class="step-item"><span class="step-number">3</span><span>Gunakan fitur pencarian untuk menemukan kendaraan tertentu.</span></div>
-        <div class="step-item"><span class="step-number">4</span><span>Untuk PTD Dooring, pilih foto PNG/JPEG maksimal 2 MB pada baris VIN yang diinginkan, lalu klik <strong>Upload</strong>.</span></div>
+        <div class="step-item"><span class="step-number">4</span><span>Untuk PTD Dooring, pilih foto PNG/JPEG maksimal 5 MB pada baris VIN yang diinginkan, lalu klik <strong>Upload</strong>.</span></div>
 
         <div class="info-box-doc">Data riwayat scan hanya dapat dilihat. Khusus PTD Dooring, foto dokumen dapat diunggah atau diganti dari baris VIN milik akun Anda sendiri.</div>
     </div>

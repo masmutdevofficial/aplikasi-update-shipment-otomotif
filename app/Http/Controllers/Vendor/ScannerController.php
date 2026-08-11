@@ -32,7 +32,7 @@ class ScannerController extends Controller
     public function scan(Request $request)
     {
         $request->validate([
-            'image' => ['required', 'string', 'max:3000000'],
+            'image' => ['required', 'string', 'max:7000000'],
         ]);
 
         $user = auth()->user();

@@ -53,13 +53,13 @@ class HistoryController extends Controller
         abort_unless($vendor && $vendor->position === 'AT PtD (Dooring)', 403);
 
         $request->validate([
-            'document' => ['bail', 'required', 'file', 'image', 'mimes:jpeg,jpg,png', 'max:2048'],
+            'document' => ['bail', 'required', 'file', 'image', 'mimes:jpeg,jpg,png', 'max:5120'],
         ], [
             'document.required' => 'Pilih foto dokumen terlebih dahulu.',
-            'document.uploaded' => 'Upload foto gagal. Pastikan koneksi stabil, lalu gunakan foto PNG/JPEG dengan ukuran maksimal 2 MB.',
+            'document.uploaded' => 'Upload foto gagal. Pastikan koneksi stabil, lalu gunakan foto PNG/JPEG dengan ukuran maksimal 5 MB.',
             'document.image' => 'Dokumen harus berupa gambar PNG atau JPEG.',
             'document.mimes' => 'Dokumen harus berformat PNG atau JPEG.',
-            'document.max' => 'Ukuran dokumen maksimal 2 MB. Silakan kompres foto lalu coba lagi.',
+            'document.max' => 'Ukuran dokumen maksimal 5 MB. Silakan kompres foto lalu coba lagi.',
         ]);
 
         try {

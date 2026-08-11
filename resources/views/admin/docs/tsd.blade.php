@@ -340,7 +340,7 @@ users (1) ─────────── (N) scan_histories   [user_id]</pre>
                 <tr><td>Session encrypt + secure cookie</td><td><span class="badge badge-implemented">Implemented</span></td><td><span class="evidence-tag">.env SESSION_ENCRYPT=true</span></td></tr>
                 <tr><td>Route protection per level (Middleware)</td><td><span class="badge badge-implemented">Implemented</span></td><td><span class="evidence-tag">CheckLevel</span><span class="evidence-tag">CheckVendorStatus</span></td></tr>
                 <tr><td>XSS prevention di scanner JS</td><td><span class="badge badge-implemented">Implemented</span></td><td><span class="evidence-tag">escapeHtml()</span> function di scanner.js</td></tr>
-                <tr><td>Max size base64 image (DoS prevention)</td><td><span class="badge badge-implemented">Implemented</span></td><td><span class="evidence-tag">max:3000000</span> validation rule</td></tr>
+                <tr><td>Max size base64 image (DoS prevention)</td><td><span class="badge badge-implemented">Implemented</span></td><td><span class="evidence-tag">max:7000000</span> validation rule (maks. foto 5 MB)</td></tr>
                 <tr><td>VIN regex validation</td><td><span class="badge badge-implemented">Implemented</span></td><td><span class="evidence-tag">/^[A-HJ-NPR-Z0-9]{17}$/</span> di Request + Controller</td></tr>
                 <tr><td>MIME type validation upload gambar</td><td><span class="badge badge-implemented">Implemented</span></td><td><span class="evidence-tag">OcrService::extractVin</span></td></tr>
                 <tr><td>Input validasi di Report (search, date)</td><td><span class="badge badge-implemented">Implemented</span></td><td><span class="evidence-tag">ReportController</span></td></tr>
