@@ -568,7 +568,7 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a href="{{ route('admin.shipments.index') }}" class="nav-link @if(request()->routeIs('admin.shipments.*')) active @endif">
+                            <a href="{{ route('admin.shipments.index') }}" class="nav-link @if(request()->routeIs('admin.shipments.*', 'admin.special-shipments.*')) active @endif">
                                 <i class="nav-icon fas fa-truck"></i>
                                 <p>Shipments</p>
                             </a>

@@ -1,0 +1,155 @@
+<?php
+
+namespace Tests\Feature\Admin;
+
+use App\Imports\SpecialShipmentImport;
+use App\Models\IsoDaratShipment;
+use App\Models\TsoShipment;
+use App\Models\User;
+use App\Support\SpecialShipmentType;
+use Tests\TestCase;
+
+class SpecialShipmentCrudTest extends TestCase
+{
+    private User $admin;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->admin = User::factory()->admin()->create();
+    }
+
+    public function test_each_shipment_type_has_a_separate_index_page(): void
+    {
+        foreach (['tso', 'iso-darat', 'iso-laut'] as $type) {
+            $response = $this->actingAs($this->admin)
+                ->get(route('admin.special-shipments.index', $type));
+
+            $response->assertOk();
+            $response->assertViewIs('admin.special-shipments.index');
+        }
+    }
+
+    public function test_admin_can_create_update_and_delete_tso_data(): void
+    {
+        $this->actingAs($this->admin)
+            ->post(route('admin.special-shipments.store', 'tso'), [
+                'unit_type' => 'Avanza',
+                'no_rangka' => 'TESTVIN1234567890',
+            ])
+            ->assertRedirect(route('admin.special-shipments.index', 'tso'));
+
+        $shipment = TsoShipment::query()->where('no_rangka', 'TESTVIN1234567890')->firstOrFail();
+
+        $this->actingAs($this->admin)
+            ->put(route('admin.special-shipments.update', ['tso', $shipment->id]), [
+                'unit_type' => 'New Avanza',
+                'no_rangka' => $shipment->no_rangka,
+            ])
+            ->assertRedirect(route('admin.special-shipments.index', 'tso'));
+
+        $this->assertSame('New Avanza', $shipment->fresh()->unit_type);
+
+        $this->actingAs($this->admin)
+            ->delete(route('admin.special-shipments.destroy', ['tso', $shipment->id]))
+            ->assertRedirect(route('admin.special-shipments.index', 'tso'));
+
+        $this->assertDatabaseMissing('tso_shipments', ['id' => $shipment->id]);
+    }
+
+    public function test_admin_can_create_iso_darat_and_iso_laut_data(): void
+    {
+        $this->actingAs($this->admin)
+            ->post(route('admin.special-shipments.store', 'iso-darat'), [
+                'no_so_booking' => 'TEST-SO-001',
+                'no_spb' => 'TEST-SPB-001',
+            ])
+            ->assertRedirect(route('admin.special-shipments.index', 'iso-darat'));
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.special-shipments.store', 'iso-laut'), [
+                'no_booking_dtp' => 'TEST-BOOKING-001',
+                'noka' => 'TEST-NOKA-001',
+            ])
+            ->assertRedirect(route('admin.special-shipments.index', 'iso-laut'));
+
+        $this->assertDatabaseHas('iso_darat_shipments', ['no_spb' => 'TEST-SPB-001']);
+        $this->assertDatabaseHas('iso_laut_shipments', ['noka' => 'TEST-NOKA-001']);
+    }
+
+    public function test_admin_can_bulk_delete_special_shipments(): void
+    {
+        $first = IsoDaratShipment::create(['no_spb' => 'VIN-001']);
+        $second = IsoDaratShipment::create(['no_spb' => 'VIN-002']);
+
+        $this->actingAs($this->admin)
+            ->delete(route('admin.special-shipments.bulk-destroy', 'iso-darat'), [
+                'shipment_ids' => [$first->id, $second->id],
+            ])
+            ->assertRedirect(route('admin.special-shipments.index', 'iso-darat'));
+
+        $this->assertDatabaseMissing('iso_darat_shipments', ['id' => $first->id]);
+        $this->assertDatabaseMissing('iso_darat_shipments', ['id' => $second->id]);
+    }
+
+    public function test_special_import_adds_and_updates_rows_by_identity(): void
+    {
+        $import = new SpecialShipmentImport(SpecialShipmentType::get('iso-laut'));
+        $header = array_column(SpecialShipmentType::get('iso-laut')['fields'], 'label');
+        $firstRow = array_fill(0, count($header), null);
+        $firstRow[array_search('NOKA', $header, true)] = 'TEST-NOKA-IMPORT-001';
+        $firstRow[array_search('Origin', $header, true)] = 'KARAWANG BARAT';
+
+        $import->collection(collect([$header, $firstRow]));
+
+        $updatedRow = $firstRow;
+        $updatedRow[array_search('Origin', $header, true)] = 'KARAWANG TIMUR';
+        $import->collection(collect([$header, $updatedRow]));
+
+        $this->assertSame(1, $import->importedCount);
+        $this->assertSame(1, $import->updatedCount);
+        $this->assertDatabaseHas('iso_laut_shipments', [
+            'noka' => 'TEST-NOKA-IMPORT-001',
+            'origin' => 'KARAWANG TIMUR',
+        ]);
+    }
+
+    public function test_template_can_be_downloaded_for_each_special_type(): void
+    {
+        foreach (['tso', 'iso-darat', 'iso-laut'] as $type) {
+            $this->actingAs($this->admin)
+                ->get(route('admin.special-shipments.template', $type))
+                ->assertOk()
+                ->assertHeader('content-disposition');
+        }
+    }
+
+    public function test_import_infers_year_for_short_dates_in_the_same_row(): void
+    {
+        $config = SpecialShipmentType::get('iso-darat');
+        $headers = array_column($config['fields'], 'label');
+        $row = array_fill(0, count($headers), null);
+        $row[array_search('NO SPB', $headers, true)] = 'TEST-SPB-DATE-001';
+        $row[array_search('Terima DO', $headers, true)] = '2-Sep-25';
+        $row[array_search('Keluar dari PDC', $headers, true)] = '02-Sep';
+        $row[array_search('AT PTD/DTD', $headers, true)] = '03-Sep';
+
+        (new SpecialShipmentImport($config))->collection(collect([$headers, $row]));
+
+        $this->assertDatabaseHas('iso_darat_shipments', [
+            'no_spb' => 'TEST-SPB-DATE-001',
+            'terima_do' => '2025-09-02',
+            'keluar_dari_pdc' => '2025-09-02',
+            'at_ptd_dtd' => '2025-09-03',
+        ]);
+    }
+
+    public function test_vendor_cannot_access_special_shipment_pages(): void
+    {
+        $vendor = User::factory()->vendor()->create();
+
+        $this->actingAs($vendor)
+            ->get(route('admin.special-shipments.index', 'tso'))
+            ->assertForbidden();
+    }
+}

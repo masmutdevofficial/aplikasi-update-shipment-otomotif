@@ -7,6 +7,8 @@
 @endsection
 
 @section('content')
+@include('admin.shipments._type-selector', ['shipmentSection' => 'dso'])
+
 <div class="d-flex justify-content-between align-items-center mb-3">
     <span></span>
     <div class="d-flex gap-2 flex-wrap justify-content-end">

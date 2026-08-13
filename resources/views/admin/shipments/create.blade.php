@@ -8,6 +8,8 @@
 @endsection
 
 @section('content')
+@include('admin.shipments._type-selector', ['shipmentSection' => 'dso'])
+
 <div class="row">
     <div class="col-12">
         <div class="card card-primary">

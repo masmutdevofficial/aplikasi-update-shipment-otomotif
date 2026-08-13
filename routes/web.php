@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\ShipmentController;
+use App\Http\Controllers\Admin\SpecialShipmentController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\VendorController;
 use App\Http\Controllers\Admin\PendingVinController;
@@ -73,6 +74,23 @@ Route::middleware('auth')->group(function () {
             Route::get('/shipments/import', [ShipmentController::class, 'showImport'])->name('shipments.import.form');
             Route::post('/shipments/import', [ShipmentController::class, 'importExcel'])->name('shipments.import');
             Route::get('/shipments/template', [ShipmentController::class, 'downloadTemplate'])->name('shipments.template');
+
+            // TSO & ISO Shipment Management (halaman dan query terpisah)
+            Route::prefix('shipment-data/{type}')
+                ->name('special-shipments.')
+                ->where(['type' => 'tso|iso-darat|iso-laut'])
+                ->group(function () {
+                    Route::get('/', [SpecialShipmentController::class, 'index'])->name('index');
+                    Route::get('/create', [SpecialShipmentController::class, 'create'])->name('create');
+                    Route::post('/', [SpecialShipmentController::class, 'store'])->name('store');
+                    Route::delete('/bulk-delete', [SpecialShipmentController::class, 'bulkDestroy'])->name('bulk-destroy');
+                    Route::get('/import', [SpecialShipmentController::class, 'showImport'])->name('import.form');
+                    Route::post('/import', [SpecialShipmentController::class, 'import'])->name('import');
+                    Route::get('/template', [SpecialShipmentController::class, 'template'])->name('template');
+                    Route::get('/{shipment}/edit', [SpecialShipmentController::class, 'edit'])->name('edit');
+                    Route::put('/{shipment}', [SpecialShipmentController::class, 'update'])->name('update');
+                    Route::delete('/{shipment}', [SpecialShipmentController::class, 'destroy'])->name('destroy');
+                });
             Route::get('/pending-vins', [PendingVinController::class, 'index'])->name('pending-vins.index');
 
             // Reports
