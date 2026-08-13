@@ -38,10 +38,4 @@ else
     echo "Database sudah berisi data (${USER_COUNT} user) — seeder dilewati."
 fi
 
-# Seeder dashboard aman dijalankan berulang karena menggunakan firstOrCreate.
-# Jalankan terpisah agar deployment lama mendapat data awal TSO dan ISO tanpa
-# mengulang seeder user, admin, atau vendor.
-php artisan db:seed --class='Database\Seeders\TsoShipmentSeeder' --force
-php artisan db:seed --class='Database\Seeders\IsoShipmentSeeder' --force
-
 exec /usr/bin/supervisord -c /etc/supervisord.conf
