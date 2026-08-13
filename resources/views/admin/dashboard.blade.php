@@ -26,6 +26,16 @@
     $isoLautShipments = $selectedDashboard === 'iso' && $selectedIsoType === 'laut'
         ? \App\Models\IsoLautShipment::query()->orderBy('source_no')->get()
         : collect();
+    $dashboardTableSelector = match (true) {
+        $selectedDashboard === 'tso' => '#table-tso-shipments',
+        $selectedIsoType === 'laut' => '#table-iso-laut',
+        default => '#table-iso-darat',
+    };
+    $dashboardTableDateTargets = match (true) {
+        $selectedDashboard === 'tso' => [7, 8, 9, 10, 11],
+        $selectedIsoType === 'laut' => [16, 17, 19, 20, 21, 22],
+        default => [10, 11, 12],
+    };
 @endphp
 
 @section('title', $dashboardOptions[$selectedDashboard] . ' — Shipment Otomotif')
@@ -331,16 +341,8 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const tableSelector = @json(
-        $selectedDashboard === 'tso'
-            ? '#table-tso-shipments'
-            : ($selectedIsoType === 'darat' ? '#table-iso-darat' : '#table-iso-laut')
-    );
-    const dateTargets = @json(
-        $selectedDashboard === 'tso'
-            ? [7, 8, 9, 10, 11]
-            : ($selectedIsoType === 'darat' ? [10, 11, 12] : [16, 17, 19, 20, 21, 22])
-    );
+    const tableSelector = @json($dashboardTableSelector);
+    const dateTargets = @json($dashboardTableDateTargets);
 
     $(tableSelector).DataTable({
         pageLength: 10,
