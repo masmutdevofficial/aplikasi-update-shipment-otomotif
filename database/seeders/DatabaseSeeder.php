@@ -18,6 +18,8 @@ class DatabaseSeeder extends Seeder
             SuperadminSeeder::class,
             AdminSeeder::class,
             VendorSeeder::class,
+            TsoShipmentSeeder::class,
+            IsoShipmentSeeder::class,
         ]);
     }
 }

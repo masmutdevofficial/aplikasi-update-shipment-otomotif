@@ -7,10 +7,25 @@
         'iso' => 'Dashboard ISO',
     ];
     $selectedDashboard = strtolower(request()->query('type', 'dso'));
+    $selectedIsoType = strtolower(request()->query('iso_type', 'darat'));
 
     if (! array_key_exists($selectedDashboard, $dashboardOptions)) {
         $selectedDashboard = 'dso';
     }
+
+    if (! in_array($selectedIsoType, ['darat', 'laut'], true)) {
+        $selectedIsoType = 'darat';
+    }
+
+    $tsoShipments = $selectedDashboard === 'tso'
+        ? \App\Models\TsoShipment::query()->oldest()->get()
+        : collect();
+    $isoDaratShipments = $selectedDashboard === 'iso' && $selectedIsoType === 'darat'
+        ? \App\Models\IsoDaratShipment::query()->orderBy('source_no')->get()
+        : collect();
+    $isoLautShipments = $selectedDashboard === 'iso' && $selectedIsoType === 'laut'
+        ? \App\Models\IsoLautShipment::query()->orderBy('source_no')->get()
+        : collect();
 @endphp
 
 @section('title', $dashboardOptions[$selectedDashboard] . ' — Shipment Otomotif')
@@ -50,7 +65,85 @@
     </div>
 </div>
 
-{{-- Konten awal dibuat sama untuk DSO, TSO, dan ISO. --}}
+@if ($selectedDashboard === 'tso')
+<div class="card card-primary">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-truck-loading"></i> Data Shipment TSO</h3>
+    </div>
+    <div class="card-body p-0">
+        <div class="tso-table-scroll">
+            <table id="table-tso-shipments" class="table table-striped table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Unit Type</th>
+                        <th>Origin</th>
+                        <th>Destination</th>
+                        <th>Detail Destination</th>
+                        <th>No Rangka</th>
+                        <th>Doc</th>
+                        <th>DO Date</th>
+                        <th>PU Date</th>
+                        <th>Door to Port</th>
+                        <th>Port to Port</th>
+                        <th>Port to Door</th>
+                        <th>Vessel PTP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($tsoShipments as $shipment)
+                        <tr>
+                            <td>{{ $loop->iteration }}</td>
+                            <td>{{ $shipment->unit_type ?? '-' }}</td>
+                            <td>{{ $shipment->origin ?? '-' }}</td>
+                            <td>{{ $shipment->destination ?? '-' }}</td>
+                            <td>{{ $shipment->detail_destination ?? '-' }}</td>
+                            <td><code>{{ $shipment->no_rangka ?? '-' }}</code></td>
+                            <td>
+                                @if ($shipment->doc)
+                                    <a href="{{ asset('storage/' . $shipment->doc) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-file-alt"></i> Lihat
+                                    </a>
+                                @else
+                                    -
+                                @endif
+                            </td>
+                            <td>{{ $shipment->do_date?->format('d-M-y') ?? '-' }}</td>
+                            <td>{{ $shipment->pu_date?->format('d-M-y') ?? '-' }}</td>
+                            <td>{{ $shipment->door_to_port?->format('d-M-y') ?? '-' }}</td>
+                            <td>{{ $shipment->port_to_port?->format('d-M-y') ?? '-' }}</td>
+                            <td>{{ $shipment->port_to_door?->format('d-M-y') ?? '-' }}</td>
+                            <td>{{ $shipment->vessel_ptp ?? '-' }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+@elseif ($selectedDashboard === 'iso')
+<div class="iso-mode-selector" role="group" aria-label="Pilih jenis shipment ISO">
+    <a
+        href="{{ route('admin.dashboard', ['type' => 'iso', 'iso_type' => 'darat']) }}"
+        class="btn {{ $selectedIsoType === 'darat' ? 'btn-primary' : 'btn-default' }}"
+    >
+        <i class="fas fa-truck"></i> ISO Darat
+    </a>
+    <a
+        href="{{ route('admin.dashboard', ['type' => 'iso', 'iso_type' => 'laut']) }}"
+        class="btn {{ $selectedIsoType === 'laut' ? 'btn-primary' : 'btn-default' }}"
+    >
+        <i class="fas fa-ship"></i> ISO Laut
+    </a>
+</div>
+
+@if ($selectedIsoType === 'darat')
+    @include('admin.dashboard.iso-darat-table')
+@else
+    @include('admin.dashboard.iso-laut-table')
+@endif
+@else
+{{-- Dashboard DSO tetap menggunakan tampilan awal. --}}
 <div class="row">
     <div class="col-3">
         <div class="info-box">
@@ -154,6 +247,7 @@
         </div>
     </div>
 </div>
+@endif
 @endsection
 
 @push('styles')
@@ -192,6 +286,34 @@
     min-width: 220px;
 }
 
+.tso-table-scroll,
+.dashboard-table-scroll {
+    overflow-x: auto;
+    width: 100%;
+}
+
+.dashboard-data-table th,
+.dashboard-data-table td,
+#table-tso-shipments th,
+#table-tso-shipments td {
+    min-width: 120px;
+    white-space: nowrap;
+}
+
+.dashboard-data-table th:first-child,
+.dashboard-data-table td:first-child,
+#table-tso-shipments th:first-child,
+#table-tso-shipments td:first-child {
+    min-width: 55px;
+    text-align: center;
+}
+
+.iso-mode-selector {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
 @media (max-width: 576px) {
     .dashboard-selector {
         align-items: stretch;
@@ -204,3 +326,43 @@
     }
 }
 @endpush
+
+@if (in_array($selectedDashboard, ['tso', 'iso'], true))
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const tableSelector = @json(
+        $selectedDashboard === 'tso'
+            ? '#table-tso-shipments'
+            : ($selectedIsoType === 'darat' ? '#table-iso-darat' : '#table-iso-laut')
+    );
+    const dateTargets = @json(
+        $selectedDashboard === 'tso'
+            ? [7, 8, 9, 10, 11]
+            : ($selectedIsoType === 'darat' ? [10, 11, 12] : [16, 17, 19, 20, 21, 22])
+    );
+
+    $(tableSelector).DataTable({
+        pageLength: 10,
+        scrollX: true,
+        lengthMenu: [[10, 25, 50, 100, -1], ['10', '25', '50', '100', 'Semua']],
+        language: {
+            search: 'Cari:',
+            lengthMenu: 'Tampilkan _MENU_ data per halaman',
+            info: 'Menampilkan _START_ - _END_ dari _TOTAL_ data',
+            infoEmpty: 'Tidak ada data',
+            emptyTable: 'Belum ada data shipment',
+            infoFiltered: '(difilter dari _MAX_ total data)',
+            zeroRecords: 'Tidak ada data yang cocok',
+            paginate: { first: '«', last: '»', next: '›', previous: '‹' }
+        },
+        columnDefs: [
+            { orderable: false, targets: [0] },
+            { type: 'date', targets: dateTargets }
+        ],
+        order: [[0, 'asc']]
+    });
+});
+</script>
+@endpush
+@endif
