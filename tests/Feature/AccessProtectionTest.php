@@ -80,6 +80,31 @@ class AccessProtectionTest extends TestCase
         $response->assertStatus(200);
     }
 
+    public function test_admin_can_switch_between_dashboard_types(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $response = $this->actingAs($admin)->get('/admin/dashboard?type=tso');
+
+        $response->assertOk();
+        $response->assertSee('Dashboard DSO');
+        $response->assertSee('Dashboard TSO');
+        $response->assertSee('Dashboard ISO');
+        $response->assertSee('value="tso" selected', false);
+        $response->assertSee('<h1>Dashboard TSO</h1>', false);
+    }
+
+    public function test_unknown_dashboard_type_falls_back_to_dso(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $response = $this->actingAs($admin)->get('/admin/dashboard?type=unknown');
+
+        $response->assertOk();
+        $response->assertSee('value="dso" selected', false);
+        $response->assertSee('<h1>Dashboard DSO</h1>', false);
+    }
+
     public function test_authenticated_vendor_is_redirected_to_vendor_dashboard_from_login(): void
     {
         $vendor = User::factory()->vendor()->create();
