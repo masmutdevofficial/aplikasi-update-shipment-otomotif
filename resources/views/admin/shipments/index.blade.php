@@ -54,43 +54,7 @@
                         <th>Aksi</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @foreach($shipments as $shipment)
-                        <tr>
-                            <td class="text-center">
-                                <input type="checkbox" class="shipment-select" value="{{ $shipment->id }}" aria-label="Pilih shipment {{ $shipment->no_rangka }}">
-                            </td>
-                            <td>{{ $loop->iteration }}</td>
-                            <td>{{ $shipment->lokasi }}</td>
-                            <td>{{ $shipment->no_do }}</td>
-                            <td>{{ $shipment->type_kendaraan }}</td>
-                            <td><code>{{ $shipment->no_rangka }}</code></td>
-                            <td>{{ $shipment->warna }}</td>
-                            <td>{{ $shipment->asal_pdc }}</td>
-                            <td>{{ $shipment->tujuan_pengiriman }}</td>
-                            <td>{{ $shipment->terima_do?->format('d-M-y') ?? '-' }}</td>
-                            <td>{{ $shipment->keluar_dari_pdc?->format('d-M-y') ?? '-' }}</td>
-                            <td>{{ $shipment->nama_kapal ?? '-' }}</td>
-                            <td>{{ $shipment->keberangkatan_kapal?->format('d-M-y') ?? '-' }}</td>
-                            <td>
-                                <div class="d-flex gap-1">
-                                    <a href="{{ route('admin.shipments.edit', $shipment) }}"
-                                       class="btn btn-sm btn-outline-primary" title="Edit">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <form method="POST" action="{{ route('admin.shipments.destroy', $shipment) }}"
-                                          onsubmit="return confirm('Hapus data shipment ini?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button class="btn btn-sm btn-outline-danger" title="Hapus">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
+                <tbody></tbody>
             </table>
         </div>
     </div>
@@ -101,9 +65,39 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const shipmentsTable = $('#table-shipments').DataTable({
+        processing: true,
+        serverSide: true,
+        ajax: '{{ route('admin.shipments.data') }}',
         pageLength: 10,
         scrollX: true,
-        lengthMenu: [[10, 25, 50, 100, -1], ['10', '25', '50', '100', 'Semua']],
+        lengthMenu: [[10, 25, 50, 100], ['10', '25', '50', '100']],
+        columns: [
+            { data: 'id', name: 'id', orderable: false, searchable: false, render: (id) => `<input type="checkbox" class="shipment-select" value="${id}" aria-label="Pilih shipment">` },
+            { data: 'row_number', name: 'row_number', orderable: false, searchable: false },
+            { data: 'lokasi', name: 'lokasi' },
+            { data: 'no_do', name: 'no_do' },
+            { data: 'type_kendaraan', name: 'type_kendaraan' },
+            { data: 'no_rangka', name: 'no_rangka', render: (value) => `<code>${value}</code>` },
+            { data: 'warna', name: 'warna' },
+            { data: 'asal_pdc', name: 'asal_pdc' },
+            { data: 'tujuan_pengiriman', name: 'tujuan_pengiriman' },
+            { data: 'terima_do', name: 'terima_do' },
+            { data: 'keluar_dari_pdc', name: 'keluar_dari_pdc' },
+            { data: 'nama_kapal', name: 'nama_kapal' },
+            { data: 'keberangkatan_kapal', name: 'keberangkatan_kapal' },
+            {
+                data: null, name: 'actions', orderable: false, searchable: false,
+                render: (data) => `
+                    <div class="d-flex gap-1">
+                        <a href="${data.edit_url}" class="btn btn-sm btn-outline-primary" title="Edit"><i class="fas fa-edit"></i></a>
+                        <form method="POST" action="${data.delete_url}" onsubmit="return confirm('Hapus data shipment ini?')">
+                            @csrf
+                            @method('DELETE')
+                            <button class="btn btn-sm btn-outline-danger" title="Hapus"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </div>`
+            }
+        ],
         language: {
             search: 'Cari:',
             lengthMenu: 'Tampilkan _MENU_ data per halaman',
@@ -114,10 +108,6 @@ document.addEventListener('DOMContentLoaded', function () {
             zeroRecords: 'Tidak ada data yang cocok',
             paginate: { first: '«', last: '»', next: '›', previous: '‹' }
         },
-        columnDefs: [
-            { orderable: false, targets: [0, 1, -1] },
-            { type: 'date', targets: [9, 10, 12] }
-        ],
         order: [[2, 'asc']]
     });
 

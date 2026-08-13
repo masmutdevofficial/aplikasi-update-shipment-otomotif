@@ -1,6 +1,15 @@
 @extends('layouts.admin')
 
-@php($shipmentSection = $type === 'tso' ? 'tso' : 'iso')
+@php
+    $shipmentSection = $type === 'tso' ? 'tso' : 'iso';
+    $specialTableColumns = collect($config['fields'])->map(function ($fieldConfig, $field) {
+        return [
+            'data' => $field,
+            'name' => $field,
+            'code' => in_array($field, ['no_rangka', 'noka', 'no_spb'], true),
+        ];
+    })->values();
+@endphp
 
 @section('title', $config['label'] . ' — Shipment Otomotif')
 @section('page-title', $config['label'])
@@ -40,37 +49,7 @@
                         <th>Aksi</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @foreach ($shipments as $shipment)
-                        <tr>
-                            <td class="text-center"><input type="checkbox" class="special-select" value="{{ $shipment->id }}" aria-label="Pilih data"></td>
-                            @if ($type === 'tso')<td>{{ $loop->iteration }}</td>@endif
-                            @foreach ($config['fields'] as $field => $fieldConfig)
-                                <td>
-                                    @if ($fieldConfig['type'] === 'date')
-                                        {{ $shipment->{$field}?->format('d-M-y') ?? '-' }}
-                                    @elseif (in_array($field, ['no_rangka', 'noka', 'no_spb'], true))
-                                        <code>{{ $shipment->{$field} ?? '-' }}</code>
-                                    @else
-                                        {{ $shipment->{$field} ?? '-' }}
-                                    @endif
-                                </td>
-                            @endforeach
-                            <td>
-                                <div class="d-flex gap-1">
-                                    <a href="{{ route('admin.special-shipments.edit', [$type, $shipment->id]) }}" class="btn btn-sm btn-outline-primary" title="Edit">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <form method="POST" action="{{ route('admin.special-shipments.destroy', [$type, $shipment->id]) }}" onsubmit="return confirm('Hapus data ini?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button class="btn btn-sm btn-outline-danger" title="Hapus"><i class="fas fa-trash"></i></button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
+                <tbody></tbody>
             </table>
         </div>
     </div>
@@ -86,18 +65,46 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const fieldColumns = @json($specialTableColumns);
+    const columns = [
+        { data: 'id', name: 'id', orderable: false, searchable: false, render: (id) => `<input type="checkbox" class="special-select" value="${id}" aria-label="Pilih data">` },
+        @if ($type === 'tso')
+        { data: 'row_number', name: 'row_number', orderable: false, searchable: false },
+        @endif
+        ...fieldColumns.map((column) => ({
+            data: column.data,
+            name: column.name,
+            render: column.code ? ((value) => `<code>${value}</code>`) : undefined
+        })),
+        {
+            data: null, name: 'actions', orderable: false, searchable: false,
+            render: (data) => `
+                <div class="d-flex gap-1">
+                    <a href="${data.edit_url}" class="btn btn-sm btn-outline-primary" title="Edit"><i class="fas fa-edit"></i></a>
+                    <form method="POST" action="${data.delete_url}" onsubmit="return confirm('Hapus data ini?')">
+                        @csrf
+                        @method('DELETE')
+                        <button class="btn btn-sm btn-outline-danger" title="Hapus"><i class="fas fa-trash"></i></button>
+                    </form>
+                </div>`
+        }
+    ];
+
     const dataTable = $('#table-special-shipments').DataTable({
+        processing: true,
+        serverSide: true,
+        ajax: '{{ route('admin.special-shipments.data', $type) }}',
         pageLength: 10,
         scrollX: true,
-        lengthMenu: [[10, 25, 50, 100, -1], ['10', '25', '50', '100', 'Semua']],
+        lengthMenu: [[10, 25, 50, 100], ['10', '25', '50', '100']],
+        columns: columns,
         language: {
             search: 'Cari:', lengthMenu: 'Tampilkan _MENU_ data per halaman',
             info: 'Menampilkan _START_ - _END_ dari _TOTAL_ data', infoEmpty: 'Tidak ada data',
             emptyTable: 'Belum ada data {{ $config['short_label'] }}', zeroRecords: 'Tidak ada data yang cocok',
             paginate: { first: '«', last: '»', next: '›', previous: '‹' }
         },
-        columnDefs: [{ orderable: false, targets: [0, -1] }],
-        order: [[1, 'asc']]
+        order: [[{{ $type === 'tso' ? 2 : 1 }}, 'asc']]
     });
 
     const selectAll = document.getElementById('selectAllSpecial');
@@ -120,6 +127,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.addEventListener('change', (event) => {
         if (event.target.classList.contains('special-select')) updateSelection();
     });
+    $('#table-special-shipments').on('draw.dt', updateSelection);
     bulkForm.addEventListener('submit', function (event) {
         const selected = checkboxes().filter((checkbox) => checkbox.checked);
         if (!selected.length || !confirm(`Hapus ${selected.length} data terpilih?`)) {

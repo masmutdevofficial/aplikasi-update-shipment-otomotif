@@ -20,9 +20,71 @@ class ShipmentController extends Controller
 
     public function index(Request $request)
     {
-        $shipments = $this->shipmentService->getAllShipments();
+        return view('admin.shipments.index');
+    }
 
-        return view('admin.shipments.index', compact('shipments'));
+    public function data(Request $request)
+    {
+        $columns = [
+            'lokasi',
+            'no_do',
+            'type_kendaraan',
+            'no_rangka',
+            'warna',
+            'asal_pdc',
+            'tujuan_pengiriman',
+            'terima_do',
+            'keluar_dari_pdc',
+            'nama_kapal',
+            'keberangkatan_kapal',
+        ];
+        $query = Shipment::query();
+        $recordsTotal = (clone $query)->count();
+        $search = trim((string) $request->input('search.value', ''));
+
+        if ($search !== '') {
+            $query->where(function ($builder) use ($columns, $search) {
+                foreach ($columns as $column) {
+                    $builder->orWhere($column, 'like', "%{$search}%");
+                }
+            });
+        }
+
+        $recordsFiltered = (clone $query)->count();
+        $orderColumn = (string) $request->input('columns.' . (int) $request->input('order.0.column', 2) . '.name', 'lokasi');
+        $orderColumn = in_array($orderColumn, $columns, true) ? $orderColumn : 'lokasi';
+        $orderDirection = strtolower((string) $request->input('order.0.dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+        $start = max(0, (int) $request->input('start', 0));
+        $length = min(100, max(10, (int) $request->input('length', 10)));
+        $shipments = $query->orderBy($orderColumn, $orderDirection)
+            ->skip($start)
+            ->take($length)
+            ->get();
+
+        $data = $shipments->map(fn (Shipment $shipment, int $index) => [
+            'id' => $shipment->id,
+            'row_number' => $start + $index + 1,
+            'lokasi' => e($shipment->lokasi ?? '-'),
+            'no_do' => e($shipment->no_do ?? '-'),
+            'type_kendaraan' => e($shipment->type_kendaraan ?? '-'),
+            'no_rangka' => e($shipment->no_rangka ?? '-'),
+            'warna' => e($shipment->warna ?? '-'),
+            'asal_pdc' => e($shipment->asal_pdc ?? '-'),
+            'tujuan_pengiriman' => e($shipment->tujuan_pengiriman ?? '-'),
+            'terima_do' => $shipment->terima_do?->format('d-M-y') ?? '-',
+            'keluar_dari_pdc' => $shipment->keluar_dari_pdc?->format('d-M-y') ?? '-',
+            'nama_kapal' => e($shipment->nama_kapal ?? '-'),
+            'keberangkatan_kapal' => $shipment->keberangkatan_kapal?->format('d-M-y') ?? '-',
+            'edit_url' => route('admin.shipments.edit', $shipment),
+            'delete_url' => route('admin.shipments.destroy', $shipment),
+        ]);
+
+        return response()->json([
+            'draw' => (int) $request->input('draw', 0),
+            'recordsTotal' => $recordsTotal,
+            'recordsFiltered' => $recordsFiltered,
+            'data' => $data,
+        ]);
     }
 
     public function create()

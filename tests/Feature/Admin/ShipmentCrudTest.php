@@ -45,6 +45,29 @@ class ShipmentCrudTest extends TestCase
         $response->assertViewIs('admin.shipments.index');
     }
 
+    public function test_shipment_datatable_only_returns_requested_page(): void
+    {
+        Shipment::factory()->count(15)->create();
+
+        $response = $this->actingAs($this->admin)->getJson(route('admin.shipments.data', [
+            'draw' => 1,
+            'start' => 0,
+            'length' => 10,
+            'columns' => [
+                ['name' => 'id'],
+                ['name' => 'row_number'],
+                ['name' => 'lokasi'],
+            ],
+            'order' => [['column' => 2, 'dir' => 'asc']],
+            'search' => ['value' => ''],
+        ]));
+
+        $response->assertOk()
+            ->assertJsonPath('draw', 1)
+            ->assertJsonCount(10, 'data');
+        $this->assertGreaterThanOrEqual(15, $response->json('recordsTotal'));
+    }
+
     public function test_admin_can_create_shipment(): void
     {
         $response = $this->actingAs($this->admin)->post(

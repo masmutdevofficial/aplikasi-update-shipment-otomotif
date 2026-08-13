@@ -30,6 +30,32 @@ class SpecialShipmentCrudTest extends TestCase
         }
     }
 
+    public function test_special_shipment_datatable_only_returns_requested_page(): void
+    {
+        for ($index = 1; $index <= 15; $index++) {
+            TsoShipment::create(['no_rangka' => 'SERVER-SIDE-' . $index]);
+        }
+
+        $response = $this->actingAs($this->admin)->getJson(route('admin.special-shipments.data', [
+            'type' => 'tso',
+            'draw' => 2,
+            'start' => 0,
+            'length' => 10,
+            'columns' => [
+                ['name' => 'id'],
+                ['name' => 'row_number'],
+                ['name' => 'unit_type'],
+            ],
+            'order' => [['column' => 2, 'dir' => 'asc']],
+            'search' => ['value' => ''],
+        ]));
+
+        $response->assertOk()
+            ->assertJsonPath('draw', 2)
+            ->assertJsonCount(10, 'data');
+        $this->assertGreaterThanOrEqual(15, $response->json('recordsTotal'));
+    }
+
     public function test_admin_can_create_update_and_delete_tso_data(): void
     {
         $this->actingAs($this->admin)

@@ -69,6 +69,7 @@ Route::middleware('auth')->group(function () {
             Route::resource('vendors', VendorController::class)->except(['show']);
 
             // Shipment Management
+            Route::get('/shipments/data', [ShipmentController::class, 'data'])->name('shipments.data');
             Route::delete('/shipments/bulk-delete', [ShipmentController::class, 'bulkDestroy'])->name('shipments.bulk-destroy');
             Route::resource('shipments', ShipmentController::class)->except(['show']);
             Route::get('/shipments/import', [ShipmentController::class, 'showImport'])->name('shipments.import.form');
@@ -81,6 +82,7 @@ Route::middleware('auth')->group(function () {
                 ->where(['type' => 'tso|iso-darat|iso-laut'])
                 ->group(function () {
                     Route::get('/', [SpecialShipmentController::class, 'index'])->name('index');
+                    Route::get('/data', [SpecialShipmentController::class, 'data'])->name('data');
                     Route::get('/create', [SpecialShipmentController::class, 'create'])->name('create');
                     Route::post('/', [SpecialShipmentController::class, 'store'])->name('store');
                     Route::delete('/bulk-delete', [SpecialShipmentController::class, 'bulkDestroy'])->name('bulk-destroy');
