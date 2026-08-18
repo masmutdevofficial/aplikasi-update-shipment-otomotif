@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ShipmentController;
 use App\Http\Controllers\Admin\SpecialShipmentController;
 use App\Http\Controllers\Admin\UserController;
@@ -13,8 +14,6 @@ use App\Http\Controllers\Vendor\HistoryController;
 use App\Http\Controllers\Vendor\ScannerController;
 use App\Http\Middleware\CheckLevel;
 use App\Http\Middleware\CheckVendorStatus;
-use App\Support\DsoSla;
-use App\Support\SpecialShipmentPerformance;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -60,25 +59,7 @@ Route::middleware('auth')->group(function () {
         ->prefix('admin')
         ->name('admin.')
         ->group(function () {
-            Route::get('/dashboard', function () {
-                $type = strtolower((string) request()->query('type', 'dso'));
-                $isoType = strtolower((string) request()->query('iso_type', 'darat'));
-                $type = in_array($type, ['dso', 'tso', 'iso'], true) ? $type : 'dso';
-                $isoType = in_array($isoType, ['darat', 'laut'], true) ? $isoType : 'darat';
-
-                if ($type === 'dso') {
-                    return view('admin.dashboard', [
-                        'delayStats' => DsoSla::delayStatistics(),
-                        'slaDestinations' => DsoSla::destinations(),
-                    ]);
-                }
-
-                $performanceType = $type === 'tso' ? 'tso' : "iso-{$isoType}";
-
-                return view('admin.dashboard', [
-                    'specialDelayStats' => SpecialShipmentPerformance::statistics($performanceType),
-                ]);
-            })->name('dashboard');
+            Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
             // User Management
             Route::delete('/users/bulk-delete', [UserController::class, 'bulkDestroy'])->name('users.bulk-destroy');
@@ -89,7 +70,7 @@ Route::middleware('auth')->group(function () {
             Route::resource('vendors', VendorController::class)->except(['show']);
 
             // Shipment Management
-            Route::get('/shipments/data', [ShipmentController::class, 'data'])->name('shipments.data');
+            Route::match(['get', 'post'], '/shipments/data', [ShipmentController::class, 'data'])->name('shipments.data');
             Route::delete('/shipments/bulk-delete', [ShipmentController::class, 'bulkDestroy'])->name('shipments.bulk-destroy');
             Route::resource('shipments', ShipmentController::class)->except(['show']);
             Route::get('/shipments/import', [ShipmentController::class, 'showImport'])->name('shipments.import.form');
@@ -102,7 +83,9 @@ Route::middleware('auth')->group(function () {
                 ->where(['type' => 'tso|iso-darat|iso-laut'])
                 ->group(function () {
                     Route::get('/', [SpecialShipmentController::class, 'index'])->name('index');
-                    Route::get('/data', [SpecialShipmentController::class, 'data'])->name('data');
+                    // POST keeps the large ISO Laut DataTables payload out of the URL.
+                    // GET remains available for backwards compatibility and direct API tests.
+                    Route::match(['get', 'post'], '/data', [SpecialShipmentController::class, 'data'])->name('data');
                     Route::get('/create', [SpecialShipmentController::class, 'create'])->name('create');
                     Route::post('/', [SpecialShipmentController::class, 'store'])->name('store');
                     Route::delete('/bulk-delete', [SpecialShipmentController::class, 'bulkDestroy'])->name('bulk-destroy');

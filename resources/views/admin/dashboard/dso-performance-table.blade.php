@@ -71,7 +71,7 @@
                         <th>SLA Actual</th>
                         <th>SLA Cust</th>
                         <th>Result</th>
-                        <th>Keterlambatan (%)</th>
+                        <th title="(SLA Actual - SLA Customer) / SLA Customer × 100%">Persentase Keterlambatan</th>
                         <th>Max Arrival</th>
                         <th>Progress</th>
                     </tr>
@@ -117,12 +117,33 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const renderDelayPercentage = (value) => {
+        if (value === null || value === undefined || value === '-') {
+            return '<span class="badge badge-secondary">-</span>';
+        }
+
+        const percentage = Number.parseFloat(value);
+        const badgeClass = percentage > 0 ? 'badge-danger' : 'badge-success';
+
+        return `<span class="badge ${badgeClass}" title="(SLA Actual - SLA Customer) / SLA Customer × 100%">${value}</span>`;
+    };
+
     $('#table-dashboard-dso').DataTable({
         processing: true,
         serverSide: true,
         scrollX: true,
         pageLength: 10,
-        ajax: @json(route('admin.shipments.data')),
+        ajax: {
+            url: @json(route('admin.shipments.data')),
+            type: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            },
+            data: function (payload) {
+                payload.month = @json($selectedMonth);
+                payload.year = @json($selectedYear);
+            }
+        },
         columns: [
             { data: 'row_number', name: 'row_number', orderable: false, searchable: false },
             { data: 'lokasi', name: 'lokasi' },
@@ -157,7 +178,7 @@ document.addEventListener('DOMContentLoaded', function () {
             },
             {
                 data: 'delay_percentage', orderable: false, searchable: false,
-                render: (value) => `<span class="${parseFloat(value) > 0 ? 'text-danger fw-bold' : ''}">${value}</span>`
+                render: renderDelayPercentage
             },
             { data: 'max_arrival', orderable: false, searchable: false },
             { data: 'progress', orderable: false, searchable: false }

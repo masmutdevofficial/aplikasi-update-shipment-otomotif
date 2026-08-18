@@ -271,6 +271,17 @@ class ShipmentCrudTest extends TestCase
         $this->assertSame(8, $shipment->slaCustomer());
         $this->assertSame('LATE', $shipment->slaResult());
         $this->assertSame(37.5, $shipment->delayPercentage());
+
+        $this->actingAs($this->admin)
+            ->getJson(route('admin.shipments.data', [
+                'length' => 10,
+                'search' => ['value' => $shipment->no_rangka],
+            ]))
+            ->assertOk()
+            ->assertJsonFragment([
+                'no_rangka' => $shipment->no_rangka,
+                'delay_percentage' => '37.50%',
+            ]);
     }
 
     public function test_dso_index_shows_aggregate_delay_percentage(): void

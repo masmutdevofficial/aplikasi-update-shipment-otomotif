@@ -6,8 +6,16 @@
         'tso' => 'Dashboard TSO',
         'iso' => 'Dashboard ISO',
     ];
-    $selectedDashboard = strtolower(request()->query('type', 'dso'));
-    $selectedIsoType = strtolower(request()->query('iso_type', 'darat'));
+    $selectedDashboard = $selectedDashboard ?? strtolower(request()->query('type', 'dso'));
+    $selectedIsoType = $selectedIsoType ?? strtolower(request()->query('iso_type', 'darat'));
+    $selectedMonth = $selectedMonth ?? null;
+    $selectedYear = $selectedYear ?? null;
+    $availableYears = $availableYears ?? [(int) now()->year];
+    $monthOptions = [
+        1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+        5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+        9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
+    ];
 
     if (! array_key_exists($selectedDashboard, $dashboardOptions)) {
         $selectedDashboard = 'dso';
@@ -75,7 +83,10 @@
                 <p class="dashboard-selector-description">Pilih dashboard yang ingin ditampilkan.</p>
             </div>
 
-            <form method="GET" action="{{ route('admin.dashboard') }}">
+            <form method="GET" action="{{ route('admin.dashboard') }}" class="dashboard-filter-form">
+                @if ($selectedDashboard === 'iso')
+                    <input type="hidden" name="iso_type" value="{{ $selectedIsoType }}">
+                @endif
                 <select
                     id="dashboardType"
                     name="type"
@@ -89,9 +100,26 @@
                         </option>
                     @endforeach
                 </select>
-                <noscript>
-                    <button type="submit" class="btn btn-primary btn-sm">Tampilkan</button>
-                </noscript>
+
+                <select id="dashboardMonth" name="month" class="form-select dashboard-period-input" aria-label="Filter bulan">
+                    <option value="">Semua Bulan</option>
+                    @foreach ($monthOptions as $value => $label)
+                        <option value="{{ $value }}" @selected($selectedMonth === $value)>{{ $label }}</option>
+                    @endforeach
+                </select>
+
+                <select id="dashboardYear" name="year" class="form-select dashboard-period-input" aria-label="Filter tahun">
+                    <option value="">Semua Tahun</option>
+                    @foreach ($availableYears as $value)
+                        <option value="{{ $value }}" @selected($selectedYear === $value)>{{ $value }}</option>
+                    @endforeach
+                </select>
+
+                <button type="submit" class="btn btn-primary"><i class="fas fa-filter"></i> Terapkan</button>
+                <a
+                    href="{{ route('admin.dashboard', array_filter(['type' => $selectedDashboard, 'iso_type' => $selectedDashboard === 'iso' ? $selectedIsoType : null])) }}"
+                    class="btn btn-default"
+                >Reset</a>
             </form>
         </div>
     </div>
@@ -128,7 +156,7 @@
                         <th>Port to Door</th>
                         <th>SLA Actual</th>
                         <th>Result</th>
-                        <th>Keterlambatan (%)</th>
+                        <th title="(SLA Actual - SLA Customer) / SLA Customer × 100%">Persentase Keterlambatan</th>
                         <th>Max Arrival</th>
                         <th>Progress</th>
                     </tr>
@@ -142,13 +170,13 @@
 @include('admin.dashboard._performance-stats')
 <div class="iso-mode-selector" role="group" aria-label="Pilih jenis shipment ISO">
     <a
-        href="{{ route('admin.dashboard', ['type' => 'iso', 'iso_type' => 'darat']) }}"
+        href="{{ route('admin.dashboard', array_filter(['type' => 'iso', 'iso_type' => 'darat', 'month' => $selectedMonth, 'year' => $selectedYear])) }}"
         class="btn {{ $selectedIsoType === 'darat' ? 'btn-primary' : 'btn-default' }}"
     >
         <i class="fas fa-truck"></i> ISO Darat
     </a>
     <a
-        href="{{ route('admin.dashboard', ['type' => 'iso', 'iso_type' => 'laut']) }}"
+        href="{{ route('admin.dashboard', array_filter(['type' => 'iso', 'iso_type' => 'laut', 'month' => $selectedMonth, 'year' => $selectedYear])) }}"
         class="btn {{ $selectedIsoType === 'laut' ? 'btn-primary' : 'btn-default' }}"
     >
         <i class="fas fa-ship"></i> ISO Laut
@@ -168,7 +196,7 @@
             <span class="info-box-icon bg-primary"><i class="fas fa-truck"></i></span>
             <div class="info-box-content">
                 <span class="info-box-text">Total Shipments</span>
-                <span class="info-box-number">{{ \App\Models\Shipment::count() }}</span>
+                <span class="info-box-number">{{ $dashboardShipmentTotal }}</span>
             </div>
         </div>
     </div>
@@ -194,8 +222,8 @@
         <div class="info-box">
             <span class="info-box-icon bg-warning"><i class="fas fa-qrcode"></i></span>
             <div class="info-box-content">
-                <span class="info-box-text">Scan Hari Ini</span>
-                <span class="info-box-number">{{ \App\Models\ScanHistory::whereDate('scan_date', today())->count() }}</span>
+                <span class="info-box-text">Scan Sesuai Periode</span>
+                <span class="info-box-number">{{ $dashboardScanTotal }}</span>
             </div>
         </div>
     </div>
@@ -219,7 +247,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse(\App\Models\Shipment::latest()->take(5)->get() as $shipment)
+                        @forelse($latestShipments as $shipment)
                         <tr>
                             <td><code>{{ $shipment->no_rangka }}</code></td>
                             <td>{{ $shipment->tujuan_pengiriman }}</td>
@@ -250,7 +278,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse(\App\Models\ScanHistory::with('user')->latest('scan_date')->take(5)->get() as $scan)
+                        @forelse($latestScans as $scan)
                         <tr>
                             <td><code>{{ $scan->no_rangka }}</code></td>
                             <td>{{ $scan->user->name ?? '-' }}</td>
@@ -300,10 +328,15 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-wrap: wrap;
 }
 
 .dashboard-selector-input {
     min-width: 220px;
+}
+
+.dashboard-period-input {
+    min-width: 145px;
 }
 
 .tso-table-scroll,
@@ -348,7 +381,8 @@
     }
 
     .dashboard-selector form,
-    .dashboard-selector-input {
+    .dashboard-selector-input,
+    .dashboard-period-input {
         width: 100%;
     }
 }
@@ -360,11 +394,31 @@
 document.addEventListener('DOMContentLoaded', function () {
     const tableSelector = @json($dashboardTableSelector);
     const serverColumns = @json($dashboardServerColumns);
+    const renderDelayPercentage = (value) => {
+        if (value === null || value === undefined || value === '-') {
+            return '<span class="badge badge-secondary">-</span>';
+        }
+
+        const percentage = Number.parseFloat(value);
+        const badgeClass = percentage > 0 ? 'badge-danger' : 'badge-success';
+
+        return `<span class="badge ${badgeClass}" title="(SLA Actual - SLA Customer) / SLA Customer × 100%">${value}</span>`;
+    };
 
     $(tableSelector).DataTable({
         processing: true,
         serverSide: true,
-        ajax: @json(route('admin.special-shipments.data', $dashboardPerformanceType)),
+        ajax: {
+            url: @json(route('admin.special-shipments.data', $dashboardPerformanceType)),
+            type: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            },
+            data: function (payload) {
+                payload.month = @json($selectedMonth);
+                payload.year = @json($selectedYear);
+            }
+        },
         pageLength: 10,
         scrollX: true,
         lengthMenu: [[10, 25, 50, 100], ['10', '25', '50', '100']],
@@ -378,7 +432,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 : (column.kind === 'result'
                     ? ((value) => `<span class="badge ${value === 'OTD' ? 'badge-success' : (value === 'LATE' ? 'badge-danger' : 'badge-secondary')}">${value}</span>`)
                     : (column.kind === 'delay'
-                        ? ((value) => `<span class="${parseFloat(value) > 0 ? 'text-danger font-weight-bold' : ''}">${value}</span>`)
+                        ? renderDelayPercentage
                         : undefined))
         })),
         language: {

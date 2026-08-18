@@ -90,6 +90,7 @@ class IsoDashboardTest extends TestCase
                 'no_so_booking' => '3100551770',
                 'no_spb' => 'MHCFTR90TSJ001133',
                 'sla_result' => 'OTD',
+                'delay_percentage' => '0.00%',
             ]);
     }
 

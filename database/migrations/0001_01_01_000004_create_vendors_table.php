@@ -21,6 +21,10 @@ return new class extends Migration
                 'ATA Kapal',
                 'ATA Storage Port (Destination)',
                 'AT PtD (Dooring)',
+                'AT PTD/DTD',
+                'Door to Port (DTP)',
+                'Port to Port (PTP)',
+                'Port to Door (PTD)',
             ]);
             $table->uuid('created_by')->nullable();
             $table->uuid('updated_by')->nullable();

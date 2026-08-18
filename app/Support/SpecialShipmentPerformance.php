@@ -48,14 +48,19 @@ class SpecialShipmentPerformance
     /**
      * @return array{completed: int, late: int, percentage: float|int}
      */
-    public static function statistics(string $type): array
+    public static function statistics(string $type, ?int $month = null, ?int $year = null): array
     {
         $config = SpecialShipmentType::get($type);
         $model = $config['model'];
+        $dateField = $config['performance']['start'];
         $completed = 0;
         $late = 0;
 
-        foreach ($model::query()->cursor() as $shipment) {
+        $query = $model::query()
+            ->when($month !== null, fn ($builder) => $builder->whereMonth($dateField, $month))
+            ->when($year !== null, fn ($builder) => $builder->whereYear($dateField, $year));
+
+        foreach ($query->cursor() as $shipment) {
             $metrics = self::calculate($type, $shipment);
 
             if (!in_array($metrics['sla_result'], ['OTD', 'LATE'], true)) {

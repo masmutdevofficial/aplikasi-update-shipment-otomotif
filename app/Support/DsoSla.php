@@ -44,7 +44,7 @@ class DsoSla
     /**
      * @return array{completed: int, late: int, percentage: float|int}
      */
-    public static function delayStatistics(): array
+    public static function delayStatistics(?int $month = null, ?int $year = null): array
     {
         $isSqlite = DB::connection()->getDriverName() === 'sqlite';
         $destinationExpression = $isSqlite
@@ -55,6 +55,8 @@ class DsoSla
             : 'DATEDIFF(at_ptd_dooring, terima_do)';
 
         $completedQuery = Shipment::query()
+            ->when($month !== null, fn ($query) => $query->whereMonth('terima_do', $month))
+            ->when($year !== null, fn ($query) => $query->whereYear('terima_do', $year))
             ->whereNotNull('terima_do')
             ->whereNotNull('at_ptd_dooring')
             ->where(function ($query) use ($destinationExpression) {

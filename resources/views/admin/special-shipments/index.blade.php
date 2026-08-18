@@ -147,7 +147,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const dataTable = $('#table-special-shipments').DataTable({
         processing: true,
         serverSide: true,
-        ajax: '{{ route('admin.special-shipments.data', $type) }}',
+        ajax: {
+            url: '{{ route('admin.special-shipments.data', $type) }}',
+            type: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            }
+        },
         pageLength: 10,
         scrollX: true,
         lengthMenu: [[10, 25, 50, 100], ['10', '25', '50', '100']],

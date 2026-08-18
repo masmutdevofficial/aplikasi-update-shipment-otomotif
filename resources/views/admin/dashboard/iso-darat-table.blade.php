@@ -25,7 +25,7 @@
                         <th>PTD/DTD</th>
                         <th>SLA Actual</th>
                         <th>Result</th>
-                        <th>Keterlambatan (%)</th>
+                        <th title="(SLA Actual - SLA Customer) / SLA Customer × 100%">Persentase Keterlambatan</th>
                         <th>Max Arrival</th>
                         <th>Progress</th>
                     </tr>

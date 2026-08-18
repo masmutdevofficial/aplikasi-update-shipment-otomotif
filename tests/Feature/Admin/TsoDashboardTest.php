@@ -75,6 +75,7 @@ class TsoDashboardTest extends TestCase
                 'no_rangka' => 'MHKAA1BY9SJ004075',
                 'vessel_ptp' => 'Serasi V',
                 'sla_result' => 'LATE',
+                'delay_percentage' => '12.50%',
             ]);
     }
 }

@@ -314,6 +314,14 @@ Redirect setelah login: `/admin/dashboard`
 | `vendor.atakapal@gmail.com` | `Vendor@Kapal2026!` | ATA Kapal |
 | `vendor.storageport2@gmail.com` | `Vendor@Dest2026!!` | ATA Storage Port (Destination) |
 | `vendor.dooring@gmail.com` | `Vendor@Door2026!!` | AT PtD (Dooring) |
+| `iso.storageport@gmail.com` | `ISO@Storage2026!` | ISO — AT Storage Port |
+| `iso.loading@gmail.com` | `ISO@Loading2026!` | ISO — ATD Kapal (Loading) |
+| `iso.atakapal@gmail.com` | `ISO@Kapal2026!` | ISO — ATA Kapal |
+| `iso.destination@gmail.com` | `ISO@Destination2026!` | ISO — ATA Storage Port (Destination) |
+| `iso.ptddtd@gmail.com` | `ISO@PtdDtd2026!` | ISO — AT PTD/DTD |
+| `tso.dtp@gmail.com` | `TSO@Dtp2026!` | TSO — Door to Port (DTP) |
+| `tso.ptp@gmail.com` | `TSO@Ptp2026!` | TSO — Port to Port (PTP) |
+| `tso.ptd@gmail.com` | `TSO@Ptd2026!` | TSO — Port to Door (PTD) |
 
 Redirect setelah login: `/vendor/dashboard`
 

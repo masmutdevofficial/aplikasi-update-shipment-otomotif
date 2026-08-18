@@ -65,6 +65,52 @@ class SpecialShipmentCrudTest extends TestCase
         $this->assertGreaterThanOrEqual(15, $response->json('recordsTotal'));
     }
 
+    public function test_iso_laut_datatable_accepts_its_large_payload_via_post(): void
+    {
+        IsoLautShipment::create([
+            'source_no' => 1,
+            'no_booking_dtp' => 'POST-DATATABLE-001',
+            'noka' => 'POST-NOKA-001',
+        ]);
+
+        $config = SpecialShipmentType::get('iso-laut');
+        $fieldNames = array_keys($config['fields']);
+        $columns = collect(array_merge(
+            ['id'],
+            $fieldNames,
+            array_keys($config['performance']['stages']),
+            ['sla_actual', 'sla_result', 'delay_percentage', 'max_arrival', 'progress', 'actions'],
+        ))
+            ->map(fn (string $column) => [
+                'data' => $column,
+                'name' => $column,
+                'searchable' => in_array($column, $fieldNames, true),
+                'orderable' => in_array($column, $fieldNames, true),
+                'search' => ['value' => '', 'regex' => false],
+            ])
+            ->values()
+            ->all();
+
+        $response = $this->actingAs($this->admin)->postJson(
+            route('admin.special-shipments.data', 'iso-laut'),
+            [
+                'draw' => 1,
+                'start' => 0,
+                'length' => 10,
+                'columns' => $columns,
+                'order' => [['column' => 1, 'dir' => 'asc']],
+                'search' => ['value' => '', 'regex' => false],
+            ],
+        );
+
+        $response->assertOk()
+            ->assertJsonPath('draw', 1)
+            ->assertJsonFragment([
+                'no_booking_dtp' => 'POST-DATATABLE-001',
+                'noka' => 'POST-NOKA-001',
+            ]);
+    }
+
     public function test_admin_can_create_update_and_delete_tso_data(): void
     {
         $this->actingAs($this->admin)

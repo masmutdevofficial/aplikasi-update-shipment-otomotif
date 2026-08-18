@@ -18,6 +18,10 @@ return new class extends Migration
                 'ATA Kapal',
                 'ATA Storage Port (Destination)',
                 'AT PtD (Dooring)',
+                'AT PTD/DTD',
+                'Door to Port (DTP)',
+                'Port to Port (PTP)',
+                'Port to Door (PTD)',
             ]);
             $table->date('scan_date');
             $table->text('document_link')->nullable();
