@@ -14,8 +14,8 @@
         <div class="info-box">
             <span class="info-box-icon bg-info"><i class="fas fa-check-circle"></i></span>
             <div class="info-box-content">
-                <span class="info-box-text">Shipment Selesai Dievaluasi</span>
-                <span class="info-box-number">{{ number_format($delayStats['completed']) }}</span>
+                <span class="info-box-text">Shipment Dievaluasi</span>
+                <span class="info-box-number">{{ number_format($delayStats['evaluated']) }}</span>
             </div>
         </div>
     </div>
@@ -97,14 +97,14 @@
                         <th>AT PtD (Dooring)</th>
                         <th>DO Release to Pickup</th>
                         <th>Storage Port</th>
-                        <th>Kapal (Loading)</th>
+                        <th>Dwelling Origin</th>
                         <th>Kapal (Aboard)</th>
                         <th>Storage Port (Destination)</th>
-                        <th>PtD (Dooring)</th>
+                        <th>Dwelling Destination</th>
                         <th>SLA Actual</th>
                         <th>SLA Cust</th>
                         <th>Result</th>
-                        <th>Keterlambatan (%)</th>
+                        <th>Keterlambatan (Hari)</th>
                         <th>Max Arrival</th>
                         <th>Progress</th>
                         <th>Aksi</th>
@@ -127,10 +127,10 @@
                     <th>Destination</th>
                     <th>Keluar dari PDC</th>
                     <th>Storage Port</th>
-                    <th>Kapal (Loading)</th>
+                    <th>Dwelling Origin</th>
                     <th>ATA Kapal</th>
                     <th>Storage Port (Destination)</th>
-                    <th>PtD (Dooring)</th>
+                    <th>Dwelling Destination</th>
                     <th>SLA Customer</th>
                 </tr>
             </thead>
@@ -197,10 +197,10 @@ document.addEventListener('DOMContentLoaded', function () {
             { data: 'at_ptd_dooring', name: 'at_ptd_dooring' },
             { data: 'lead_time_do_release_pickup', name: 'lead_time_do_release_pickup', orderable: false, searchable: false },
             { data: 'lead_time_storage_port', name: 'lead_time_storage_port', orderable: false, searchable: false },
-            { data: 'lead_time_kapal_loading', name: 'lead_time_kapal_loading', orderable: false, searchable: false },
+            { data: 'dwelling_origin', name: 'dwelling_origin', orderable: false, searchable: false },
             { data: 'lead_time_kapal_aboard', name: 'lead_time_kapal_aboard', orderable: false, searchable: false },
             { data: 'lead_time_storage_destination', name: 'lead_time_storage_destination', orderable: false, searchable: false },
-            { data: 'lead_time_ptd_dooring', name: 'lead_time_ptd_dooring', orderable: false, searchable: false },
+            { data: 'dwelling_destination', name: 'dwelling_destination', orderable: false, searchable: false },
             { data: 'sla_actual', name: 'sla_actual', orderable: false, searchable: false },
             { data: 'sla_customer', name: 'sla_customer', orderable: false, searchable: false },
             {
@@ -208,7 +208,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 render: (value) => `<span class="badge ${value === 'OTD' ? 'badge-success' : (value === 'LATE' ? 'badge-danger' : 'badge-secondary')}">${value}</span>`
             },
             {
-                data: 'delay_percentage', name: 'delay_percentage', orderable: false, searchable: false,
+                data: 'delay_days', name: 'delay_days', orderable: false, searchable: false,
                 render: (value) => `<span class="${parseFloat(value) > 0 ? 'text-danger fw-bold' : ''}">${value}</span>`
             },
             { data: 'max_arrival', name: 'max_arrival', orderable: false, searchable: false },

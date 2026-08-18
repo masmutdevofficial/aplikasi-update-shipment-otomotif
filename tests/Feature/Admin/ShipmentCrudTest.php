@@ -7,6 +7,7 @@ use App\Models\Shipment;
 use App\Models\PendingVin;
 use App\Models\User;
 use App\Models\Vendor;
+use Carbon\Carbon;
 use Tests\TestCase;
 
 class ShipmentCrudTest extends TestCase
@@ -18,6 +19,12 @@ class ShipmentCrudTest extends TestCase
     {
         parent::setUp();
         $this->admin = User::factory()->admin()->create();
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        parent::tearDown();
     }
 
     private function validShipmentData(array $overrides = []): array
@@ -75,7 +82,9 @@ class ShipmentCrudTest extends TestCase
                 'sla_actual',
                 'sla_customer',
                 'sla_result',
-                'delay_percentage',
+                'dwelling_origin',
+                'dwelling_destination',
+                'delay_days',
                 'max_arrival',
                 'progress',
             ]]]);
@@ -247,18 +256,20 @@ class ShipmentCrudTest extends TestCase
         $this->assertSame(1, $shipment->leadTimeDoReleaseToPickup());
         $this->assertSame(0, $shipment->leadTimeStoragePort());
         $this->assertSame(1, $shipment->leadTimeKapalLoading());
+        $this->assertSame(1, $shipment->dwellingOrigin());
         $this->assertSame(3, $shipment->leadTimeKapalAboard());
         $this->assertSame(0, $shipment->leadTimeStoragePortDestination());
         $this->assertSame(0, $shipment->leadTimePtdDooring());
+        $this->assertSame(0, $shipment->dwellingDestination());
         $this->assertSame(5, $shipment->slaActual());
         $this->assertSame(8, $shipment->slaCustomer());
         $this->assertSame('OTD', $shipment->slaResult());
-        $this->assertSame(0.0, $shipment->delayPercentage());
+        $this->assertSame(0, $shipment->delayDays());
         $this->assertSame('2026-07-09', $shipment->maxArrival()?->format('Y-m-d'));
         $this->assertSame('OTD', $shipment->shipmentProgress());
     }
 
-    public function test_dso_delay_percentage_is_calculated_against_customer_sla(): void
+    public function test_dso_delay_days_are_calculated_against_customer_sla(): void
     {
         $shipment = Shipment::factory()->create([
             'kota' => 'PONTIANAK',
@@ -270,7 +281,7 @@ class ShipmentCrudTest extends TestCase
         $this->assertSame(11, $shipment->slaActual());
         $this->assertSame(8, $shipment->slaCustomer());
         $this->assertSame('LATE', $shipment->slaResult());
-        $this->assertSame(37.5, $shipment->delayPercentage());
+        $this->assertSame(3, $shipment->delayDays());
 
         $this->actingAs($this->admin)
             ->getJson(route('admin.shipments.data', [
@@ -280,11 +291,34 @@ class ShipmentCrudTest extends TestCase
             ->assertOk()
             ->assertJsonFragment([
                 'no_rangka' => $shipment->no_rangka,
-                'delay_percentage' => '37.50%',
+                'delay_days' => 3,
             ]);
     }
 
-    public function test_dso_index_shows_aggregate_delay_percentage(): void
+    public function test_dso_ongoing_shipment_uses_today_for_delay_and_dwelling(): void
+    {
+        Carbon::setTestNow('2026-07-15 12:00:00');
+
+        $shipment = Shipment::factory()->create([
+            'kota' => 'PONTIANAK',
+            'tujuan_pengiriman' => 'PONTIANAK',
+            'terima_do' => '2026-07-01',
+            'at_storage_port' => '2026-07-05',
+            'atd_kapal_loading' => '2026-07-06',
+            'ata_kapal' => '2026-07-10',
+            'ata_storage_port_destination' => '2026-07-11',
+            'at_ptd_dooring' => null,
+        ]);
+
+        $this->assertSame(14, $shipment->slaActual());
+        $this->assertSame(8, $shipment->slaCustomer());
+        $this->assertSame('LATE', $shipment->slaResult());
+        $this->assertSame(6, $shipment->delayDays());
+        $this->assertSame(1, $shipment->dwellingOrigin());
+        $this->assertSame(4, $shipment->dwellingDestination());
+    }
+
+    public function test_dso_index_shows_aggregate_late_percentage(): void
     {
         Shipment::factory()->create([
             'kota' => 'PONTIANAK',

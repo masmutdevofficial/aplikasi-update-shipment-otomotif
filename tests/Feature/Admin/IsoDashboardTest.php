@@ -80,7 +80,7 @@ class IsoDashboardTest extends TestCase
         $response->assertOk();
         $response->assertSee('Data Shipment ISO Darat');
         $response->assertSee('NO SO / BOOKING');
-        $response->assertSee('Persentase Keterlambatan');
+        $response->assertSee('Keterlambatan (Hari)');
         $response->assertSee('SLA Actual');
 
         $this->actingAs($admin)
@@ -90,7 +90,7 @@ class IsoDashboardTest extends TestCase
                 'no_so_booking' => '3100551770',
                 'no_spb' => 'MHCFTR90TSJ001133',
                 'sla_result' => 'OTD',
-                'delay_percentage' => '0.00%',
+                'delay_days' => 0,
             ]);
     }
 
@@ -110,7 +110,7 @@ class IsoDashboardTest extends TestCase
         $response->assertOk();
         $response->assertSee('Data Shipment ISO Laut');
         $response->assertSee('NO BOOKING DTP');
-        $response->assertSee('Persentase Keterlambatan');
+        $response->assertSee('Keterlambatan (Hari)');
 
         $this->actingAs($admin)
             ->getJson(route('admin.special-shipments.data', ['type' => 'iso-laut', 'length' => 10]))

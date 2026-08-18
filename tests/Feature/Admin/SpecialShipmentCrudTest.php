@@ -9,6 +9,7 @@ use App\Models\TsoShipment;
 use App\Models\User;
 use App\Support\SpecialShipmentType;
 use App\Support\SpecialShipmentPerformance;
+use Carbon\Carbon;
 use Tests\TestCase;
 
 class SpecialShipmentCrudTest extends TestCase
@@ -19,6 +20,12 @@ class SpecialShipmentCrudTest extends TestCase
     {
         parent::setUp();
         $this->admin = User::factory()->admin()->create();
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        parent::tearDown();
     }
 
     public function test_each_shipment_type_has_a_separate_index_page(): void
@@ -58,7 +65,7 @@ class SpecialShipmentCrudTest extends TestCase
             ->assertJsonStructure(['data' => [[
                 'sla_actual',
                 'sla_result',
-                'delay_percentage',
+                'delay_days',
                 'max_arrival',
                 'progress',
             ]]);
@@ -79,7 +86,7 @@ class SpecialShipmentCrudTest extends TestCase
             ['id'],
             $fieldNames,
             array_keys($config['performance']['stages']),
-            ['sla_actual', 'sla_result', 'delay_percentage', 'max_arrival', 'progress', 'actions'],
+            ['sla_actual', 'sla_result', 'delay_days', 'max_arrival', 'progress', 'actions'],
         ))
             ->map(fn (string $column) => [
                 'data' => $column,
@@ -267,10 +274,38 @@ class SpecialShipmentCrudTest extends TestCase
 
         $this->assertSame(11, $tsoMetrics['sla_actual']);
         $this->assertSame('LATE', $tsoMetrics['sla_result']);
-        $this->assertSame(37.5, $tsoMetrics['delay_percentage']);
+        $this->assertSame(3, $tsoMetrics['delay_days']);
         $this->assertSame(5, $daratMetrics['sla_actual']);
         $this->assertSame('OTD', $daratMetrics['sla_result']);
         $this->assertSame(6, $lautMetrics['sla_actual']);
         $this->assertSame('OTD', $lautMetrics['sla_result']);
+    }
+
+    public function test_ongoing_special_shipment_uses_today_for_delay(): void
+    {
+        Carbon::setTestNow('2026-07-15 12:00:00');
+        $tso = TsoShipment::create([
+            'do_date' => '2026-07-01',
+            'port_to_door' => null,
+            'sla_customer' => 8,
+        ]);
+        $isoLaut = IsoLautShipment::create([
+            'terima_do' => '2026-07-01',
+            'at_storage_port' => '2026-07-05',
+            'atd_kapal_loading' => '2026-07-06',
+            'ata_storage_port_destination' => '2026-07-11',
+            'at_ptd_dtd' => null,
+            'sla_customer' => 8,
+        ]);
+
+        $tsoMetrics = SpecialShipmentPerformance::calculate('tso', $tso);
+        $isoMetrics = SpecialShipmentPerformance::calculate('iso-laut', $isoLaut);
+
+        $this->assertSame(14, $tsoMetrics['sla_actual']);
+        $this->assertSame('LATE', $tsoMetrics['sla_result']);
+        $this->assertSame(6, $tsoMetrics['delay_days']);
+        $this->assertSame(1, $isoMetrics['lead_time_loading']);
+        $this->assertSame(4, $isoMetrics['lead_time_ptd_dtd']);
+        $this->assertSame(6, $isoMetrics['delay_days']);
     }
 }

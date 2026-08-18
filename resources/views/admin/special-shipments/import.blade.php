@@ -29,7 +29,7 @@
                     <div class="alert alert-info">
                         <div class="alert-content">
                             Semua kolom boleh kosong. Gunakan header sesuai template. Data dengan {{ $config['fields'][$config['identity']]['label'] }} yang sama akan diperbarui.
-                            Isi <strong>SLA Customer (Days)</strong> bila data ingin dievaluasi otomatis sebagai OTD atau LATE. Lead time, Max Arrival, Progress, dan persentase keterlambatan dihitung oleh sistem.
+                            Isi <strong>SLA Customer (Days)</strong> bila data ingin dievaluasi otomatis sebagai OTD atau LATE. Lead time, Max Arrival, Progress, dan keterlambatan dalam hari dihitung oleh sistem.
                             <div class="mt-3">
                                 <a href="{{ route('admin.special-shipments.template', $type) }}" class="btn btn-sm btn-outline-primary">
                                     <i class="fas fa-download"></i> Download Template Excel

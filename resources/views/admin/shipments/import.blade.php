@@ -44,7 +44,7 @@
                             <li>Kolom <strong>No. Rangka (VIN)</strong> harus tepat 17 karakter alfanumerik.</li>
                             <li><strong>No. DO</strong>, tanggal kapal, dan seluruh kolom <strong>Actual Time</strong> boleh kosong jika belum tersedia.</li>
                             <li>Kolom Actual Time yang didukung: <strong>AT Storage Port</strong>, <strong>ATD Kapal (Loading)</strong>, <strong>ATA Kapal</strong>, <strong>ATA Storage Port (Destination)</strong>, dan <strong>AT PtD (Dooring)</strong>.</li>
-                            <li>Lead time, SLA Actual, SLA Customer, Result, Max Arrival, Progress, dan persentase keterlambatan dihitung otomatis oleh sistem.</li>
+                            <li>Lead time, Dwelling Origin/Destination, SLA Actual, SLA Customer, Result, Max Arrival, Progress, dan keterlambatan dalam hari dihitung otomatis oleh sistem.</li>
                             <li>Data yang No. Rangka-nya sudah terdaftar akan <strong>diperbarui otomatis</strong> jika file berisi data DO, tanggal, kapal, atau ATD terbaru.</li>
                             <li>File manifest kapal dengan kop/header di tengah file akan dideteksi otomatis selama memiliki kolom <strong>No. Rangka</strong>.</li>
                             <li>Format tanggal: <code>YYYY-MM-DD</code> atau <code>DD/MM/YYYY</code>.</li>

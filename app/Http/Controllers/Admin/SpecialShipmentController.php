@@ -75,9 +75,7 @@ class SpecialShipmentController extends Controller
 
             $row['sla_actual'] = $metrics['sla_actual'] ?? '-';
             $row['sla_result'] = $metrics['sla_result'];
-            $row['delay_percentage'] = $metrics['delay_percentage'] !== null
-                ? number_format($metrics['delay_percentage'], 2) . '%'
-                : '-';
+            $row['delay_days'] = $metrics['delay_days'] ?? '-';
             $row['max_arrival'] = $metrics['max_arrival']?->format('d-M-y') ?? '-';
             $row['progress'] = e($metrics['progress']);
 

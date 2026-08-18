@@ -137,10 +137,10 @@ class SpecialShipmentType
                     'stages' => [
                         'lead_time_release' => ['label' => 'DO Release to Pickup', 'from' => 'terima_do', 'to' => 'keluar_dari_pdc'],
                         'lead_time_storage_port' => ['label' => 'Storage Port', 'from' => 'keluar_dari_pdc', 'to' => 'at_storage_port'],
-                        'lead_time_loading' => ['label' => 'Kapal (Loading)', 'from' => 'at_storage_port', 'to' => 'atd_kapal_loading'],
+                        'lead_time_loading' => ['label' => 'Dwelling Origin', 'from' => 'at_storage_port', 'to' => 'atd_kapal_loading', 'ongoing' => true],
                         'lead_time_aboard' => ['label' => 'Kapal (Aboard)', 'from' => 'atd_kapal_loading', 'to' => 'ata_kapal'],
                         'lead_time_storage_destination' => ['label' => 'Storage Port (Destination)', 'from' => 'ata_kapal', 'to' => 'ata_storage_port_destination'],
-                        'lead_time_ptd_dtd' => ['label' => 'PTD/DTD', 'from' => 'ata_storage_port_destination', 'to' => 'at_ptd_dtd'],
+                        'lead_time_ptd_dtd' => ['label' => 'Dwelling Destination', 'from' => 'ata_storage_port_destination', 'to' => 'at_ptd_dtd', 'ongoing' => true],
                     ],
                     'progress' => [
                         'at_ptd_dtd' => 'PTD/DTD',

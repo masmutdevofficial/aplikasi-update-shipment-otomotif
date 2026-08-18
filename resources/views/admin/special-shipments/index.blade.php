@@ -14,7 +14,7 @@
     })->values()->concat([
         ['data' => 'sla_actual', 'label' => 'SLA Actual', 'kind' => 'number'],
         ['data' => 'sla_result', 'label' => 'Result', 'kind' => 'result'],
-        ['data' => 'delay_percentage', 'label' => 'Keterlambatan (%)', 'kind' => 'delay'],
+        ['data' => 'delay_days', 'label' => 'Keterlambatan (Hari)', 'kind' => 'delay'],
         ['data' => 'max_arrival', 'label' => 'Max Arrival', 'kind' => 'date'],
         ['data' => 'progress', 'label' => 'Progress', 'kind' => 'text'],
     ])->values();
@@ -34,8 +34,8 @@
         <div class="info-box">
             <span class="info-box-icon bg-info"><i class="fas fa-check-circle"></i></span>
             <div class="info-box-content">
-                <span class="info-box-text">Shipment Selesai Dievaluasi</span>
-                <span class="info-box-number">{{ number_format($delayStats['completed']) }}</span>
+                <span class="info-box-text">Shipment Dievaluasi</span>
+                <span class="info-box-number">{{ number_format($delayStats['evaluated']) }}</span>
             </div>
         </div>
     </div>

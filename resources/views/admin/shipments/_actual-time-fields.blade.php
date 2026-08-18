@@ -11,7 +11,7 @@
 <div class="col-12">
     <hr>
     <h4 style="font-size:15px; margin-bottom:4px;">Actual Time (Input)</h4>
-    <p class="text-muted small mb-3">Lead time, SLA, result, max arrival, progress, dan persentase keterlambatan dihitung otomatis.</p>
+    <p class="text-muted small mb-3">Lead time, dwelling origin/destination, SLA, result, max arrival, progress, dan keterlambatan dalam hari dihitung otomatis.</p>
 </div>
 
 @foreach ($actualTimeFields as $field => $label)

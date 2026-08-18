@@ -65,7 +65,7 @@ class TsoDashboardTest extends TestCase
             'Port to Door',
             'Vessel PTP',
         ]);
-        $response->assertSee('Persentase Keterlambatan');
+        $response->assertSee('Keterlambatan (Hari)');
         $response->assertSee('SLA Actual');
 
         $this->actingAs($admin)
@@ -75,7 +75,7 @@ class TsoDashboardTest extends TestCase
                 'no_rangka' => 'MHKAA1BY9SJ004075',
                 'vessel_ptp' => 'Serasi V',
                 'sla_result' => 'LATE',
-                'delay_percentage' => '12.50%',
+                'delay_days' => 1,
             ]);
     }
 }

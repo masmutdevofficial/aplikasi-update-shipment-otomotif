@@ -34,13 +34,13 @@
                         <th>SLA Customer</th>
                         <th>DO Release to Pickup</th>
                         <th>Storage Port</th>
-                        <th>Kapal (Loading)</th>
+                        <th>Dwelling Origin</th>
                         <th>Kapal (Aboard)</th>
                         <th>Storage Port (Destination)</th>
-                        <th>PTD/DTD</th>
+                        <th>Dwelling Destination</th>
                         <th>SLA Actual</th>
                         <th>Result</th>
-                        <th title="(SLA Actual - SLA Customer) / SLA Customer × 100%">Persentase Keterlambatan</th>
+                        <th title="Maksimal 0 atau SLA Actual - SLA Customer">Keterlambatan (Hari)</th>
                         <th>Max Arrival</th>
                         <th>Progress</th>
                     </tr>

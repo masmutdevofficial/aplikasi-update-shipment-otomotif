@@ -7,6 +7,7 @@ use App\Models\IsoLautShipment;
 use App\Models\Shipment;
 use App\Models\TsoShipment;
 use App\Models\User;
+use Carbon\Carbon;
 use Tests\TestCase;
 
 class DashboardPeriodFilterTest extends TestCase
@@ -17,6 +18,12 @@ class DashboardPeriodFilterTest extends TestCase
     {
         parent::setUp();
         $this->admin = User::factory()->admin()->create();
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        parent::tearDown();
     }
 
     public function test_dso_dashboard_filters_statistics_and_table_by_month_and_year(): void
@@ -79,6 +86,55 @@ class DashboardPeriodFilterTest extends TestCase
             ->assertJsonPath('recordsTotal', 1)
             ->assertJsonFragment(['no_rangka' => 'TSO-MAY-2025-001'])
             ->assertJsonMissing(['no_rangka' => 'TSO-JUNE-2025-01']);
+    }
+
+    public function test_dso_dashboard_summarizes_current_late_shipments_and_positions_by_city(): void
+    {
+        Carbon::setTestNow('2025-05-20 12:00:00');
+
+        Shipment::create([
+            'no_rangka' => 'DSO-POSITION-0001',
+            'kota' => 'PONTIANAK',
+            'terima_do' => '2025-05-01',
+        ]);
+        Shipment::create([
+            'no_rangka' => 'DSO-POSITION-0002',
+            'kota' => 'PONTIANAK',
+            'terima_do' => '2025-05-18',
+            'keluar_dari_pdc' => '2025-05-19',
+            'at_storage_port' => '2025-05-20',
+        ]);
+        Shipment::create([
+            'no_rangka' => 'DSO-OUTSIDE-PERIOD',
+            'kota' => 'PONTIANAK',
+            'terima_do' => '2025-06-01',
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->get('/admin/dashboard?type=dso&month=5&year=2025')
+            ->assertOk()
+            ->assertSee('Ringkasan Late per Kota')
+            ->assertSee('Dashboard 2 — Posisi Barang per Kota')
+            ->assertSee('Dwelling Origin')
+            ->assertSee('Keterlambatan (Hari)');
+
+        $response->assertViewHas('delayStats', fn (array $stats) =>
+            $stats['evaluated'] === 2
+            && $stats['late'] === 1
+            && $stats['percentage'] === 50.0
+        );
+        $response->assertViewHas('dsoLateByCity', fn (array $summaries) =>
+            count($summaries) === 1
+            && $summaries[0]['city'] === 'PONTIANAK'
+            && $summaries[0]['total'] === 2
+            && $summaries[0]['late'] === 1
+        );
+        $response->assertViewHas('dsoPositionSummary', fn (array $summaries) =>
+            count($summaries) === 1
+            && $summaries[0]['total'] === 2
+            && $summaries[0]['positions']['Belum Keluar PDC']['count'] === 1
+            && $summaries[0]['positions']['AT Storage Port']['count'] === 1
+        );
     }
 
     public function test_both_iso_dashboards_filter_by_terima_do(): void

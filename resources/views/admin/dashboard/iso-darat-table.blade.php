@@ -25,7 +25,7 @@
                         <th>PTD/DTD</th>
                         <th>SLA Actual</th>
                         <th>Result</th>
-                        <th title="(SLA Actual - SLA Customer) / SLA Customer × 100%">Persentase Keterlambatan</th>
+                        <th title="Maksimal 0 atau SLA Actual - SLA Customer">Keterlambatan (Hari)</th>
                         <th>Max Arrival</th>
                         <th>Progress</th>
                     </tr>

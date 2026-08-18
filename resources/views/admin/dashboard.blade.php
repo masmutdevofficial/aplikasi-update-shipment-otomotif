@@ -56,7 +56,7 @@
         $dashboardServerColumns = $dashboardServerColumns->concat([
             ['data' => 'sla_actual', 'kind' => 'number', 'orderable' => false],
             ['data' => 'sla_result', 'kind' => 'result', 'orderable' => false],
-            ['data' => 'delay_percentage', 'kind' => 'delay', 'orderable' => false],
+            ['data' => 'delay_days', 'kind' => 'delay', 'orderable' => false],
             ['data' => 'max_arrival', 'kind' => 'text', 'orderable' => false],
             ['data' => 'progress', 'kind' => 'text', 'orderable' => false],
         ])->values();
@@ -156,7 +156,7 @@
                         <th>Port to Door</th>
                         <th>SLA Actual</th>
                         <th>Result</th>
-                        <th title="(SLA Actual - SLA Customer) / SLA Customer × 100%">Persentase Keterlambatan</th>
+                        <th title="Maksimal 0 atau SLA Actual - SLA Customer">Keterlambatan (Hari)</th>
                         <th>Max Arrival</th>
                         <th>Progress</th>
                     </tr>
@@ -347,6 +347,8 @@
 
 .dashboard-data-table th,
 .dashboard-data-table td,
+.dashboard-position-table th,
+.dashboard-position-table td,
 #table-tso-shipments th,
 #table-tso-shipments td {
     min-width: 120px;
@@ -394,15 +396,15 @@
 document.addEventListener('DOMContentLoaded', function () {
     const tableSelector = @json($dashboardTableSelector);
     const serverColumns = @json($dashboardServerColumns);
-    const renderDelayPercentage = (value) => {
+    const renderDelayDays = (value) => {
         if (value === null || value === undefined || value === '-') {
             return '<span class="badge badge-secondary">-</span>';
         }
 
-        const percentage = Number.parseFloat(value);
-        const badgeClass = percentage > 0 ? 'badge-danger' : 'badge-success';
+        const days = Number.parseInt(value, 10);
+        const badgeClass = days > 0 ? 'badge-danger' : 'badge-success';
 
-        return `<span class="badge ${badgeClass}" title="(SLA Actual - SLA Customer) / SLA Customer × 100%">${value}</span>`;
+        return `<span class="badge ${badgeClass}" title="SLA Actual - SLA Customer">${value}</span>`;
     };
 
     $(tableSelector).DataTable({
@@ -432,7 +434,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 : (column.kind === 'result'
                     ? ((value) => `<span class="badge ${value === 'OTD' ? 'badge-success' : (value === 'LATE' ? 'badge-danger' : 'badge-secondary')}">${value}</span>`)
                     : (column.kind === 'delay'
-                        ? renderDelayPercentage
+                        ? renderDelayDays
                         : undefined))
         })),
         language: {

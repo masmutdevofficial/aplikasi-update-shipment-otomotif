@@ -81,9 +81,26 @@ class Shipment extends Model
         return $this->daysBetween($this->ata_storage_port_destination, $this->at_ptd_dooring);
     }
 
+    public function dwellingOrigin(): ?int
+    {
+        return $this->daysUntilMilestoneOrToday($this->at_storage_port, $this->atd_kapal_loading);
+    }
+
+    public function dwellingDestination(): ?int
+    {
+        return $this->daysUntilMilestoneOrToday($this->ata_storage_port_destination, $this->at_ptd_dooring);
+    }
+
     public function slaActual(): ?int
     {
-        return $this->daysBetween($this->terima_do, $this->at_ptd_dooring);
+        if ($this->terima_do === null) {
+            return null;
+        }
+
+        return $this->daysBetween(
+            $this->terima_do,
+            $this->at_ptd_dooring ?? now()->startOfDay(),
+        );
     }
 
     public function slaCustomer(): ?int
@@ -105,16 +122,16 @@ class Shipment extends Model
         return $actual <= $customer ? 'OTD' : 'LATE';
     }
 
-    public function delayPercentage(): ?float
+    public function delayDays(): ?int
     {
         $actual = $this->slaActual();
         $customer = $this->slaCustomer();
 
-        if ($actual === null || $customer === null || $customer === 0) {
+        if ($actual === null || $customer === null) {
             return null;
         }
 
-        return round(max(0, $actual - $customer) / $customer * 100, 2);
+        return max(0, $actual - $customer);
     }
 
     public function maxArrival(): ?CarbonInterface
@@ -140,6 +157,19 @@ class Shipment extends Model
         };
     }
 
+    public function currentPosition(): string
+    {
+        return match (true) {
+            $this->at_ptd_dooring !== null => 'AT PtD (Dooring)',
+            $this->ata_storage_port_destination !== null => 'ATA Storage Port (Destination)',
+            $this->ata_kapal !== null => 'ATA Kapal',
+            $this->atd_kapal_loading !== null => 'ATD Kapal (Loading)',
+            $this->at_storage_port !== null => 'AT Storage Port',
+            $this->keluar_dari_pdc !== null => 'Keluar dari PDC',
+            default => 'Belum Keluar PDC',
+        };
+    }
+
     private function daysBetween(?CarbonInterface $from, ?CarbonInterface $to): ?int
     {
         if ($from === null || $to === null) {
@@ -147,6 +177,15 @@ class Shipment extends Model
         }
 
         return max(0, (int) $from->diffInDays($to, false));
+    }
+
+    private function daysUntilMilestoneOrToday(?CarbonInterface $from, ?CarbonInterface $milestone): ?int
+    {
+        if ($from === null) {
+            return null;
+        }
+
+        return $this->daysBetween($from, $milestone ?? now()->startOfDay());
     }
 
     public function creator(): BelongsTo

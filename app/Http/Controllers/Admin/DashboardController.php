@@ -42,6 +42,9 @@ class DashboardController extends Controller
             'availableYears' => $this->availableYears($model, $dateField, $year),
             'delayStats' => $type === 'dso' ? DsoSla::delayStatistics($month, $year) : null,
             'slaDestinations' => DsoSla::destinations(),
+            'dsoLateByCity' => $type === 'dso' ? DsoSla::lateByCity($month, $year) : [],
+            'dsoPositionSummary' => $type === 'dso' ? DsoSla::positionSummary($month, $year) : [],
+            'dsoPositions' => DsoSla::positions(),
             'specialDelayStats' => $performanceType
                 ? SpecialShipmentPerformance::statistics($performanceType, $month, $year)
                 : null,

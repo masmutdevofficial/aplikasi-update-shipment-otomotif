@@ -18,15 +18,16 @@ class SpecialShipmentPerformance
 
         foreach ($performance['stages'] as $key => $stage) {
             $from = self::dateValue($shipment->{$stage['from']});
+            $to = self::dateValue($shipment->{$stage['to']}, $from?->year);
             $result[$key] = self::daysBetween(
                 $from,
-                self::dateValue($shipment->{$stage['to']}, $from?->year)
+                $to ?? (($stage['ongoing'] ?? false) ? now()->startOfDay() : null)
             );
         }
 
         $start = self::dateValue($shipment->{$performance['start']});
         $final = self::dateValue($shipment->{$performance['final']}, $start?->year);
-        $actual = self::daysBetween($start, $final);
+        $actual = self::daysBetween($start, $final ?? now()->startOfDay());
         $customer = $shipment->sla_customer !== null ? (int) $shipment->sla_customer : null;
         $status = $actual !== null && $customer !== null
             ? ($actual <= $customer ? 'OTD' : 'LATE')
@@ -34,8 +35,8 @@ class SpecialShipmentPerformance
 
         $result['sla_actual'] = $actual;
         $result['sla_result'] = $status;
-        $result['delay_percentage'] = $actual !== null && $customer !== null && $customer > 0
-            ? round(max(0, $actual - $customer) / $customer * 100, 2)
+        $result['delay_days'] = $actual !== null && $customer !== null
+            ? max(0, $actual - $customer)
             : null;
         $result['max_arrival'] = $start !== null && $customer !== null
             ? $start->copy()->addDays($customer)
@@ -46,14 +47,14 @@ class SpecialShipmentPerformance
     }
 
     /**
-     * @return array{completed: int, late: int, percentage: float|int}
+     * @return array{completed: int, evaluated: int, late: int, percentage: float|int}
      */
     public static function statistics(string $type, ?int $month = null, ?int $year = null): array
     {
         $config = SpecialShipmentType::get($type);
         $model = $config['model'];
         $dateField = $config['performance']['start'];
-        $completed = 0;
+        $evaluated = 0;
         $late = 0;
 
         $query = $model::query()
@@ -67,14 +68,16 @@ class SpecialShipmentPerformance
                 continue;
             }
 
-            $completed++;
+            $evaluated++;
             $late += $metrics['sla_result'] === 'LATE' ? 1 : 0;
         }
 
         return [
-            'completed' => $completed,
+            // Keep the old key for callers outside the dashboard.
+            'completed' => $evaluated,
+            'evaluated' => $evaluated,
             'late' => $late,
-            'percentage' => $completed === 0 ? 0 : round($late / $completed * 100, 2),
+            'percentage' => $evaluated === 0 ? 0 : round($late / $evaluated * 100, 2),
         ];
     }
 
