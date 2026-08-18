@@ -4,9 +4,11 @@ namespace Tests\Feature\Admin;
 
 use App\Imports\SpecialShipmentImport;
 use App\Models\IsoDaratShipment;
+use App\Models\IsoLautShipment;
 use App\Models\TsoShipment;
 use App\Models\User;
 use App\Support\SpecialShipmentType;
+use App\Support\SpecialShipmentPerformance;
 use Tests\TestCase;
 
 class SpecialShipmentCrudTest extends TestCase
@@ -52,7 +54,14 @@ class SpecialShipmentCrudTest extends TestCase
 
         $response->assertOk()
             ->assertJsonPath('draw', 2)
-            ->assertJsonCount(10, 'data');
+            ->assertJsonCount(10, 'data')
+            ->assertJsonStructure(['data' => [[
+                'sla_actual',
+                'sla_result',
+                'delay_percentage',
+                'max_arrival',
+                'progress',
+            ]]);
         $this->assertGreaterThanOrEqual(15, $response->json('recordsTotal'));
     }
 
@@ -177,5 +186,45 @@ class SpecialShipmentCrudTest extends TestCase
         $this->actingAs($vendor)
             ->get(route('admin.special-shipments.index', 'tso'))
             ->assertForbidden();
+    }
+
+    public function test_tso_and_iso_performance_is_calculated_from_their_milestones(): void
+    {
+        $tso = TsoShipment::create([
+            'do_date' => '2026-07-01',
+            'pu_date' => '2026-07-02',
+            'door_to_port' => '2026-07-03',
+            'port_to_port' => '2026-07-06',
+            'port_to_door' => '2026-07-12',
+            'sla_customer' => 8,
+        ]);
+        $darat = IsoDaratShipment::create([
+            'terima_do' => '2026-07-01',
+            'keluar_dari_pdc' => '2026-07-02',
+            'at_ptd_dtd' => '2026-07-06',
+            'sla_customer' => 5,
+        ]);
+        $laut = IsoLautShipment::create([
+            'terima_do' => '2026-07-01',
+            'keluar_dari_pdc' => '2026-07-02',
+            'at_storage_port' => '2026-07-02',
+            'atd_kapal_loading' => '2026-07-03',
+            'ata_kapal' => '2026-07-06',
+            'ata_storage_port_destination' => '2026-07-06',
+            'at_ptd_dtd' => '2026-07-07',
+            'sla_customer' => 6,
+        ]);
+
+        $tsoMetrics = SpecialShipmentPerformance::calculate('tso', $tso);
+        $daratMetrics = SpecialShipmentPerformance::calculate('iso-darat', $darat);
+        $lautMetrics = SpecialShipmentPerformance::calculate('iso-laut', $laut);
+
+        $this->assertSame(11, $tsoMetrics['sla_actual']);
+        $this->assertSame('LATE', $tsoMetrics['sla_result']);
+        $this->assertSame(37.5, $tsoMetrics['delay_percentage']);
+        $this->assertSame(5, $daratMetrics['sla_actual']);
+        $this->assertSame('OTD', $daratMetrics['sla_result']);
+        $this->assertSame(6, $lautMetrics['sla_actual']);
+        $this->assertSame('OTD', $lautMetrics['sla_result']);
     }
 }

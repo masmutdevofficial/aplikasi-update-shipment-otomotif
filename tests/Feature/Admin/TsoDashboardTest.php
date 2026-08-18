@@ -26,6 +26,7 @@ class TsoDashboardTest extends TestCase
             'port_to_port' => null,
             'port_to_door' => null,
             'vessel_ptp' => null,
+            'sla_customer' => null,
         ]);
     }
 
@@ -39,7 +40,12 @@ class TsoDashboardTest extends TestCase
             'detail_destination' => 'TSO-Medan Amplas',
             'no_rangka' => 'MHKAA1BY9SJ004075',
             'do_date' => '2025-11-12',
+            'pu_date' => '2025-11-13',
+            'door_to_port' => '2025-11-13',
+            'port_to_port' => '2025-11-17',
+            'port_to_door' => '2025-11-21',
             'vessel_ptp' => 'Serasi V',
+            'sla_customer' => 8,
         ]);
 
         $response = $this->actingAs($admin)->get('/admin/dashboard?type=tso');
@@ -59,7 +65,16 @@ class TsoDashboardTest extends TestCase
             'Port to Door',
             'Vessel PTP',
         ]);
-        $response->assertSee('MHKAA1BY9SJ004075');
-        $response->assertSee('Serasi V');
+        $response->assertSee('Persentase Keterlambatan');
+        $response->assertSee('SLA Actual');
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.special-shipments.data', ['type' => 'tso', 'length' => 10]))
+            ->assertOk()
+            ->assertJsonFragment([
+                'no_rangka' => 'MHKAA1BY9SJ004075',
+                'vessel_ptp' => 'Serasi V',
+                'sla_result' => 'LATE',
+            ]);
     }
 }

@@ -27,6 +27,11 @@ class StoreShipmentRequest extends FormRequest
             'keluar_dari_pdc' => ['nullable', 'date'],
             'nama_kapal' => ['nullable', 'string', 'max:100'],
             'keberangkatan_kapal' => ['nullable', 'date'],
+            'at_storage_port' => ['nullable', 'date'],
+            'atd_kapal_loading' => ['nullable', 'date'],
+            'ata_kapal' => ['nullable', 'date'],
+            'ata_storage_port_destination' => ['nullable', 'date'],
+            'at_ptd_dooring' => ['nullable', 'date'],
         ];
     }
 
@@ -38,6 +43,11 @@ class StoreShipmentRequest extends FormRequest
             'terima_do.date' => 'Format tanggal Terima DO tidak valid.',
             'keluar_dari_pdc.date' => 'Format tanggal Keluar dari PDC tidak valid.',
             'keberangkatan_kapal.date' => 'Format tanggal Keberangkatan Kapal tidak valid.',
+            'at_storage_port.date' => 'Format tanggal AT Storage Port tidak valid.',
+            'atd_kapal_loading.date' => 'Format tanggal ATD Kapal tidak valid.',
+            'ata_kapal.date' => 'Format tanggal ATA Kapal tidak valid.',
+            'ata_storage_port_destination.date' => 'Format tanggal ATA Storage Port Destination tidak valid.',
+            'at_ptd_dooring.date' => 'Format tanggal AT PtD tidak valid.',
         ];
     }
 
@@ -57,6 +67,11 @@ class StoreShipmentRequest extends FormRequest
             'keluar_dari_pdc' => 'Keluar dari PDC',
             'nama_kapal' => 'Nama Kapal',
             'keberangkatan_kapal' => 'Keberangkatan Kapal',
+            'at_storage_port' => 'AT Storage Port',
+            'atd_kapal_loading' => 'ATD Kapal (Loading)',
+            'ata_kapal' => 'ATA Kapal',
+            'ata_storage_port_destination' => 'ATA Storage Port (Destination)',
+            'at_ptd_dooring' => 'AT PtD (Dooring)',
         ];
     }
 }

@@ -9,6 +9,7 @@ use App\Http\Requests\Admin\UpdateShipmentRequest;
 use App\Imports\ShipmentImport;
 use App\Models\Shipment;
 use App\Services\ShipmentService;
+use App\Support\DsoSla;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -20,7 +21,10 @@ class ShipmentController extends Controller
 
     public function index(Request $request)
     {
-        return view('admin.shipments.index');
+        $delayStats = DsoSla::delayStatistics();
+        $slaDestinations = DsoSla::destinations();
+
+        return view('admin.shipments.index', compact('delayStats', 'slaDestinations'));
     }
 
     public function data(Request $request)
@@ -30,13 +34,20 @@ class ShipmentController extends Controller
             'no_do',
             'type_kendaraan',
             'no_rangka',
+            'no_engine',
             'warna',
             'asal_pdc',
+            'kota',
             'tujuan_pengiriman',
             'terima_do',
             'keluar_dari_pdc',
             'nama_kapal',
             'keberangkatan_kapal',
+            'at_storage_port',
+            'atd_kapal_loading',
+            'ata_kapal',
+            'ata_storage_port_destination',
+            'at_ptd_dooring',
         ];
         $query = Shipment::query();
         $recordsTotal = (clone $query)->count();
@@ -68,13 +79,34 @@ class ShipmentController extends Controller
             'no_do' => e($shipment->no_do ?? '-'),
             'type_kendaraan' => e($shipment->type_kendaraan ?? '-'),
             'no_rangka' => e($shipment->no_rangka ?? '-'),
+            'no_engine' => e($shipment->no_engine ?? '-'),
             'warna' => e($shipment->warna ?? '-'),
             'asal_pdc' => e($shipment->asal_pdc ?? '-'),
+            'kota' => e($shipment->kota ?? '-'),
             'tujuan_pengiriman' => e($shipment->tujuan_pengiriman ?? '-'),
             'terima_do' => $shipment->terima_do?->format('d-M-y') ?? '-',
             'keluar_dari_pdc' => $shipment->keluar_dari_pdc?->format('d-M-y') ?? '-',
             'nama_kapal' => e($shipment->nama_kapal ?? '-'),
             'keberangkatan_kapal' => $shipment->keberangkatan_kapal?->format('d-M-y') ?? '-',
+            'at_storage_port' => $shipment->at_storage_port?->format('d-M-y') ?? '-',
+            'atd_kapal_loading' => $shipment->atd_kapal_loading?->format('d-M-y') ?? '-',
+            'ata_kapal' => $shipment->ata_kapal?->format('d-M-y') ?? '-',
+            'ata_storage_port_destination' => $shipment->ata_storage_port_destination?->format('d-M-y') ?? '-',
+            'at_ptd_dooring' => $shipment->at_ptd_dooring?->format('d-M-y') ?? '-',
+            'lead_time_do_release_pickup' => $shipment->leadTimeDoReleaseToPickup() ?? '-',
+            'lead_time_storage_port' => $shipment->leadTimeStoragePort() ?? '-',
+            'lead_time_kapal_loading' => $shipment->leadTimeKapalLoading() ?? '-',
+            'lead_time_kapal_aboard' => $shipment->leadTimeKapalAboard() ?? '-',
+            'lead_time_storage_destination' => $shipment->leadTimeStoragePortDestination() ?? '-',
+            'lead_time_ptd_dooring' => $shipment->leadTimePtdDooring() ?? '-',
+            'sla_actual' => $shipment->slaActual() ?? '-',
+            'sla_customer' => $shipment->slaCustomer() ?? '-',
+            'sla_result' => $shipment->slaResult(),
+            'delay_percentage' => $shipment->delayPercentage() !== null
+                ? number_format($shipment->delayPercentage(), 2) . '%'
+                : '-',
+            'max_arrival' => $shipment->maxArrival()?->format('d-M-y') ?? '-',
+            'progress' => e($shipment->shipmentProgress()),
             'edit_url' => route('admin.shipments.edit', $shipment),
             'delete_url' => route('admin.shipments.destroy', $shipment),
         ]);

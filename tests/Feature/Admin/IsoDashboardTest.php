@@ -29,6 +29,7 @@ class IsoDashboardTest extends TestCase
             'terima_do' => null,
             'keluar_dari_pdc' => null,
             'at_ptd_dtd' => null,
+            'sla_customer' => null,
         ]);
         $this->assertDatabaseHas('iso_laut_shipments', [
             'id' => $laut->id,
@@ -56,6 +57,7 @@ class IsoDashboardTest extends TestCase
             'ata_kapal' => null,
             'ata_storage_port_destination' => null,
             'at_ptd_dtd' => null,
+            'sla_customer' => null,
         ]);
     }
 
@@ -67,6 +69,10 @@ class IsoDashboardTest extends TestCase
             'no_so_booking' => '3100551770',
             'no_spb' => 'MHCFTR90TSJ001133',
             'kategori_moda' => 'LT Darat',
+            'terima_do' => '2025-09-02',
+            'keluar_dari_pdc' => '2025-09-02',
+            'at_ptd_dtd' => '2025-09-03',
+            'sla_customer' => 1,
         ]);
 
         $response = $this->actingAs($admin)->get('/admin/dashboard?type=iso&iso_type=darat');
@@ -74,8 +80,17 @@ class IsoDashboardTest extends TestCase
         $response->assertOk();
         $response->assertSee('Data Shipment ISO Darat');
         $response->assertSee('NO SO / BOOKING');
-        $response->assertSee('3100551770');
-        $response->assertSee('MHCFTR90TSJ001133');
+        $response->assertSee('Persentase Keterlambatan');
+        $response->assertSee('SLA Actual');
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.special-shipments.data', ['type' => 'iso-darat', 'length' => 10]))
+            ->assertOk()
+            ->assertJsonFragment([
+                'no_so_booking' => '3100551770',
+                'no_spb' => 'MHCFTR90TSJ001133',
+                'sla_result' => 'OTD',
+            ]);
     }
 
     public function test_iso_laut_dashboard_displays_its_columns_and_data(): void
@@ -94,8 +109,15 @@ class IsoDashboardTest extends TestCase
         $response->assertOk();
         $response->assertSee('Data Shipment ISO Laut');
         $response->assertSee('NO BOOKING DTP');
-        $response->assertSee('3100553433');
-        $response->assertSee('MHCPHR54CSJ570508');
-        $response->assertSee('#VALUE!');
+        $response->assertSee('Persentase Keterlambatan');
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.special-shipments.data', ['type' => 'iso-laut', 'length' => 10]))
+            ->assertOk()
+            ->assertJsonFragment([
+                'no_booking_dtp' => '3100553433',
+                'noka' => 'MHCPHR54CSJ570508',
+                'at_ptd_dtd' => '#VALUE!',
+            ]);
     }
 }

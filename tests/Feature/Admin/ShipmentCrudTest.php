@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Imports\ShipmentImport;
 use App\Models\Shipment;
 use App\Models\PendingVin;
 use App\Models\User;
@@ -64,7 +65,20 @@ class ShipmentCrudTest extends TestCase
 
         $response->assertOk()
             ->assertJsonPath('draw', 1)
-            ->assertJsonCount(10, 'data');
+            ->assertJsonCount(10, 'data')
+            ->assertJsonStructure(['data' => [[
+                'at_storage_port',
+                'atd_kapal_loading',
+                'ata_kapal',
+                'ata_storage_port_destination',
+                'at_ptd_dooring',
+                'sla_actual',
+                'sla_customer',
+                'sla_result',
+                'delay_percentage',
+                'max_arrival',
+                'progress',
+            ]]]);
         $this->assertGreaterThanOrEqual(15, $response->json('recordsTotal'));
     }
 
@@ -213,6 +227,100 @@ class ShipmentCrudTest extends TestCase
             'keluar_dari_pdc' => null,
             'nama_kapal' => null,
             'keberangkatan_kapal' => null,
+        ]);
+    }
+
+    public function test_dso_lead_time_and_sla_are_calculated_automatically(): void
+    {
+        $shipment = Shipment::factory()->create([
+            'kota' => 'PONTIANAK',
+            'tujuan_pengiriman' => 'PONTIANAK',
+            'terima_do' => '2026-07-01',
+            'keluar_dari_pdc' => '2026-07-02',
+            'at_storage_port' => '2026-07-02',
+            'atd_kapal_loading' => '2026-07-03',
+            'ata_kapal' => '2026-07-06',
+            'ata_storage_port_destination' => '2026-07-06',
+            'at_ptd_dooring' => '2026-07-06',
+        ]);
+
+        $this->assertSame(1, $shipment->leadTimeDoReleaseToPickup());
+        $this->assertSame(0, $shipment->leadTimeStoragePort());
+        $this->assertSame(1, $shipment->leadTimeKapalLoading());
+        $this->assertSame(3, $shipment->leadTimeKapalAboard());
+        $this->assertSame(0, $shipment->leadTimeStoragePortDestination());
+        $this->assertSame(0, $shipment->leadTimePtdDooring());
+        $this->assertSame(5, $shipment->slaActual());
+        $this->assertSame(8, $shipment->slaCustomer());
+        $this->assertSame('OTD', $shipment->slaResult());
+        $this->assertSame(0.0, $shipment->delayPercentage());
+        $this->assertSame('2026-07-09', $shipment->maxArrival()?->format('Y-m-d'));
+        $this->assertSame('OTD', $shipment->shipmentProgress());
+    }
+
+    public function test_dso_delay_percentage_is_calculated_against_customer_sla(): void
+    {
+        $shipment = Shipment::factory()->create([
+            'kota' => 'PONTIANAK',
+            'tujuan_pengiriman' => 'PONTIANAK',
+            'terima_do' => '2026-07-01',
+            'at_ptd_dooring' => '2026-07-12',
+        ]);
+
+        $this->assertSame(11, $shipment->slaActual());
+        $this->assertSame(8, $shipment->slaCustomer());
+        $this->assertSame('LATE', $shipment->slaResult());
+        $this->assertSame(37.5, $shipment->delayPercentage());
+    }
+
+    public function test_dso_index_shows_aggregate_delay_percentage(): void
+    {
+        Shipment::factory()->create([
+            'kota' => 'PONTIANAK',
+            'terima_do' => '2026-07-01',
+            'at_ptd_dooring' => '2026-07-06',
+        ]);
+        Shipment::factory()->create([
+            'kota' => 'PONTIANAK',
+            'terima_do' => '2026-07-01',
+            'at_ptd_dooring' => '2026-07-12',
+        ]);
+
+        $response = $this->actingAs($this->admin)->get(route('admin.shipments.index'));
+
+        $response->assertOk();
+        $response->assertViewHas('delayStats', fn (array $stats) =>
+            $stats['completed'] >= 2
+            && $stats['late'] >= 1
+            && $stats['percentage'] > 0
+        );
+    }
+
+    public function test_dso_excel_import_accepts_actual_time_columns(): void
+    {
+        $import = new ShipmentImport($this->admin->id);
+        $import->collection(collect([
+            collect([
+                'Lokasi', 'Type Kendaraan', 'No. Rangka', 'No. Engine', 'Warna',
+                'Asal PDC', 'Kota', 'Tujuan Pengiriman', 'Terima DO', 'Keluar dari PDC',
+                'AT Storage Port', 'ATD Kapal (Loading)', 'ATA Kapal',
+                'ATA Storage Port (Destination)', 'AT PtD (Dooring)',
+            ]),
+            collect([
+                'D720', 'SIGRA', 'MHKS6GJ6JTJ200820', '3NR5A03703', 'BRONZE METALLIC',
+                'KARAWANG', 'PONTIANAK', 'PONTIANAK', '01-Jul-26', '02-Jul-26',
+                '02-Jul-26', '03-Jul-26', '06-Jul-26', '06-Jul-26', '06-Jul-26',
+            ]),
+        ]));
+
+        $this->assertSame(1, $import->importedCount);
+        $this->assertDatabaseHas('shipments', [
+            'no_rangka' => 'MHKS6GJ6JTJ200820',
+            'at_storage_port' => '2026-07-02',
+            'atd_kapal_loading' => '2026-07-03',
+            'ata_kapal' => '2026-07-06',
+            'ata_storage_port_destination' => '2026-07-06',
+            'at_ptd_dooring' => '2026-07-06',
         ]);
     }
 }

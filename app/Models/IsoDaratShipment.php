@@ -23,6 +23,7 @@ class IsoDaratShipment extends Model
         'terima_do',
         'keluar_dari_pdc',
         'at_ptd_dtd',
+        'sla_customer',
     ];
 
     protected function casts(): array
@@ -31,6 +32,7 @@ class IsoDaratShipment extends Model
             'terima_do' => 'date',
             'keluar_dari_pdc' => 'date',
             'at_ptd_dtd' => 'date',
+            'sla_customer' => 'integer',
         ];
     }
 }

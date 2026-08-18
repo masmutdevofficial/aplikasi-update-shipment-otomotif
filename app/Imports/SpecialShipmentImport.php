@@ -111,6 +111,14 @@ class SpecialShipmentImport implements ToCollection
                 $fallbackYear ??= (int) substr($parsed, 0, 4);
             } elseif ($fieldConfig['type'] === 'integer') {
                 $data[$field] = is_numeric($data[$field]) ? (int) $data[$field] : null;
+
+                if ($data[$field] !== null && isset($fieldConfig['min']) && $data[$field] < $fieldConfig['min']) {
+                    $this->errors[] = [
+                        'baris' => $rowNumber,
+                        'pesan' => "Nilai {$fieldConfig['label']} minimal {$fieldConfig['min']}.",
+                    ];
+                    return false;
+                }
             } else {
                 $data[$field] = trim((string) $data[$field]);
             }

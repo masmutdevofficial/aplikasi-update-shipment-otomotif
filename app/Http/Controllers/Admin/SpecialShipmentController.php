@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Exports\SpecialShipmentTemplateExport;
 use App\Http\Controllers\Controller;
 use App\Imports\SpecialShipmentImport;
+use App\Support\SpecialShipmentPerformance;
 use App\Support\SpecialShipmentType;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
@@ -14,8 +15,9 @@ class SpecialShipmentController extends Controller
     public function index(string $type)
     {
         $config = SpecialShipmentType::get($type);
+        $delayStats = SpecialShipmentPerformance::statistics($type);
 
-        return view('admin.special-shipments.index', compact('type', 'config'));
+        return view('admin.special-shipments.index', compact('type', 'config', 'delayStats'));
     }
 
     public function data(Request $request, string $type)
@@ -59,6 +61,20 @@ class SpecialShipmentController extends Controller
                     ? ($value?->format('d-M-y') ?? '-')
                     : e($value ?? '-');
             }
+
+            $metrics = SpecialShipmentPerformance::calculate($type, $shipment);
+
+            foreach ($config['performance']['stages'] as $key => $_stage) {
+                $row[$key] = $metrics[$key] ?? '-';
+            }
+
+            $row['sla_actual'] = $metrics['sla_actual'] ?? '-';
+            $row['sla_result'] = $metrics['sla_result'];
+            $row['delay_percentage'] = $metrics['delay_percentage'] !== null
+                ? number_format($metrics['delay_percentage'], 2) . '%'
+                : '-';
+            $row['max_arrival'] = $metrics['max_arrival']?->format('d-M-y') ?? '-';
+            $row['progress'] = e($metrics['progress']);
 
             $row['edit_url'] = route('admin.special-shipments.edit', [$type, $shipment->id]);
             $row['delete_url'] = route('admin.special-shipments.destroy', [$type, $shipment->id]);
@@ -180,7 +196,7 @@ class SpecialShipmentController extends Controller
         foreach ($config['fields'] as $field => $fieldConfig) {
             $rules[$field] = match ($fieldConfig['type']) {
                 'date' => ['nullable', 'date'],
-                'integer' => ['nullable', 'integer', 'min:0'],
+                'integer' => ['nullable', 'integer', 'min:' . ($fieldConfig['min'] ?? 0)],
                 default => ['nullable', 'string', 'max:' . ($fieldConfig['max'] ?? 255)],
             };
         }

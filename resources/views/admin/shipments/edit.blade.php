@@ -210,6 +210,8 @@
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
+
+                        @include('admin.shipments._actual-time-fields')
                     </div>
 
                     <div class="d-flex gap-2 mt-4">

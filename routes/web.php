@@ -13,6 +13,8 @@ use App\Http\Controllers\Vendor\HistoryController;
 use App\Http\Controllers\Vendor\ScannerController;
 use App\Http\Middleware\CheckLevel;
 use App\Http\Middleware\CheckVendorStatus;
+use App\Support\DsoSla;
+use App\Support\SpecialShipmentPerformance;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -58,7 +60,25 @@ Route::middleware('auth')->group(function () {
         ->prefix('admin')
         ->name('admin.')
         ->group(function () {
-            Route::get('/dashboard', fn () => view('admin.dashboard'))->name('dashboard');
+            Route::get('/dashboard', function () {
+                $type = strtolower((string) request()->query('type', 'dso'));
+                $isoType = strtolower((string) request()->query('iso_type', 'darat'));
+                $type = in_array($type, ['dso', 'tso', 'iso'], true) ? $type : 'dso';
+                $isoType = in_array($isoType, ['darat', 'laut'], true) ? $isoType : 'darat';
+
+                if ($type === 'dso') {
+                    return view('admin.dashboard', [
+                        'delayStats' => DsoSla::delayStatistics(),
+                        'slaDestinations' => DsoSla::destinations(),
+                    ]);
+                }
+
+                $performanceType = $type === 'tso' ? 'tso' : "iso-{$isoType}";
+
+                return view('admin.dashboard', [
+                    'specialDelayStats' => SpecialShipmentPerformance::statistics($performanceType),
+                ]);
+            })->name('dashboard');
 
             // User Management
             Route::delete('/users/bulk-delete', [UserController::class, 'bulkDestroy'])->name('users.bulk-destroy');

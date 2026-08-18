@@ -34,6 +34,7 @@ class IsoLautShipment extends Model
         'ata_kapal',
         'ata_storage_port_destination',
         'at_ptd_dtd',
+        'sla_customer',
     ];
 
     protected function casts(): array
@@ -45,6 +46,7 @@ class IsoLautShipment extends Model
             'atd_kapal_loading' => 'date',
             'ata_kapal' => 'date',
             'ata_storage_port_destination' => 'date',
+            'sla_customer' => 'integer',
         ];
     }
 }

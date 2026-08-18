@@ -22,6 +22,7 @@ class TsoShipment extends Model
         'port_to_port',
         'port_to_door',
         'vessel_ptp',
+        'sla_customer',
     ];
 
     protected function casts(): array
@@ -32,6 +33,7 @@ class TsoShipment extends Model
             'door_to_port' => 'date',
             'port_to_port' => 'date',
             'port_to_door' => 'date',
+            'sla_customer' => 'integer',
         ];
     }
 }

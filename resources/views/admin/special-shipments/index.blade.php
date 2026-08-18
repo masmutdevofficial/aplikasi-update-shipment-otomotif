@@ -9,6 +9,15 @@
             'code' => in_array($field, ['no_rangka', 'noka', 'no_spb'], true),
         ];
     })->values();
+    $performanceColumns = collect($config['performance']['stages'])->map(function ($stage, $key) {
+        return ['data' => $key, 'label' => $stage['label'], 'kind' => 'number'];
+    })->values()->concat([
+        ['data' => 'sla_actual', 'label' => 'SLA Actual', 'kind' => 'number'],
+        ['data' => 'sla_result', 'label' => 'Result', 'kind' => 'result'],
+        ['data' => 'delay_percentage', 'label' => 'Keterlambatan (%)', 'kind' => 'delay'],
+        ['data' => 'max_arrival', 'label' => 'Max Arrival', 'kind' => 'date'],
+        ['data' => 'progress', 'label' => 'Progress', 'kind' => 'text'],
+    ])->values();
 @endphp
 
 @section('title', $config['label'] . ' — Shipment Otomotif')
@@ -19,6 +28,36 @@
 
 @section('content')
 @include('admin.shipments._type-selector')
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="info-box">
+            <span class="info-box-icon bg-info"><i class="fas fa-check-circle"></i></span>
+            <div class="info-box-content">
+                <span class="info-box-text">Shipment Selesai Dievaluasi</span>
+                <span class="info-box-number">{{ number_format($delayStats['completed']) }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="info-box">
+            <span class="info-box-icon bg-danger"><i class="fas fa-clock"></i></span>
+            <div class="info-box-content">
+                <span class="info-box-text">Shipment Terlambat</span>
+                <span class="info-box-number">{{ number_format($delayStats['late']) }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="info-box">
+            <span class="info-box-icon bg-warning"><i class="fas fa-percent"></i></span>
+            <div class="info-box-content">
+                <span class="info-box-text">Persentase Keterlambatan</span>
+                <span class="info-box-number">{{ number_format($delayStats['percentage'], 2) }}%</span>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div class="d-flex justify-content-end gap-2 flex-wrap mb-3">
     <form id="bulk-delete-special-form" method="POST" action="{{ route('admin.special-shipments.bulk-destroy', $type) }}" class="d-none">
@@ -46,6 +85,9 @@
                         @foreach ($config['fields'] as $fieldConfig)
                             <th>{{ $fieldConfig['label'] }}</th>
                         @endforeach
+                        @foreach ($performanceColumns as $column)
+                            <th>{{ $column['label'] }}</th>
+                        @endforeach
                         <th>Aksi</th>
                     </tr>
                 </thead>
@@ -66,6 +108,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const fieldColumns = @json($specialTableColumns);
+    const performanceColumns = @json($performanceColumns);
     const columns = [
         { data: 'id', name: 'id', orderable: false, searchable: false, render: (id) => `<input type="checkbox" class="special-select" value="${id}" aria-label="Pilih data">` },
         @if ($type === 'tso')
@@ -75,6 +118,17 @@ document.addEventListener('DOMContentLoaded', function () {
             data: column.data,
             name: column.name,
             render: column.code ? ((value) => `<code>${value}</code>`) : undefined
+        })),
+        ...performanceColumns.map((column) => ({
+            data: column.data,
+            name: column.data,
+            orderable: false,
+            searchable: false,
+            render: column.kind === 'result'
+                ? ((value) => `<span class="badge ${value === 'OTD' ? 'badge-success' : (value === 'LATE' ? 'badge-danger' : 'badge-secondary')}">${value}</span>`)
+                : (column.kind === 'delay'
+                    ? ((value) => `<span class="${parseFloat(value) > 0 ? 'text-danger font-weight-bold' : ''}">${value}</span>`)
+                    : undefined)
         })),
         {
             data: null, name: 'actions', orderable: false, searchable: false,

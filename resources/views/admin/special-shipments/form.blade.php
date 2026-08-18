@@ -41,6 +41,7 @@
                             name="{{ $field }}"
                             value="{{ $currentValue }}"
                             @if(isset($fieldConfig['max'])) maxlength="{{ $fieldConfig['max'] }}" @endif
+                            @if(isset($fieldConfig['min'])) min="{{ $fieldConfig['min'] }}" @endif
                         >
                         @error($field)<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>

@@ -17,24 +17,46 @@
         $selectedIsoType = 'darat';
     }
 
-    $tsoShipments = $selectedDashboard === 'tso'
-        ? \App\Models\TsoShipment::query()->oldest()->get()
-        : collect();
-    $isoDaratShipments = $selectedDashboard === 'iso' && $selectedIsoType === 'darat'
-        ? \App\Models\IsoDaratShipment::query()->orderBy('source_no')->get()
-        : collect();
-    $isoLautShipments = $selectedDashboard === 'iso' && $selectedIsoType === 'laut'
-        ? \App\Models\IsoLautShipment::query()->orderBy('source_no')->get()
-        : collect();
+    $dashboardPerformanceType = match (true) {
+        $selectedDashboard === 'tso' => 'tso',
+        $selectedDashboard === 'iso' && $selectedIsoType === 'laut' => 'iso-laut',
+        $selectedDashboard === 'iso' => 'iso-darat',
+        default => null,
+    };
+    $dashboardSpecialConfig = $dashboardPerformanceType
+        ? \App\Support\SpecialShipmentType::get($dashboardPerformanceType)
+        : null;
+    $dashboardServerColumns = collect();
+
+    if ($dashboardSpecialConfig) {
+        if ($dashboardPerformanceType === 'tso') {
+            $dashboardServerColumns->push(['data' => 'row_number', 'kind' => 'number', 'orderable' => false]);
+        }
+
+        foreach ($dashboardSpecialConfig['fields'] as $field => $fieldConfig) {
+            $dashboardServerColumns->push([
+                'data' => $field,
+                'kind' => in_array($field, ['no_rangka', 'noka', 'no_spb'], true) ? 'code' : 'text',
+                'orderable' => true,
+            ]);
+        }
+
+        foreach ($dashboardSpecialConfig['performance']['stages'] as $key => $stage) {
+            $dashboardServerColumns->push(['data' => $key, 'kind' => 'number', 'orderable' => false]);
+        }
+
+        $dashboardServerColumns = $dashboardServerColumns->concat([
+            ['data' => 'sla_actual', 'kind' => 'number', 'orderable' => false],
+            ['data' => 'sla_result', 'kind' => 'result', 'orderable' => false],
+            ['data' => 'delay_percentage', 'kind' => 'delay', 'orderable' => false],
+            ['data' => 'max_arrival', 'kind' => 'text', 'orderable' => false],
+            ['data' => 'progress', 'kind' => 'text', 'orderable' => false],
+        ])->values();
+    }
     $dashboardTableSelector = match (true) {
         $selectedDashboard === 'tso' => '#table-tso-shipments',
         $selectedIsoType === 'laut' => '#table-iso-laut',
         default => '#table-iso-darat',
-    };
-    $dashboardTableDateTargets = match (true) {
-        $selectedDashboard === 'tso' => [7, 8, 9, 10, 11],
-        $selectedIsoType === 'laut' => [16, 17, 19, 20, 21, 22],
-        default => [10, 11, 12],
     };
 @endphp
 
@@ -76,6 +98,7 @@
 </div>
 
 @if ($selectedDashboard === 'tso')
+@include('admin.dashboard._performance-stats')
 <div class="card card-primary">
     <div class="card-header">
         <h3 class="card-title"><i class="fas fa-truck-loading"></i> Data Shipment TSO</h3>
@@ -98,40 +121,25 @@
                         <th>Port to Port</th>
                         <th>Port to Door</th>
                         <th>Vessel PTP</th>
+                        <th>SLA Customer</th>
+                        <th>DO to Pickup</th>
+                        <th>Door to Port</th>
+                        <th>Port to Port</th>
+                        <th>Port to Door</th>
+                        <th>SLA Actual</th>
+                        <th>Result</th>
+                        <th>Keterlambatan (%)</th>
+                        <th>Max Arrival</th>
+                        <th>Progress</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @foreach ($tsoShipments as $shipment)
-                        <tr>
-                            <td>{{ $loop->iteration }}</td>
-                            <td>{{ $shipment->unit_type ?? '-' }}</td>
-                            <td>{{ $shipment->origin ?? '-' }}</td>
-                            <td>{{ $shipment->destination ?? '-' }}</td>
-                            <td>{{ $shipment->detail_destination ?? '-' }}</td>
-                            <td><code>{{ $shipment->no_rangka ?? '-' }}</code></td>
-                            <td>
-                                @if ($shipment->doc)
-                                    <a href="{{ asset('storage/' . $shipment->doc) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">
-                                        <i class="fas fa-file-alt"></i> Lihat
-                                    </a>
-                                @else
-                                    -
-                                @endif
-                            </td>
-                            <td>{{ $shipment->do_date?->format('d-M-y') ?? '-' }}</td>
-                            <td>{{ $shipment->pu_date?->format('d-M-y') ?? '-' }}</td>
-                            <td>{{ $shipment->door_to_port?->format('d-M-y') ?? '-' }}</td>
-                            <td>{{ $shipment->port_to_port?->format('d-M-y') ?? '-' }}</td>
-                            <td>{{ $shipment->port_to_door?->format('d-M-y') ?? '-' }}</td>
-                            <td>{{ $shipment->vessel_ptp ?? '-' }}</td>
-                        </tr>
-                    @endforeach
-                </tbody>
+                <tbody></tbody>
             </table>
         </div>
     </div>
 </div>
 @elseif ($selectedDashboard === 'iso')
+@include('admin.dashboard._performance-stats')
 <div class="iso-mode-selector" role="group" aria-label="Pilih jenis shipment ISO">
     <a
         href="{{ route('admin.dashboard', ['type' => 'iso', 'iso_type' => 'darat']) }}"
@@ -153,7 +161,7 @@
     @include('admin.dashboard.iso-laut-table')
 @endif
 @else
-{{-- Dashboard DSO tetap menggunakan tampilan awal. --}}
+{{-- Ringkasan operasional dan performance shipment DSO. --}}
 <div class="row">
     <div class="col-3">
         <div class="info-box">
@@ -192,6 +200,8 @@
         </div>
     </div>
 </div>
+
+@include('admin.dashboard.dso-performance-table')
 
 <div class="row">
     <div class="col-6">
@@ -310,6 +320,13 @@
     white-space: nowrap;
 }
 
+.shipment-group-header th {
+    background: #343a40 !important;
+    color: #fff;
+    text-align: center;
+    vertical-align: middle;
+}
+
 .dashboard-data-table th:first-child,
 .dashboard-data-table td:first-child,
 #table-tso-shipments th:first-child,
@@ -342,13 +359,30 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const tableSelector = @json($dashboardTableSelector);
-    const dateTargets = @json($dashboardTableDateTargets);
+    const serverColumns = @json($dashboardServerColumns);
 
     $(tableSelector).DataTable({
+        processing: true,
+        serverSide: true,
+        ajax: @json(route('admin.special-shipments.data', $dashboardPerformanceType)),
         pageLength: 10,
         scrollX: true,
-        lengthMenu: [[10, 25, 50, 100, -1], ['10', '25', '50', '100', 'Semua']],
+        lengthMenu: [[10, 25, 50, 100], ['10', '25', '50', '100']],
+        columns: serverColumns.map((column) => ({
+            data: column.data,
+            name: column.data,
+            orderable: column.orderable,
+            searchable: column.orderable,
+            render: column.kind === 'code'
+                ? ((value) => `<code>${value}</code>`)
+                : (column.kind === 'result'
+                    ? ((value) => `<span class="badge ${value === 'OTD' ? 'badge-success' : (value === 'LATE' ? 'badge-danger' : 'badge-secondary')}">${value}</span>`)
+                    : (column.kind === 'delay'
+                        ? ((value) => `<span class="${parseFloat(value) > 0 ? 'text-danger font-weight-bold' : ''}">${value}</span>`)
+                        : undefined))
+        })),
         language: {
+            processing: 'Memuat data...',
             search: 'Cari:',
             lengthMenu: 'Tampilkan _MENU_ data per halaman',
             info: 'Menampilkan _START_ - _END_ dari _TOTAL_ data',
@@ -358,11 +392,7 @@ document.addEventListener('DOMContentLoaded', function () {
             zeroRecords: 'Tidak ada data yang cocok',
             paginate: { first: '«', last: '»', next: '›', previous: '‹' }
         },
-        columnDefs: [
-            { orderable: false, targets: [0] },
-            { type: 'date', targets: dateTargets }
-        ],
-        order: [[0, 'asc']]
+        order: [[{{ $dashboardPerformanceType === 'tso' ? 1 : 0 }}, 'asc']]
     });
 });
 </script>

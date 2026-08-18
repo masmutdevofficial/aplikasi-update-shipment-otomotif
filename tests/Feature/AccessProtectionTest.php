@@ -78,6 +78,9 @@ class AccessProtectionTest extends TestCase
 
         $response = $this->actingAs($admin)->get('/admin/dashboard');
         $response->assertStatus(200);
+        $response->assertSee('Performance Shipment DSO');
+        $response->assertSee('Persentase Keterlambatan');
+        $response->assertSee('Actual Lead Time (Days)');
     }
 
     public function test_admin_can_switch_between_dashboard_types(): void

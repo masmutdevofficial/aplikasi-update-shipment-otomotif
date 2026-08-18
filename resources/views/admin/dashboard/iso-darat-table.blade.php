@@ -20,27 +20,17 @@
                         <th>Terima DO</th>
                         <th>Keluar dari PDC</th>
                         <th>AT PTD/DTD</th>
+                        <th>SLA Customer</th>
+                        <th>DO Release to Pickup</th>
+                        <th>PTD/DTD</th>
+                        <th>SLA Actual</th>
+                        <th>Result</th>
+                        <th>Keterlambatan (%)</th>
+                        <th>Max Arrival</th>
+                        <th>Progress</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @foreach ($isoDaratShipments as $shipment)
-                        <tr>
-                            <td>{{ $shipment->source_no ?? '-' }}</td>
-                            <td>{{ $shipment->no_so_booking ?? '-' }}</td>
-                            <td>{{ $shipment->no_quotation ?? '-' }}</td>
-                            <td>{{ $shipment->no_contract ?? '-' }}</td>
-                            <td>{{ $shipment->cargo_no_ka ?? '-' }}</td>
-                            <td><code>{{ $shipment->no_spb ?? '-' }}</code></td>
-                            <td>{{ $shipment->kategori_moda ?? '-' }}</td>
-                            <td>{{ $shipment->origin ?? '-' }}</td>
-                            <td>{{ $shipment->destination ?? '-' }}</td>
-                            <td>{{ $shipment->area ?? '-' }}</td>
-                            <td>{{ $shipment->terima_do?->format('d-M-y') ?? '-' }}</td>
-                            <td>{{ $shipment->keluar_dari_pdc?->format('d-M-y') ?? '-' }}</td>
-                            <td>{{ $shipment->at_ptd_dtd?->format('d-M-y') ?? '-' }}</td>
-                        </tr>
-                    @endforeach
-                </tbody>
+                <tbody></tbody>
             </table>
         </div>
     </div>

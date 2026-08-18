@@ -32,6 +32,11 @@ class ShipmentTemplateExport implements FromArray, WithHeadings, WithStyles, Wit
             'Keluar dari PDC',
             'Nama Kapal',
             'Keberangkatan Kapal',
+            'AT Storage Port',
+            'ATD Kapal (Loading)',
+            'ATA Kapal',
+            'ATA Storage Port (Destination)',
+            'AT PtD (Dooring)',
         ];
     }
 
@@ -50,6 +55,11 @@ class ShipmentTemplateExport implements FromArray, WithHeadings, WithStyles, Wit
                 'Surabaya',
                 'Dealer ABC Surabaya',
                 '2026-04-01',
+                '',
+                '',
+                '',
+                '',
+                '',
                 '',
                 '',
                 '',
@@ -89,6 +99,11 @@ class ShipmentTemplateExport implements FromArray, WithHeadings, WithStyles, Wit
             'K' => 20,  // Keluar dari PDC
             'L' => 25,  // Nama Kapal
             'M' => 25,  // Keberangkatan Kapal
+            'N' => 20,  // AT Storage Port
+            'O' => 22,  // ATD Kapal Loading
+            'P' => 18,  // ATA Kapal
+            'Q' => 32,  // ATA Storage Port Destination
+            'R' => 20,  // AT PtD
         ];
     }
 }

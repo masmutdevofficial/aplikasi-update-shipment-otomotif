@@ -42,6 +42,14 @@ class ShipmentImport implements ToCollection
             'tanggal_atd', 'tanggal atd', 'atd', 'etd', 'departure',
             'tanggal keberangkatan kapal',
         ],
+        'at_storage_port' => ['at_storage_port', 'at storage port'],
+        'atd_kapal_loading' => ['atd_kapal_loading', 'atd kapal loading', 'atd kapal (loading)'],
+        'ata_kapal' => ['ata_kapal', 'ata kapal'],
+        'ata_storage_port_destination' => [
+            'ata_storage_port_destination', 'ata storage port destination',
+            'ata storage port (destination)',
+        ],
+        'at_ptd_dooring' => ['at_ptd_dooring', 'at ptd dooring', 'at ptd (dooring)', 'at ptd'],
     ];
 
     private const REQUIRED_CREATE_FIELDS = [
@@ -167,6 +175,13 @@ class ShipmentImport implements ToCollection
         $keluar_dari_pdc_raw = $this->value($data, 'keluar_dari_pdc');
         $nama_kapal          = $this->value($data, 'nama_kapal');
         $keberangkatan_raw   = $this->value($data, 'keberangkatan_kapal');
+        $actualDateInputs = [
+            'at_storage_port' => ['AT Storage Port', $this->value($data, 'at_storage_port')],
+            'atd_kapal_loading' => ['ATD Kapal (Loading)', $this->value($data, 'atd_kapal_loading')],
+            'ata_kapal' => ['ATA Kapal', $this->value($data, 'ata_kapal')],
+            'ata_storage_port_destination' => ['ATA Storage Port (Destination)', $this->value($data, 'ata_storage_port_destination')],
+            'at_ptd_dooring' => ['AT PtD (Dooring)', $this->value($data, 'at_ptd_dooring')],
+        ];
 
         if ($no_rangka === '') {
             $this->errors[] = ['baris' => $rowNum, 'pesan' => 'Kolom No. Rangka (VIN) wajib diisi'];
@@ -184,8 +199,13 @@ class ShipmentImport implements ToCollection
         $terima_do = $this->parseOptionalDate($terima_do_raw, 'Terima DO', $rowNum);
         $keluar_dari_pdc = $this->parseOptionalDate($keluar_dari_pdc_raw, 'Keluar dari PDC', $rowNum);
         $keberangkatan_kapal = $this->parseOptionalDate($keberangkatan_raw, 'Keberangkatan Kapal', $rowNum);
+        $actualDates = [];
 
-        if ($terima_do === false || $keluar_dari_pdc === false || $keberangkatan_kapal === false) {
+        foreach ($actualDateInputs as $field => [$label, $value]) {
+            $actualDates[$field] = $this->parseOptionalDate($value, $label, $rowNum);
+        }
+
+        if ($terima_do === false || $keluar_dari_pdc === false || $keberangkatan_kapal === false || in_array(false, $actualDates, true)) {
             return;
         }
 
@@ -202,6 +222,10 @@ class ShipmentImport implements ToCollection
             $this->setIfPresent($updates, 'keluar_dari_pdc', $keluar_dari_pdc);
             $this->setIfPresent($updates, 'nama_kapal', $nama_kapal);
             $this->setIfPresent($updates, 'keberangkatan_kapal', $keberangkatan_kapal);
+
+            foreach ($actualDates as $field => $value) {
+                $this->setIfPresent($updates, $field, $value);
+            }
 
             if (count($updates) > 1) {
                 $shipment->update($updates);
@@ -247,6 +271,11 @@ class ShipmentImport implements ToCollection
             'keluar_dari_pdc'     => $keluar_dari_pdc,
             'nama_kapal'          => $hasKapalData && $nama_kapal !== null ? trim((string) $nama_kapal) : null,
             'keberangkatan_kapal' => $keberangkatan_kapal,
+            'at_storage_port' => $actualDates['at_storage_port'],
+            'atd_kapal_loading' => $actualDates['atd_kapal_loading'],
+            'ata_kapal' => $actualDates['ata_kapal'],
+            'ata_storage_port_destination' => $actualDates['ata_storage_port_destination'],
+            'at_ptd_dooring' => $actualDates['at_ptd_dooring'],
             'created_by'          => $this->createdBy,
             'updated_by'          => $this->createdBy,
         ]);

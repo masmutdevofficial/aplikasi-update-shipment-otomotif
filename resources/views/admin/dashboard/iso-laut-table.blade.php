@@ -31,38 +31,21 @@
                         <th>ATA Kapal</th>
                         <th>ATA Storage Port (Destination)</th>
                         <th>AT PTD/DTD</th>
+                        <th>SLA Customer</th>
+                        <th>DO Release to Pickup</th>
+                        <th>Storage Port</th>
+                        <th>Kapal (Loading)</th>
+                        <th>Kapal (Aboard)</th>
+                        <th>Storage Port (Destination)</th>
+                        <th>PTD/DTD</th>
+                        <th>SLA Actual</th>
+                        <th>Result</th>
+                        <th>Keterlambatan (%)</th>
+                        <th>Max Arrival</th>
+                        <th>Progress</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @foreach ($isoLautShipments as $shipment)
-                        <tr>
-                            <td>{{ $shipment->source_no ?? '-' }}</td>
-                            <td>{{ $shipment->no_booking_dtp ?? '-' }}</td>
-                            <td>{{ $shipment->no_booking_ptp ?? '-' }}</td>
-                            <td>{{ $shipment->no_booking_ptd ?? '-' }}</td>
-                            <td>{{ $shipment->no_quotation_dtp ?? '-' }}</td>
-                            <td>{{ $shipment->no_quotation_ptp ?? '-' }}</td>
-                            <td>{{ $shipment->no_quotation_ptd ?? '-' }}</td>
-                            <td>{{ $shipment->no_contract_dtp ?? '-' }}</td>
-                            <td>{{ $shipment->no_contract_ptp ?? '-' }}</td>
-                            <td>{{ $shipment->no_contract_ptd ?? '-' }}</td>
-                            <td>{{ $shipment->cargo ?? '-' }}</td>
-                            <td><code>{{ $shipment->noka ?? '-' }}</code></td>
-                            <td>{{ $shipment->kategori_moda ?? '-' }}</td>
-                            <td>{{ $shipment->origin ?? '-' }}</td>
-                            <td>{{ $shipment->destination ?? '-' }}</td>
-                            <td>{{ $shipment->tujuan_pengiriman ?? '-' }}</td>
-                            <td>{{ $shipment->terima_do?->format('d-M-y') ?? '-' }}</td>
-                            <td>{{ $shipment->keluar_dari_pdc?->format('d-M-y') ?? '-' }}</td>
-                            <td>{{ $shipment->jenis_kapal ?? '-' }}</td>
-                            <td>{{ $shipment->at_storage_port?->format('d-M-y') ?? '-' }}</td>
-                            <td>{{ $shipment->atd_kapal_loading?->format('d-M-y') ?? '-' }}</td>
-                            <td>{{ $shipment->ata_kapal?->format('d-M-y') ?? '-' }}</td>
-                            <td>{{ $shipment->ata_storage_port_destination?->format('d-M-y') ?? '-' }}</td>
-                            <td>{{ $shipment->at_ptd_dtd ?? '-' }}</td>
-                        </tr>
-                    @endforeach
-                </tbody>
+                <tbody></tbody>
             </table>
         </div>
     </div>

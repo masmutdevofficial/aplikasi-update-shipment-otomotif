@@ -44,6 +44,24 @@ class SpecialShipmentType
                     'port_to_port' => ['label' => 'Port to Port', 'type' => 'date'],
                     'port_to_door' => ['label' => 'Port to Door', 'type' => 'date'],
                     'vessel_ptp' => ['label' => 'Vessel PTP', 'type' => 'text'],
+                    'sla_customer' => ['label' => 'SLA Customer (Days)', 'type' => 'integer', 'min' => 1],
+                ],
+                'performance' => [
+                    'start' => 'do_date',
+                    'final' => 'port_to_door',
+                    'stages' => [
+                        'lead_time_pickup' => ['label' => 'DO to Pickup', 'from' => 'do_date', 'to' => 'pu_date'],
+                        'lead_time_door_to_port' => ['label' => 'Door to Port', 'from' => 'pu_date', 'to' => 'door_to_port'],
+                        'lead_time_port_to_port' => ['label' => 'Port to Port', 'from' => 'door_to_port', 'to' => 'port_to_port'],
+                        'lead_time_port_to_door' => ['label' => 'Port to Door', 'from' => 'port_to_port', 'to' => 'port_to_door'],
+                    ],
+                    'progress' => [
+                        'port_to_door' => 'Port to Door',
+                        'port_to_port' => 'Port to Port',
+                        'door_to_port' => 'Door to Port',
+                        'pu_date' => 'Pickup',
+                        'do_date' => 'DO Received',
+                    ],
                 ],
             ],
             'iso-darat' => [
@@ -65,6 +83,20 @@ class SpecialShipmentType
                     'terima_do' => ['label' => 'Terima DO', 'type' => 'date'],
                     'keluar_dari_pdc' => ['label' => 'Keluar dari PDC', 'type' => 'date'],
                     'at_ptd_dtd' => ['label' => 'AT PTD/DTD', 'type' => 'date'],
+                    'sla_customer' => ['label' => 'SLA Customer (Days)', 'type' => 'integer', 'min' => 1],
+                ],
+                'performance' => [
+                    'start' => 'terima_do',
+                    'final' => 'at_ptd_dtd',
+                    'stages' => [
+                        'lead_time_release' => ['label' => 'DO Release to Pickup', 'from' => 'terima_do', 'to' => 'keluar_dari_pdc'],
+                        'lead_time_ptd_dtd' => ['label' => 'PTD/DTD', 'from' => 'keluar_dari_pdc', 'to' => 'at_ptd_dtd'],
+                    ],
+                    'progress' => [
+                        'at_ptd_dtd' => 'PTD/DTD',
+                        'keluar_dari_pdc' => 'Pickup',
+                        'terima_do' => 'DO Received',
+                    ],
                 ],
             ],
             'iso-laut' => [
@@ -97,6 +129,28 @@ class SpecialShipmentType
                     'ata_kapal' => ['label' => 'ATA Kapal', 'type' => 'date'],
                     'ata_storage_port_destination' => ['label' => 'ATA Storage Port (Destination)', 'type' => 'date'],
                     'at_ptd_dtd' => ['label' => 'AT PTD/DTD', 'type' => 'text'],
+                    'sla_customer' => ['label' => 'SLA Customer (Days)', 'type' => 'integer', 'min' => 1],
+                ],
+                'performance' => [
+                    'start' => 'terima_do',
+                    'final' => 'at_ptd_dtd',
+                    'stages' => [
+                        'lead_time_release' => ['label' => 'DO Release to Pickup', 'from' => 'terima_do', 'to' => 'keluar_dari_pdc'],
+                        'lead_time_storage_port' => ['label' => 'Storage Port', 'from' => 'keluar_dari_pdc', 'to' => 'at_storage_port'],
+                        'lead_time_loading' => ['label' => 'Kapal (Loading)', 'from' => 'at_storage_port', 'to' => 'atd_kapal_loading'],
+                        'lead_time_aboard' => ['label' => 'Kapal (Aboard)', 'from' => 'atd_kapal_loading', 'to' => 'ata_kapal'],
+                        'lead_time_storage_destination' => ['label' => 'Storage Port (Destination)', 'from' => 'ata_kapal', 'to' => 'ata_storage_port_destination'],
+                        'lead_time_ptd_dtd' => ['label' => 'PTD/DTD', 'from' => 'ata_storage_port_destination', 'to' => 'at_ptd_dtd'],
+                    ],
+                    'progress' => [
+                        'at_ptd_dtd' => 'PTD/DTD',
+                        'ata_storage_port_destination' => 'Storage Port (Destination)',
+                        'ata_kapal' => 'Kapal (Aboard)',
+                        'atd_kapal_loading' => 'Kapal (Loading)',
+                        'at_storage_port' => 'Storage Port',
+                        'keluar_dari_pdc' => 'Pickup',
+                        'terima_do' => 'DO Received',
+                    ],
                 ],
             ],
         ];
