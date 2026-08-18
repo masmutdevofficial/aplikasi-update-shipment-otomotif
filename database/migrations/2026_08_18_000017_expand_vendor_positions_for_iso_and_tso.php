@@ -5,31 +5,17 @@ use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
-    /** @var array<int, string> */
-    private array $positions = [
-        'AT Storage Port',
-        'ATD Kapal (Loading)',
-        'ATA Kapal',
-        'ATA Storage Port (Destination)',
-        'AT PtD (Dooring)',
-        'AT PTD/DTD',
-        'Door to Port (DTP)',
-        'Port to Port (PTP)',
-        'Port to Door (PTD)',
-    ];
-
     public function up(): void
     {
         if (DB::connection()->getDriverName() !== 'mysql') {
             return;
         }
 
-        $enum = collect($this->positions)
-            ->map(fn (string $position) => "'".str_replace("'", "''", $position)."'")
-            ->implode(',');
-
+        // Production may contain legacy ENUM values stored as an empty string.
+        // VARCHAR preserves those rows while allowing the new ISO/TSO positions;
+        // application requests still validate against Vendor::positions().
         foreach (['vendors', 'shipment_updates', 'pending_vins'] as $table) {
-            DB::statement("ALTER TABLE `{$table}` MODIFY `position` ENUM({$enum}) NOT NULL");
+            DB::statement("ALTER TABLE `{$table}` MODIFY `position` VARCHAR(100) NOT NULL");
         }
     }
 
