@@ -152,39 +152,6 @@
     </div>
 </div>
 
-<div class="card card-info">
-    <div class="card-header">
-        <h3 class="card-title"><i class="fas fa-stopwatch"></i> Referensi SLA Customer DSO</h3>
-    </div>
-    <div class="card-body p-0 table-responsive">
-        <table class="table table-sm table-striped mb-0">
-            <thead>
-                <tr>
-                    <th>Destination</th>
-                    <th>Keluar dari PDC</th>
-                    <th>Storage Port</th>
-                    <th>Kapal (Loading)</th>
-                    <th>ATA Kapal</th>
-                    <th>Storage Port (Destination)</th>
-                    <th>PtD (Dooring)</th>
-                    <th>SLA Customer</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($slaDestinations as $destination => $target)
-                    <tr>
-                        <td><strong>{{ ucfirst(strtolower($destination)) }}</strong></td>
-                        @foreach ($target['stages'] as $days)
-                            <td>{{ $days }}</td>
-                        @endforeach
-                        <td><strong>{{ $target['total'] }}</strong></td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
-    </div>
-</div>
-
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {

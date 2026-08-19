@@ -232,6 +232,41 @@
 @include('admin.dashboard.dso-performance-table')
 
 <div class="row">
+    <div class="col-md-6">
+        <div class="info-box">
+            <span class="info-box-icon bg-info"><i class="fas fa-anchor"></i></span>
+            <div class="info-box-content">
+                <span class="info-box-text">Dwelling Origin</span>
+                <span class="info-box-number">
+                    {{ $dsoDwellingStats['origin']['average'] === null
+                        ? '-'
+                        : number_format($dsoDwellingStats['origin']['average'], 2, ',', '.') . ' hari' }}
+                </span>
+                <span class="text-muted small">
+                    Rata-rata {{ number_format($dsoDwellingStats['origin']['shipments']) }} shipment
+                </span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="info-box">
+            <span class="info-box-icon bg-success"><i class="fas fa-flag-checkered"></i></span>
+            <div class="info-box-content">
+                <span class="info-box-text">Dwelling Destination</span>
+                <span class="info-box-number">
+                    {{ $dsoDwellingStats['destination']['average'] === null
+                        ? '-'
+                        : number_format($dsoDwellingStats['destination']['average'], 2, ',', '.') . ' hari' }}
+                </span>
+                <span class="text-muted small">
+                    Rata-rata {{ number_format($dsoDwellingStats['destination']['shipments']) }} shipment
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
     <div class="col-6">
         <div class="card card-primary">
             <div class="card-header">

@@ -139,6 +139,39 @@ class DsoSla
             ->all();
     }
 
+    /**
+     * Rata-rata dwelling aktual per shipment pada periode dashboard.
+     * Shipment yang belum mencapai milestone akhir dihitung sampai hari ini.
+     *
+     * @return array{
+     *     origin: array{average: float|null, shipments: int},
+     *     destination: array{average: float|null, shipments: int}
+     * }
+     */
+    public static function dwellingStatistics(?int $month = null, ?int $year = null): array
+    {
+        $shipments = self::periodQuery($month, $year)->get();
+        $originValues = $shipments
+            ->map(fn (Shipment $shipment) => $shipment->dwellingOrigin())
+            ->filter(fn (?int $days) => $days !== null)
+            ->values();
+        $destinationValues = $shipments
+            ->map(fn (Shipment $shipment) => $shipment->dwellingDestination())
+            ->filter(fn (?int $days) => $days !== null)
+            ->values();
+
+        return [
+            'origin' => [
+                'average' => $originValues->isEmpty() ? null : round((float) $originValues->average(), 2),
+                'shipments' => $originValues->count(),
+            ],
+            'destination' => [
+                'average' => $destinationValues->isEmpty() ? null : round((float) $destinationValues->average(), 2),
+                'shipments' => $destinationValues->count(),
+            ],
+        ];
+    }
+
     private static function periodQuery(?int $month, ?int $year): Builder
     {
         return Shipment::query()

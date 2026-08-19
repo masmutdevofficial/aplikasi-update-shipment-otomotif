@@ -137,6 +137,46 @@ class DashboardPeriodFilterTest extends TestCase
         );
     }
 
+    public function test_dso_dashboard_summarizes_dwelling_per_shipment_for_selected_period(): void
+    {
+        Carbon::setTestNow('2025-05-20 12:00:00');
+
+        Shipment::create([
+            'no_rangka' => 'DSO-DWELLING-0001',
+            'terima_do' => '2025-05-01',
+            'at_storage_port' => '2025-05-05',
+            'atd_kapal_loading' => '2025-05-08',
+            'ata_storage_port_destination' => '2025-05-10',
+            'at_ptd_dooring' => '2025-05-14',
+        ]);
+        Shipment::create([
+            'no_rangka' => 'DSO-DWELLING-0002',
+            'terima_do' => '2025-05-02',
+            'at_storage_port' => '2025-05-18',
+            'ata_storage_port_destination' => '2025-05-19',
+        ]);
+        Shipment::create([
+            'no_rangka' => 'DSO-DWELLING-OUTSIDE',
+            'terima_do' => '2025-06-01',
+            'at_storage_port' => '2025-06-01',
+            'atd_kapal_loading' => '2025-06-11',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get('/admin/dashboard?type=dso&month=5&year=2025')
+            ->assertOk()
+            ->assertSee('Dwelling Origin')
+            ->assertSee('Dwelling Destination')
+            ->assertDontSee('Referensi SLA Customer DSO')
+            ->assertSee('2,50 hari')
+            ->assertViewHas('dsoDwellingStats', fn (array $stats) =>
+                $stats['origin']['average'] === 2.5
+                && $stats['origin']['shipments'] === 2
+                && $stats['destination']['average'] === 2.5
+                && $stats['destination']['shipments'] === 2
+            );
+    }
+
     public function test_both_iso_dashboards_filter_by_terima_do(): void
     {
         foreach ([IsoDaratShipment::class, IsoLautShipment::class] as $model) {
