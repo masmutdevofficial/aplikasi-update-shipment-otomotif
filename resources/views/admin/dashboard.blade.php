@@ -200,7 +200,7 @@
         ['label' => 'Scan Sesuai Periode', 'value' => number_format($dashboardScanTotal), 'icon' => 'fa-qrcode', 'theme' => 'orange'],
         ['label' => 'Shipment Dievaluasi', 'value' => number_format($delayStats['evaluated']), 'icon' => 'fa-check-circle', 'theme' => 'teal'],
         ['label' => 'Shipment Terlambat', 'value' => number_format($delayStats['late']), 'icon' => 'fa-clock', 'theme' => 'red'],
-        ['label' => 'Persentase Keterlambatan', 'value' => number_format($delayStats['percentage'], 2, ',', '.') . '%', 'icon' => 'fa-percent', 'theme' => 'purple', 'wide' => true],
+        ['label' => 'Persentase Keterlambatan', 'value' => number_format($delayStats['percentage'], 2, ',', '.') . '%', 'icon' => 'fa-percent', 'theme' => 'purple'],
     ];
     $dsoDoPerformanceCards = [
         'total_received' => ['label' => 'Total Terima DO', 'icon' => 'fa-file-alt', 'theme' => 'blue'],
@@ -214,15 +214,15 @@
     ];
 @endphp
 <div class="row align-items-stretch dashboard-overview-row">
-    <div class="col-lg-5 mb-3">
+    <div class="col-12 mb-3">
         <div class="card card-outline card-primary h-100 dashboard-overview-panel">
             <div class="card-header">
                 <h3 class="card-title"><i class="fas fa-tachometer-alt"></i> Ringkasan DSO</h3>
             </div>
             <div class="card-body">
-                <div class="dashboard-metric-grid">
+                <div class="dashboard-metric-grid dashboard-metric-grid-summary">
                     @foreach ($dsoSummaryCards as $card)
-                        <div class="dashboard-metric-card metric-{{ $card['theme'] }} {{ ($card['wide'] ?? false) ? 'dashboard-metric-wide' : '' }}">
+                        <div class="dashboard-metric-card metric-{{ $card['theme'] }}">
                             <span class="dashboard-metric-icon"><i class="fas {{ $card['icon'] }}"></i></span>
                             <div>
                                 <span class="dashboard-metric-label">{{ $card['label'] }}</span>
@@ -234,13 +234,13 @@
             </div>
         </div>
     </div>
-    <div class="col-lg-7 mb-3">
+    <div class="col-12 mb-3">
         <div class="card card-outline card-info h-100 dashboard-overview-panel">
             <div class="card-header">
                 <h3 class="card-title"><i class="fas fa-chart-bar"></i> DSO 2 — DO Performance</h3>
             </div>
             <div class="card-body">
-                <div class="dashboard-metric-grid">
+                <div class="dashboard-metric-grid dashboard-metric-grid-performance">
                     @foreach ($dsoDoPerformanceCards as $key => $card)
                         <div class="dashboard-metric-card metric-{{ $card['theme'] }}">
                             <span class="dashboard-metric-icon"><i class="fas {{ $card['icon'] }}"></i></span>
@@ -536,7 +536,7 @@
 
 .dashboard-metric-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 12px;
 }
 
@@ -568,10 +568,6 @@
     content: '';
     border-radius: 50%;
     background: rgba(255, 255, 255, .12);
-}
-
-.dashboard-metric-wide {
-    grid-column: 1 / -1;
 }
 
 .dashboard-metric-icon {
@@ -657,8 +653,11 @@
         grid-template-columns: 1fr;
     }
 
-    .dashboard-metric-wide {
-        grid-column: auto;
+}
+
+@media (min-width: 577px) and (max-width: 991px) {
+    .dashboard-metric-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 @endpush
