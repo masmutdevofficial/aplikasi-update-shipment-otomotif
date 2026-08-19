@@ -128,6 +128,34 @@ class LoginTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_pending_user_cannot_login_and_sees_pending_message(): void
+    {
+        User::factory()->vendor()->pending()->create([
+            'email' => 'pending@test.com',
+        ]);
+
+        $response = $this->postWithCsrf('/login', [
+            'email' => 'pending@test.com',
+            'password' => 'Test@Password123!',
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('error', fn (string $message) => str_contains($message, 'berstatus Pending'));
+        $this->assertGuest();
+    }
+
+    public function test_authenticated_pending_user_is_logged_out_on_next_request(): void
+    {
+        $user = User::factory()->vendor()->pending()->create();
+
+        $this->actingAs($user)
+            ->get(route('password.change'))
+            ->assertRedirect(route('login'))
+            ->assertSessionHas('error', fn (string $message) => str_contains($message, 'berstatus Pending'));
+
+        $this->assertGuest();
+    }
+
     public function test_login_throttle_after_max_attempts(): void
     {
         User::factory()->admin()->create([

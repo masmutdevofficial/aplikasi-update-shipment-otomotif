@@ -44,6 +44,7 @@ class StoreUserRequest extends FormRequest
                     ->uncompromised(),
             ],
             'level' => ['required', 'string', 'in:superadmin,admin,vendor'],
+            'status' => ['sometimes', 'string', 'in:active,pending,inactive'],
             'is_active' => ['sometimes', 'boolean'],
         ];
     }
@@ -64,6 +65,7 @@ class StoreUserRequest extends FormRequest
             'password.min' => 'Password minimal :min karakter.',
             'level.required' => 'Level user wajib dipilih.',
             'level.in' => 'Level user tidak valid.',
+            'status.in' => 'Status user tidak valid.',
         ];
     }
 }

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\FailedLogin;
 use App\Models\User;
+use App\Support\VendorAccess;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
@@ -54,16 +55,30 @@ class AuthService
             ];
         }
 
+        // Credentials are valid; maintenance or account status is not a failed login.
+        RateLimiter::clear($throttleKey);
+
+        if ($user->status === User::STATUS_PENDING) {
+            return [
+                'success' => false,
+                'message' => 'Akun Anda masih berstatus Pending dan belum dapat login. Silakan hubungi administrator.',
+            ];
+        }
+
         // Check if user is active
-        if (! $user->is_active) {
+        if (! $user->canLogin()) {
             return [
                 'success' => false,
                 'message' => 'Akun Anda telah dinonaktifkan. Hubungi administrator.',
             ];
         }
 
-        // Success — clear rate limiter
-        RateLimiter::clear($throttleKey);
+        if ($user->isVendor() && VendorAccess::isMaintenance()) {
+            return [
+                'success' => false,
+                'message' => VendorAccess::maintenanceMessage(),
+            ];
+        }
 
         return [
             'success' => true,

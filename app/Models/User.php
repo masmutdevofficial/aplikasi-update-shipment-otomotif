@@ -12,6 +12,12 @@ class User extends Authenticatable
 {
     use HasFactory, HasUuids, Notifiable;
 
+    public const STATUS_ACTIVE = 'active';
+
+    public const STATUS_PENDING = 'pending';
+
+    public const STATUS_INACTIVE = 'inactive';
+
     protected $fillable = [
         'username',
         'name',
@@ -20,6 +26,7 @@ class User extends Authenticatable
         'password',
         'level',
         'is_active',
+        'status',
         'created_by',
         'updated_by',
     ];
@@ -34,6 +41,39 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (User $user) {
+            if ($user->isDirty('status')) {
+                $user->is_active = $user->status === self::STATUS_ACTIVE;
+            } elseif ($user->isDirty('is_active')) {
+                $user->status = $user->is_active
+                    ? self::STATUS_ACTIVE
+                    : self::STATUS_INACTIVE;
+            }
+        });
+    }
+
+    /** @return array<int, string> */
+    public static function statuses(): array
+    {
+        return [self::STATUS_ACTIVE, self::STATUS_PENDING, self::STATUS_INACTIVE];
+    }
+
+    public function statusLabel(): string
+    {
+        return match ($this->status) {
+            self::STATUS_PENDING => 'Pending',
+            self::STATUS_INACTIVE => 'Nonaktif',
+            default => 'Aktif',
+        };
+    }
+
+    public function canLogin(): bool
+    {
+        return $this->status === self::STATUS_ACTIVE && $this->is_active;
     }
 
     /**

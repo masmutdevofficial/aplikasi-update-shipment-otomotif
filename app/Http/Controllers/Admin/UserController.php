@@ -80,9 +80,20 @@ class UserController extends Controller
      */
     public function update(UpdateUserRequest $request, User $user): RedirectResponse
     {
+        $data = $request->validated();
+        $requestedStatus = $data['status']
+            ?? (array_key_exists('is_active', $data)
+                ? ($data['is_active'] ? User::STATUS_ACTIVE : User::STATUS_INACTIVE)
+                : $user->status);
+
+        if ($user->id === $request->user()->id
+            && $requestedStatus !== User::STATUS_ACTIVE) {
+            return back()->with('error', 'Anda tidak dapat mengubah status akun sendiri menjadi Pending atau Nonaktif.');
+        }
+
         $this->userService->updateUser(
             $user,
-            $request->validated(),
+            $data,
             $request->user()->id,
         );
 
@@ -110,7 +121,7 @@ class UserController extends Controller
 
         $this->userService->toggleStatus($user, $currentUser->id);
 
-        $status = $user->fresh()->is_active ? 'diaktifkan' : 'dinonaktifkan';
+        $status = $user->fresh()->status === User::STATUS_ACTIVE ? 'diaktifkan' : 'dinonaktifkan';
 
         return back()->with('success', "User berhasil {$status}.");
     }

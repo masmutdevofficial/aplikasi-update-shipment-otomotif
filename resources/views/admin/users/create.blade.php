@@ -111,11 +111,16 @@
                         </div>
 
                         <div class="col-md-6 mb-3">
-                            <label for="is_active" class="form-label fw-semibold">Status</label>
-                            <select class="form-select" id="is_active" name="is_active">
-                                <option value="1" {{ old('is_active', '1') === '1' ? 'selected' : '' }}>Aktif</option>
-                                <option value="0" {{ old('is_active') === '0' ? 'selected' : '' }}>Nonaktif</option>
+                            <label for="status" class="form-label fw-semibold">Status <span class="text-danger">*</span></label>
+                            <select class="form-select @error('status') is-invalid @enderror" id="status" name="status" required>
+                                <option value="active" @selected(old('status', 'active') === 'active')>Aktif</option>
+                                <option value="pending" @selected(old('status') === 'pending')>Pending</option>
+                                <option value="inactive" @selected(old('status') === 'inactive')>Nonaktif</option>
                             </select>
+                            @error('status')
+                                <div class="invalid-feedback d-block">{{ $message }}</div>
+                            @enderror
+                            <small class="text-muted">User Pending dan Nonaktif tidak dapat login.</small>
                         </div>
                     </div>
 

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\ShipmentController;
 use App\Http\Controllers\Admin\SpecialShipmentController;
 use App\Http\Controllers\Admin\UserController;
@@ -43,7 +44,7 @@ Route::middleware('guest')->group(function () {
 | Authenticated Routes
 |--------------------------------------------------------------------------
 */
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', CheckVendorStatus::class])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
     // Change Password (authenticated)
@@ -60,6 +61,10 @@ Route::middleware('auth')->group(function () {
         ->name('admin.')
         ->group(function () {
             Route::get('/dashboard', DashboardController::class)->name('dashboard');
+
+            // Application Settings
+            Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');
+            Route::put('/settings', [SettingController::class, 'update'])->name('settings.update');
 
             // User Management
             Route::delete('/users/bulk-delete', [UserController::class, 'bulkDestroy'])->name('users.bulk-destroy');
@@ -113,7 +118,7 @@ Route::middleware('auth')->group(function () {
     | Vendor Routes
     |----------------------------------------------------------------------
     */
-    Route::middleware([CheckLevel::class . ':vendor', CheckVendorStatus::class])
+    Route::middleware(CheckLevel::class . ':vendor')
         ->prefix('vendor')
         ->name('vendor.')
         ->group(function () {

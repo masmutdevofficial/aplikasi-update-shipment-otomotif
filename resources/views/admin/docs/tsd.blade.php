@@ -179,7 +179,8 @@
                 <tr><td><code>phone</code></td><td>VARCHAR(500)</td><td>Terenkripsi AES-256</td><td><span class="badge badge-implemented">✓</span></td></tr>
                 <tr><td><code>password</code></td><td>VARCHAR(255)</td><td>Hash Argon2id</td><td><span class="badge badge-implemented">✓</span></td></tr>
                 <tr><td><code>level</code></td><td>ENUM</td><td>superadmin / admin / vendor</td><td><span class="badge badge-implemented">✓</span></td></tr>
-                <tr><td><code>is_active</code></td><td>BOOLEAN</td><td>Default true</td><td><span class="badge badge-implemented">✓</span></td></tr>
+                <tr><td><code>is_active</code></td><td>BOOLEAN</td><td>Kompatibilitas status aktif</td><td><span class="badge badge-implemented">✓</span></td></tr>
+                <tr><td><code>status</code></td><td>ENUM</td><td>active, pending, inactive</td><td><span class="badge badge-implemented">✓</span></td></tr>
                 <tr><td><code>created_by</code> / <code>updated_by</code></td><td>UUID FK</td><td>Audit trail → users.id</td><td><span class="badge badge-implemented">✓</span></td></tr>
             </tbody>
         </table>

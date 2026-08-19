@@ -37,6 +37,7 @@ class UpdateUserRequest extends FormRequest
             'email' => ['required', 'email', 'max:150', 'unique:users,email,' . $userId],
             'phone' => ['nullable', 'string', 'max:20'],
             'level' => ['required', 'string', 'in:superadmin,admin,vendor'],
+            'status' => ['sometimes', 'string', 'in:active,pending,inactive'],
             'is_active' => ['sometimes', 'boolean'],
         ];
 
@@ -72,6 +73,7 @@ class UpdateUserRequest extends FormRequest
             'password.min' => 'Password minimal :min karakter.',
             'level.required' => 'Level user wajib dipilih.',
             'level.in' => 'Level user tidak valid.',
+            'status.in' => 'Status user tidak valid.',
         ];
     }
 }

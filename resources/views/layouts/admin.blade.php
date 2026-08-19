@@ -591,6 +591,12 @@
                                 <p>Laporan</p>
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a href="{{ route('admin.settings.index') }}" class="nav-link @if(request()->routeIs('admin.settings.*')) active @endif">
+                                <i class="nav-icon fas fa-cog"></i>
+                                <p>Settings</p>
+                            </a>
+                        </li>
                         @if(auth()->user()->isSuperadmin())
                         <div class="nav-header">Superadmin</div>
                         @endif

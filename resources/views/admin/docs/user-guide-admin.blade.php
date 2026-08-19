@@ -131,7 +131,7 @@
 
         <h3>Menonaktifkan / Mengaktifkan User</h3>
         <div class="step-item"><span class="step-number">1</span><span>Pada daftar user, klik tombol <strong>Edit</strong>.</span></div>
-        <div class="step-item"><span class="step-number">2</span><span>Ubah field <strong>Status</strong> menjadi <code>Tidak Aktif</code> atau <code>Aktif</code>.</span></div>
+        <div class="step-item"><span class="step-number">2</span><span>Pilih status <code>Aktif</code>, <code>Pending</code>, atau <code>Nonaktif</code>. User Pending dan Nonaktif tidak dapat login.</span></div>
         <div class="step-item"><span class="step-number">3</span><span>Klik <strong>Simpan Perubahan</strong>.</span></div>
         <div class="info-box-doc">User yang dinonaktifkan akan otomatis dikeluarkan dari sesi aktif mereka.</div>
 

@@ -23,6 +23,7 @@ class UserFactory extends Factory
             'password' => static::$password ??= Hash::make('Test@Password123!'),
             'level' => 'vendor',
             'is_active' => true,
+            'status' => User::STATUS_ACTIVE,
             'created_by' => null,
             'updated_by' => null,
         ];
@@ -45,6 +46,17 @@ class UserFactory extends Factory
 
     public function inactive(): static
     {
-        return $this->state(fn () => ['is_active' => false]);
+        return $this->state(fn () => [
+            'is_active' => false,
+            'status' => User::STATUS_INACTIVE,
+        ]);
+    }
+
+    public function pending(): static
+    {
+        return $this->state(fn () => [
+            'is_active' => false,
+            'status' => User::STATUS_PENDING,
+        ]);
     }
 }

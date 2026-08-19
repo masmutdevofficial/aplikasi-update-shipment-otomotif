@@ -37,7 +37,11 @@
                             <td>{{ $vendor->user->email ?? '-' }}</td>
                             <td><span class="badge badge-info">{{ $vendor->position }}</span></td>
                             <td>
-                                @if($vendor->user && $vendor->user->is_active)
+                                @if(! $vendor->user)
+                                    <span class="badge badge-secondary">Tidak Ada User</span>
+                                @elseif($vendor->user->status === 'pending')
+                                    <span class="badge badge-warning"><i class="fas fa-clock"></i> Pending</span>
+                                @elseif($vendor->user->status === 'active')
                                     <span class="badge badge-success"><i class="fas fa-check-circle"></i> Aktif</span>
                                 @else
                                     <span class="badge" style="background:var(--secondary)"><i class="fas fa-times-circle"></i> Nonaktif</span>

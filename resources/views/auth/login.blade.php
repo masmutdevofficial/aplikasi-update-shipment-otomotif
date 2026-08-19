@@ -8,6 +8,15 @@
         <i class="fas fa-sign-in-alt"></i> Login
     </div>
     <div class="login-card-body">
+        @if ($vendorMaintenance)
+            <div class="alert alert-danger">
+                <div class="alert-content">
+                    <strong><i class="fas fa-tools"></i> Portal Vendor Sedang Maintenance</strong><br>
+                    Login dan akses untuk pengguna vendor sementara dinonaktifkan. Admin dan superadmin tetap dapat login.
+                </div>
+            </div>
+        @endif
+
         <div class="alert alert-info">
             <div class="alert-content">
                 <strong>Portal Internal Shipment Otomotif</strong><br>

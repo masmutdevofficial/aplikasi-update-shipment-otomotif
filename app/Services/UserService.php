@@ -66,6 +66,8 @@ class UserService
      */
     public function createUser(array $data, string $createdBy): User
     {
+        $status = $this->resolveStatus($data, User::STATUS_ACTIVE);
+
         return User::create([
             'username' => $data['username'],
             'name' => $data['name'],
@@ -73,7 +75,8 @@ class UserService
             'phone' => $data['phone'] ?? null,
             'password' => Hash::make($data['password']),
             'level' => $data['level'],
-            'is_active' => $data['is_active'] ?? true,
+            'is_active' => $status === User::STATUS_ACTIVE,
+            'status' => $status,
             'created_by' => $createdBy,
             'updated_by' => $createdBy,
         ]);
@@ -84,13 +87,15 @@ class UserService
      */
     public function updateUser(User $user, array $data, string $updatedBy): User
     {
+        $status = $this->resolveStatus($data, $user->status);
         $updateData = [
             'username' => $data['username'],
             'name' => $data['name'],
             'email' => $data['email'],
             'phone' => $data['phone'] ?? null,
             'level' => $data['level'],
-            'is_active' => $data['is_active'] ?? $user->is_active,
+            'is_active' => $status === User::STATUS_ACTIVE,
+            'status' => $status,
             'updated_by' => $updatedBy,
         ];
 
@@ -100,6 +105,10 @@ class UserService
 
         $user->update($updateData);
 
+        if (! $user->canLogin()) {
+            DB::table('sessions')->where('user_id', $user->id)->delete();
+        }
+
         return $user->fresh();
     }
 
@@ -108,13 +117,18 @@ class UserService
      */
     public function toggleStatus(User $user, string $updatedBy): User
     {
+        $status = $user->status === User::STATUS_ACTIVE
+            ? User::STATUS_INACTIVE
+            : User::STATUS_ACTIVE;
+
         $user->update([
-            'is_active' => ! $user->is_active,
+            'is_active' => $status === User::STATUS_ACTIVE,
+            'status' => $status,
             'updated_by' => $updatedBy,
         ]);
 
-        // If user was deactivated, invalidate their sessions
-        if (! $user->is_active) {
+        // Pending/inactive users must not retain authenticated sessions.
+        if (! $user->canLogin()) {
             DB::table('sessions')->where('user_id', $user->id)->delete();
         }
 
@@ -194,5 +208,20 @@ class UserService
 
         // Admin can only manage vendor-level users
         return ['vendor'];
+    }
+
+    private function resolveStatus(array $data, string $default): string
+    {
+        if (isset($data['status'])) {
+            return $data['status'];
+        }
+
+        if (array_key_exists('is_active', $data)) {
+            return $data['is_active']
+                ? User::STATUS_ACTIVE
+                : User::STATUS_INACTIVE;
+        }
+
+        return $default;
     }
 }

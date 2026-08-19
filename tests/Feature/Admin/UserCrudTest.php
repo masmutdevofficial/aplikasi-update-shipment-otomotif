@@ -72,6 +72,26 @@ class UserCrudTest extends TestCase
         $this->assertDatabaseHas('users', ['email' => 'newvendor@test.com', 'level' => 'vendor']);
     }
 
+    public function test_superadmin_can_create_pending_user_from_status_dropdown(): void
+    {
+        $response = $this->actingAs($this->superadmin)->post(route('admin.users.store'), [
+            'username' => 'pendingvendor',
+            'name' => 'Pending Vendor',
+            'email' => 'pendingvendor@test.com',
+            'password' => 'Vendor@Pass123!',
+            'password_confirmation' => 'Vendor@Pass123!',
+            'level' => 'vendor',
+            'status' => User::STATUS_PENDING,
+        ]);
+
+        $response->assertRedirect(route('admin.users.index'));
+        $this->assertDatabaseHas('users', [
+            'email' => 'pendingvendor@test.com',
+            'status' => User::STATUS_PENDING,
+            'is_active' => false,
+        ]);
+    }
+
     public function test_superadmin_can_update_user(): void
     {
         $user = User::factory()->vendor()->create();
@@ -165,6 +185,51 @@ class UserCrudTest extends TestCase
 
         $response->assertRedirect();
         $this->assertFalse($user->fresh()->is_active);
+        $this->assertSame(User::STATUS_INACTIVE, $user->fresh()->status);
+    }
+
+    public function test_edit_form_has_active_pending_and_inactive_status_options(): void
+    {
+        $user = User::factory()->vendor()->create();
+
+        $this->actingAs($this->superadmin)
+            ->get(route('admin.users.edit', $user))
+            ->assertOk()
+            ->assertSee('value="active"', false)
+            ->assertSee('value="pending"', false)
+            ->assertSee('value="inactive"', false);
+    }
+
+    public function test_updating_user_to_pending_disables_login(): void
+    {
+        $user = User::factory()->vendor()->create();
+
+        $this->actingAs($this->superadmin)->put(route('admin.users.update', $user), [
+            'username' => $user->username,
+            'name' => $user->name,
+            'email' => $user->email,
+            'level' => 'vendor',
+            'status' => User::STATUS_PENDING,
+        ])->assertRedirect(route('admin.users.index'));
+
+        $user->refresh();
+        $this->assertSame(User::STATUS_PENDING, $user->status);
+        $this->assertFalse($user->is_active);
+        $this->assertFalse($user->canLogin());
+    }
+
+    public function test_user_cannot_change_own_status_to_pending(): void
+    {
+        $response = $this->actingAs($this->superadmin)->put(route('admin.users.update', $this->superadmin), [
+            'username' => $this->superadmin->username,
+            'name' => $this->superadmin->name,
+            'email' => $this->superadmin->email,
+            'level' => 'superadmin',
+            'status' => User::STATUS_PENDING,
+        ]);
+
+        $response->assertSessionHas('error');
+        $this->assertSame(User::STATUS_ACTIVE, $this->superadmin->fresh()->status);
     }
 
     public function test_admin_cannot_edit_superadmin(): void

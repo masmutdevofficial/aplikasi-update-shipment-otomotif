@@ -73,11 +73,16 @@
                                 @endswitch
                             </td>
                             <td>
-                                @if($user->is_active)
-                                    <span class="badge badge-success"><i class="fas fa-check-circle"></i> Aktif</span>
-                                @else
-                                    <span class="badge" style="background:var(--secondary)"><i class="fas fa-times-circle"></i> Nonaktif</span>
-                                @endif
+                                @switch($user->status)
+                                    @case('pending')
+                                        <span class="badge badge-warning"><i class="fas fa-clock"></i> Pending</span>
+                                        @break
+                                    @case('inactive')
+                                        <span class="badge" style="background:var(--secondary)"><i class="fas fa-times-circle"></i> Nonaktif</span>
+                                        @break
+                                    @default
+                                        <span class="badge badge-success"><i class="fas fa-check-circle"></i> Aktif</span>
+                                @endswitch
                             </td>
                             <td class="text-center">
                                 <div class="btn-group btn-group-sm">
@@ -94,10 +99,10 @@
                                             @csrf
                                             @method('PATCH')
                                             <button type="submit"
-                                                    class="btn btn-outline-{{ $user->is_active ? 'warning' : 'success' }}"
-                                                    title="{{ $user->is_active ? 'Nonaktifkan' : 'Aktifkan' }}"
-                                                    onclick="return confirm('{{ $user->is_active ? 'Nonaktifkan' : 'Aktifkan' }} user {{ $user->name }}?')">
-                                                    <i class="fas fa-{{ $user->is_active ? 'pause-circle' : 'play-circle' }}"></i>
+                                                    class="btn btn-outline-{{ $user->status === 'active' ? 'warning' : 'success' }}"
+                                                    title="{{ $user->status === 'active' ? 'Nonaktifkan' : 'Aktifkan' }}"
+                                                    onclick="return confirm('{{ $user->status === 'active' ? 'Nonaktifkan' : 'Aktifkan' }} user {{ $user->name }}?')">
+                                                    <i class="fas fa-{{ $user->status === 'active' ? 'pause-circle' : 'play-circle' }}"></i>
                                             </button>
                                         </form>
 
