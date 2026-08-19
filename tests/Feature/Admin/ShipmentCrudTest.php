@@ -318,6 +318,42 @@ class ShipmentCrudTest extends TestCase
         $this->assertSame(4, $shipment->dwellingDestination());
     }
 
+    public function test_dso_dwelling_is_calculated_per_shipment_not_per_city(): void
+    {
+        $firstShipment = Shipment::factory()->create([
+            'kota' => 'PONTIANAK',
+            'at_storage_port' => '2026-07-01',
+            'atd_kapal_loading' => '2026-07-02',
+            'ata_storage_port_destination' => '2026-07-05',
+            'at_ptd_dooring' => '2026-07-07',
+        ]);
+        $secondShipment = Shipment::factory()->create([
+            'kota' => 'PONTIANAK',
+            'at_storage_port' => '2026-07-01',
+            'atd_kapal_loading' => '2026-07-04',
+            'ata_storage_port_destination' => '2026-07-05',
+            'at_ptd_dooring' => '2026-07-10',
+        ]);
+
+        $this->assertSame(1, $firstShipment->dwellingOrigin());
+        $this->assertSame(2, $firstShipment->dwellingDestination());
+        $this->assertSame(3, $secondShipment->dwellingOrigin());
+        $this->assertSame(5, $secondShipment->dwellingDestination());
+
+        $response = $this->actingAs($this->admin)->getJson(route('admin.shipments.data', [
+            'length' => 10,
+            'search' => ['value' => 'PONTIANAK'],
+        ]));
+
+        $response->assertOk();
+        $rows = collect($response->json('data'))->keyBy('no_rangka');
+
+        $this->assertSame(1, $rows[$firstShipment->no_rangka]['dwelling_origin']);
+        $this->assertSame(2, $rows[$firstShipment->no_rangka]['dwelling_destination']);
+        $this->assertSame(3, $rows[$secondShipment->no_rangka]['dwelling_origin']);
+        $this->assertSame(5, $rows[$secondShipment->no_rangka]['dwelling_destination']);
+    }
+
     public function test_dso_index_shows_aggregate_late_percentage(): void
     {
         Shipment::factory()->create([

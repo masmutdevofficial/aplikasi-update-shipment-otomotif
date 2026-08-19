@@ -64,10 +64,10 @@
                         <th>AT PtD (Dooring)</th>
                         <th>DO Release to Pickup</th>
                         <th>Storage Port</th>
-                        <th title="ATD Kapal (Loading) - AT Storage Port; gunakan hari ini bila belum loading">Dwelling Origin</th>
+                        <th title="Dihitung per shipment: ATD Kapal (Loading) - AT Storage Port; gunakan hari ini bila belum loading">Dwelling Origin (per Shipment)</th>
                         <th>Kapal (Aboard)</th>
                         <th>Storage Port (Destination)</th>
-                        <th title="AT PtD (Dooring) - ATA Storage Port (Destination); gunakan hari ini bila belum dooring">Dwelling Destination</th>
+                        <th title="Dihitung per shipment: AT PtD (Dooring) - ATA Storage Port (Destination); gunakan hari ini bila belum dooring">Dwelling Destination (per Shipment)</th>
                         <th>SLA Actual</th>
                         <th>SLA Cust</th>
                         <th>Result</th>
@@ -163,10 +163,10 @@
                     <th>Destination</th>
                     <th>Keluar dari PDC</th>
                     <th>Storage Port</th>
-                    <th>Dwelling Origin</th>
+                    <th>Kapal (Loading)</th>
                     <th>ATA Kapal</th>
                     <th>Storage Port (Destination)</th>
-                    <th>Dwelling Destination</th>
+                    <th>PtD (Dooring)</th>
                     <th>SLA Customer</th>
                 </tr>
             </thead>

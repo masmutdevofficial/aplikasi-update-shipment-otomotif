@@ -23,8 +23,11 @@ class DsoSla
 
     /**
      * SLA per tahapan sesuai matriks dari klien.
-     * Urutan: Keluar PDC, Storage Port, Dwelling Origin, ATA Kapal,
-     * Storage Port Destination, dan Dwelling Destination.
+     * Urutan target per kota: Keluar PDC, Storage Port, Kapal Loading,
+     * ATA Kapal, Storage Port Destination, dan PtD/Dooring.
+     *
+     * Dwelling aktual tidak berasal dari matriks ini. Nilainya dihitung
+     * tersendiri untuk setiap shipment dari tanggal milestone shipment.
      *
      * @return array<string, array{stages: array<int, int>, total: int}>
      */
