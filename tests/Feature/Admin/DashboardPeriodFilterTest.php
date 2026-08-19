@@ -137,7 +137,7 @@ class DashboardPeriodFilterTest extends TestCase
         );
     }
 
-    public function test_dso_dashboard_summarizes_dwelling_per_shipment_for_selected_period(): void
+    public function test_dso_dashboard_lists_dwelling_per_shipment_for_selected_period(): void
     {
         Carbon::setTestNow('2025-05-20 12:00:00');
 
@@ -168,12 +168,66 @@ class DashboardPeriodFilterTest extends TestCase
             ->assertSee('Dwelling Origin')
             ->assertSee('Dwelling Destination')
             ->assertDontSee('Referensi SLA Customer DSO')
-            ->assertSee('2,50 hari')
-            ->assertViewHas('dsoDwellingStats', fn (array $stats) =>
-                $stats['origin']['average'] === 2.5
-                && $stats['origin']['shipments'] === 2
-                && $stats['destination']['average'] === 2.5
-                && $stats['destination']['shipments'] === 2
+            ->assertSee('DSO-DWELLING-0001')
+            ->assertSee('DSO-DWELLING-0002')
+            ->assertDontSee('DSO-DWELLING-OUTSIDE')
+            ->assertViewHas('dsoDwellingDetails', fn (array $details) =>
+                $details['origin'] === [
+                    ['no_rangka' => 'DSO-DWELLING-0001', 'days' => 3],
+                    ['no_rangka' => 'DSO-DWELLING-0002', 'days' => 2],
+                ]
+                && $details['destination'] === [
+                    ['no_rangka' => 'DSO-DWELLING-0001', 'days' => 4],
+                    ['no_rangka' => 'DSO-DWELLING-0002', 'days' => 1],
+                ]
+            );
+    }
+
+    public function test_dso_dashboard_shows_cumulative_do_performance_counts_and_percentages(): void
+    {
+        Shipment::create([
+            'no_rangka' => 'DSO-FUNNEL-0001',
+            'terima_do' => '2025-05-01',
+            'keluar_dari_pdc' => '2025-05-02',
+            'at_storage_port' => '2025-05-03',
+            'atd_kapal_loading' => '2025-05-04',
+            'ata_kapal' => '2025-05-05',
+            'ata_storage_port_destination' => '2025-05-06',
+            'at_ptd_dooring' => '2025-05-07',
+        ]);
+        Shipment::create([
+            'no_rangka' => 'DSO-FUNNEL-0002',
+            'terima_do' => '2025-05-10',
+            'keluar_dari_pdc' => '2025-05-11',
+            'at_storage_port' => '2025-05-12',
+        ]);
+        Shipment::create([
+            'no_rangka' => 'DSO-FUNNEL-0003',
+            'terima_do' => '2025-05-15',
+        ]);
+        Shipment::create([
+            'no_rangka' => 'DSO-FUNNEL-OUTSIDE',
+            'terima_do' => '2025-06-01',
+            'keluar_dari_pdc' => '2025-06-02',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get('/admin/dashboard?type=dso&month=5&year=2025')
+            ->assertOk()
+            ->assertSee('DSO 2 — DO Performance')
+            ->assertSee('Total Terima DO')
+            ->assertSee('Belum Keluar PDC')
+            ->assertSee('AT PtD (Dooring)')
+            ->assertSee('33,33% dari Total Terima DO')
+            ->assertViewHas('dsoDoPerformance', fn (array $stats) =>
+                $stats['total_received'] === ['count' => 3, 'percentage' => 100.0]
+                && $stats['not_departed_pdc'] === ['count' => 1, 'percentage' => 33.33]
+                && $stats['departed_pdc'] === ['count' => 2, 'percentage' => 66.67]
+                && $stats['storage_port'] === ['count' => 2, 'percentage' => 66.67]
+                && $stats['vessel_loading'] === ['count' => 1, 'percentage' => 33.33]
+                && $stats['vessel_arrived'] === ['count' => 1, 'percentage' => 33.33]
+                && $stats['destination_storage'] === ['count' => 1, 'percentage' => 33.33]
+                && $stats['ptd_dooring'] === ['count' => 1, 'percentage' => 33.33]
             );
     }
 

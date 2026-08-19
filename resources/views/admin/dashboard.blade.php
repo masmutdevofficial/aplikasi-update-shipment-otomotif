@@ -229,38 +229,96 @@
     </div>
 </div>
 
+@php
+    $dsoDoPerformanceCards = [
+        'total_received' => ['label' => 'Total Terima DO', 'icon' => 'fa-file-alt', 'color' => 'bg-primary'],
+        'not_departed_pdc' => ['label' => 'Belum Keluar PDC', 'icon' => 'fa-hourglass-half', 'color' => 'bg-secondary'],
+        'departed_pdc' => ['label' => 'Keluar Dari PDC', 'icon' => 'fa-truck-moving', 'color' => 'bg-info'],
+        'storage_port' => ['label' => 'AT Storage Port', 'icon' => 'fa-warehouse', 'color' => 'bg-warning'],
+        'vessel_loading' => ['label' => 'ATD Kapal (Loading)', 'icon' => 'fa-ship', 'color' => 'bg-primary'],
+        'vessel_arrived' => ['label' => 'ATA Kapal', 'icon' => 'fa-anchor', 'color' => 'bg-info'],
+        'destination_storage' => ['label' => 'ATA Storage Port (Destination)', 'icon' => 'fa-warehouse', 'color' => 'bg-warning'],
+        'ptd_dooring' => ['label' => 'AT PtD (Dooring)', 'icon' => 'fa-flag-checkered', 'color' => 'bg-success'],
+    ];
+@endphp
+<div class="card card-primary">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-chart-bar"></i> DSO 2 — DO Performance</h3>
+    </div>
+    <div class="card-body pb-0">
+        <div class="row">
+            @foreach ($dsoDoPerformanceCards as $key => $card)
+                <div class="col-xl-3 col-md-6">
+                    <div class="info-box">
+                        <span class="info-box-icon {{ $card['color'] }}"><i class="fas {{ $card['icon'] }}"></i></span>
+                        <div class="info-box-content">
+                            <span class="info-box-text">{{ $card['label'] }}</span>
+                            <span class="info-box-number">{{ number_format($dsoDoPerformance[$key]['count']) }}</span>
+                            <span class="text-muted small">
+                                {{ number_format($dsoDoPerformance[$key]['percentage'], 2, ',', '.') }}% dari Total Terima DO
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
+</div>
+
 @include('admin.dashboard.dso-performance-table')
 
 <div class="row">
     <div class="col-md-6">
-        <div class="info-box">
-            <span class="info-box-icon bg-info"><i class="fas fa-anchor"></i></span>
-            <div class="info-box-content">
-                <span class="info-box-text">Dwelling Origin</span>
-                <span class="info-box-number">
-                    {{ $dsoDwellingStats['origin']['average'] === null
-                        ? '-'
-                        : number_format($dsoDwellingStats['origin']['average'], 2, ',', '.') . ' hari' }}
-                </span>
-                <span class="text-muted small">
-                    Rata-rata {{ number_format($dsoDwellingStats['origin']['shipments']) }} shipment
-                </span>
+        <div class="card card-info">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-anchor"></i> Dwelling Origin</h3>
+            </div>
+            <div class="card-body p-0 table-responsive dashboard-dwelling-table">
+                <table class="table table-sm table-striped table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>No. Rangka</th>
+                            <th>Dwelling Origin</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($dsoDwellingDetails['origin'] as $row)
+                            <tr>
+                                <td><code>{{ $row['no_rangka'] ?? '-' }}</code></td>
+                                <td>{{ number_format($row['days']) }} hari</td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="2" class="text-center text-muted py-3">Belum ada data Dwelling Origin.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
     <div class="col-md-6">
-        <div class="info-box">
-            <span class="info-box-icon bg-success"><i class="fas fa-flag-checkered"></i></span>
-            <div class="info-box-content">
-                <span class="info-box-text">Dwelling Destination</span>
-                <span class="info-box-number">
-                    {{ $dsoDwellingStats['destination']['average'] === null
-                        ? '-'
-                        : number_format($dsoDwellingStats['destination']['average'], 2, ',', '.') . ' hari' }}
-                </span>
-                <span class="text-muted small">
-                    Rata-rata {{ number_format($dsoDwellingStats['destination']['shipments']) }} shipment
-                </span>
+        <div class="card card-success">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-flag-checkered"></i> Dwelling Destination</h3>
+            </div>
+            <div class="card-body p-0 table-responsive dashboard-dwelling-table">
+                <table class="table table-sm table-striped table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>No. Rangka</th>
+                            <th>Dwelling Destination</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($dsoDwellingDetails['destination'] as $row)
+                            <tr>
+                                <td><code>{{ $row['no_rangka'] ?? '-' }}</code></td>
+                                <td>{{ number_format($row['days']) }} hari</td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="2" class="text-center text-muted py-3">Belum ada data Dwelling Destination.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -403,6 +461,18 @@
 #table-tso-shipments td:first-child {
     min-width: 55px;
     text-align: center;
+}
+
+.dashboard-dwelling-table {
+    max-height: 360px;
+    overflow-y: auto;
+}
+
+.dashboard-dwelling-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #fff;
 }
 
 .iso-mode-selector {

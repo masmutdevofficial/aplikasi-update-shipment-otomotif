@@ -140,36 +140,69 @@ class DsoSla
     }
 
     /**
-     * Rata-rata dwelling aktual per shipment pada periode dashboard.
+     * Detail dwelling aktual per shipment pada periode dashboard.
      * Shipment yang belum mencapai milestone akhir dihitung sampai hari ini.
      *
      * @return array{
-     *     origin: array{average: float|null, shipments: int},
-     *     destination: array{average: float|null, shipments: int}
+     *     origin: array<int, array{no_rangka: string|null, days: int}>,
+     *     destination: array<int, array{no_rangka: string|null, days: int}>
      * }
      */
-    public static function dwellingStatistics(?int $month = null, ?int $year = null): array
+    public static function dwellingDetails(?int $month = null, ?int $year = null): array
     {
         $shipments = self::periodQuery($month, $year)->get();
-        $originValues = $shipments
-            ->map(fn (Shipment $shipment) => $shipment->dwellingOrigin())
-            ->filter(fn (?int $days) => $days !== null)
-            ->values();
-        $destinationValues = $shipments
-            ->map(fn (Shipment $shipment) => $shipment->dwellingDestination())
-            ->filter(fn (?int $days) => $days !== null)
-            ->values();
 
         return [
-            'origin' => [
-                'average' => $originValues->isEmpty() ? null : round((float) $originValues->average(), 2),
-                'shipments' => $originValues->count(),
-            ],
-            'destination' => [
-                'average' => $destinationValues->isEmpty() ? null : round((float) $destinationValues->average(), 2),
-                'shipments' => $destinationValues->count(),
-            ],
+            'origin' => $shipments
+                ->map(fn (Shipment $shipment) => [
+                    'no_rangka' => $shipment->no_rangka,
+                    'days' => $shipment->dwellingOrigin(),
+                ])
+                ->filter(fn (array $row) => $row['days'] !== null)
+                ->sortBy('no_rangka')
+                ->values()
+                ->all(),
+            'destination' => $shipments
+                ->map(fn (Shipment $shipment) => [
+                    'no_rangka' => $shipment->no_rangka,
+                    'days' => $shipment->dwellingDestination(),
+                ])
+                ->filter(fn (array $row) => $row['days'] !== null)
+                ->sortBy('no_rangka')
+                ->values()
+                ->all(),
         ];
+    }
+
+    /**
+     * Funnel akumulatif DO Performance. Setiap milestone menghitung seluruh
+     * shipment yang sudah mencapai tahap tersebut dalam periode dashboard.
+     *
+     * @return array<string, array{count: int, percentage: float|int}>
+     */
+    public static function doPerformanceStatistics(?int $month = null, ?int $year = null): array
+    {
+        $shipments = self::periodQuery($month, $year)
+            ->whereNotNull('terima_do')
+            ->get();
+        $total = $shipments->count();
+        $counts = [
+            'total_received' => $total,
+            'not_departed_pdc' => $shipments->whereNull('keluar_dari_pdc')->count(),
+            'departed_pdc' => $shipments->whereNotNull('keluar_dari_pdc')->count(),
+            'storage_port' => $shipments->whereNotNull('at_storage_port')->count(),
+            'vessel_loading' => $shipments->whereNotNull('atd_kapal_loading')->count(),
+            'vessel_arrived' => $shipments->whereNotNull('ata_kapal')->count(),
+            'destination_storage' => $shipments->whereNotNull('ata_storage_port_destination')->count(),
+            'ptd_dooring' => $shipments->whereNotNull('at_ptd_dooring')->count(),
+        ];
+
+        return collect($counts)
+            ->map(fn (int $count) => [
+                'count' => $count,
+                'percentage' => $total === 0 ? 0 : round($count / $total * 100, 2),
+            ])
+            ->all();
     }
 
     private static function periodQuery(?int $month, ?int $year): Builder
