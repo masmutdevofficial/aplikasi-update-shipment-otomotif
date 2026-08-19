@@ -301,6 +301,155 @@ class DashboardPeriodFilterTest extends TestCase
             );
     }
 
+    public function test_iso_darat_dashboard_shows_summary_dynamic_positions_and_latest_data_without_late_cards(): void
+    {
+        IsoDaratShipment::create([
+            'no_spb' => 'ISO-DARAT-0001',
+            'destination' => 'Surabaya',
+            'terima_do' => '2025-05-01',
+        ]);
+        IsoDaratShipment::create([
+            'no_spb' => 'ISO-DARAT-0002',
+            'destination' => 'Surabaya',
+            'terima_do' => '2025-05-02',
+            'keluar_dari_pdc' => '2025-05-03',
+            'at_ptd_dtd' => '2025-05-04',
+        ]);
+        IsoDaratShipment::create([
+            'no_spb' => 'ISO-DARAT-NEW-CITY',
+            'destination' => 'Madiun Baru',
+            'terima_do' => '2025-05-05',
+            'keluar_dari_pdc' => '2025-05-06',
+        ]);
+        IsoDaratShipment::create([
+            'no_spb' => 'ISO-DARAT-OUTSIDE',
+            'destination' => 'Madiun Baru',
+            'terima_do' => '2025-06-01',
+        ]);
+        ScanHistory::create([
+            'user_id' => $this->admin->id,
+            'no_rangka' => 'ISO-DARAT-0002',
+            'scan_date' => '2025-05-07',
+        ]);
+        ScanHistory::create([
+            'user_id' => $this->admin->id,
+            'no_rangka' => 'NON-ISO-DARAT',
+            'scan_date' => '2025-05-08',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get('/admin/dashboard?type=iso&iso_type=darat&month=5&year=2025')
+            ->assertOk()
+            ->assertSee('Ringkasan ISO Darat')
+            ->assertSee('Posisi Barang per Kota (Destination) — ISO Darat')
+            ->assertSee('Madiun Baru')
+            ->assertSee('Shipment Terbaru ISO Darat')
+            ->assertSee('Scan Terbaru ISO Darat')
+            ->assertSee('ISO-DARAT-0002')
+            ->assertDontSee('ISO-DARAT-OUTSIDE')
+            ->assertDontSee('NON-ISO-DARAT')
+            ->assertDontSee('Shipment Terlambat')
+            ->assertDontSee('Persentase Keterlambatan')
+            ->assertViewHas('dashboardScanTotal', 1)
+            ->assertViewHas('isoPositionSummary', fn (array $summaries) =>
+                count($summaries) === 2
+                && $summaries[0]['destination'] === 'MADIUN BARU'
+                && $summaries[0]['positions']['Pickup']['count'] === 1
+                && $summaries[1]['destination'] === 'SURABAYA'
+                && $summaries[1]['positions']['DO Received']['count'] === 1
+                && $summaries[1]['positions']['PTD/DTD']['count'] === 1
+            );
+    }
+
+    public function test_iso_laut_dashboard_shows_dso_style_performance_late_positions_dwelling_and_latest_data(): void
+    {
+        Carbon::setTestNow('2025-05-20 12:00:00');
+
+        IsoLautShipment::create([
+            'noka' => 'ISO-LAUT-0001',
+            'destination' => 'Makassar',
+            'terima_do' => '2025-05-01',
+            'keluar_dari_pdc' => '2025-05-02',
+            'at_storage_port' => '2025-05-05',
+            'atd_kapal_loading' => '2025-05-08',
+            'ata_kapal' => '2025-05-10',
+            'ata_storage_port_destination' => '2025-05-12',
+            'at_ptd_dtd' => '2025-05-14',
+            'sla_customer' => 10,
+        ]);
+        IsoLautShipment::create([
+            'noka' => 'ISO-LAUT-0002',
+            'destination' => 'Makassar',
+            'terima_do' => '2025-05-15',
+            'keluar_dari_pdc' => '2025-05-16',
+            'at_storage_port' => '2025-05-18',
+            'sla_customer' => 10,
+        ]);
+        IsoLautShipment::create([
+            'noka' => 'ISO-LAUT-NEW-CITY',
+            'destination' => 'Ambon Baru',
+            'terima_do' => '2025-05-17',
+        ]);
+        IsoLautShipment::create([
+            'noka' => 'ISO-LAUT-OUTSIDE',
+            'destination' => 'Ambon Baru',
+            'terima_do' => '2025-06-01',
+        ]);
+        ScanHistory::create([
+            'user_id' => $this->admin->id,
+            'no_rangka' => 'ISO-LAUT-0001',
+            'scan_date' => '2025-05-15',
+        ]);
+        ScanHistory::create([
+            'user_id' => $this->admin->id,
+            'no_rangka' => 'NON-ISO-LAUT',
+            'scan_date' => '2025-05-16',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get('/admin/dashboard?type=iso&iso_type=laut&month=5&year=2025')
+            ->assertOk()
+            ->assertSee('Ringkasan ISO Laut')
+            ->assertSee('ISO Laut — DO Performance')
+            ->assertSee('Shipment Terlambat')
+            ->assertSee('Persentase Keterlambatan')
+            ->assertSee('Ringkasan Late per Kota')
+            ->assertSee('Posisi Barang per Kota (Destination) — ISO Laut')
+            ->assertSee('Ambon Baru')
+            ->assertSee('Dwelling Origin')
+            ->assertSee('Dwelling Destination')
+            ->assertSee('Shipment Terbaru ISO Laut')
+            ->assertSee('Scan Terbaru ISO Laut')
+            ->assertSee('ISO-LAUT-0001')
+            ->assertDontSee('ISO-LAUT-OUTSIDE')
+            ->assertDontSee('NON-ISO-LAUT')
+            ->assertViewHas('dashboardScanTotal', 1)
+            ->assertViewHas('specialDelayStats', fn (array $stats) => $stats['evaluated'] === 2 && $stats['late'] === 1 && $stats['percentage'] === 50.0)
+            ->assertViewHas('isoLateByCity', fn (array $summaries) =>
+                count($summaries) === 1
+                && $summaries[0]['city'] === 'MAKASSAR'
+                && $summaries[0]['total'] === 2
+                && $summaries[0]['late'] === 1
+            )
+            ->assertViewHas('isoPositionSummary', fn (array $summaries) =>
+                count($summaries) === 2
+                && $summaries[0]['destination'] === 'AMBON BARU'
+                && $summaries[0]['positions']['DO Received']['count'] === 1
+                && $summaries[1]['destination'] === 'MAKASSAR'
+                && $summaries[1]['positions']['Storage Port']['count'] === 1
+                && $summaries[1]['positions']['PTD/DTD']['count'] === 1
+            )
+            ->assertViewHas('isoDwellingDetails', fn (array $details) =>
+                $details['origin'] === [
+                    ['identity' => 'ISO-LAUT-0001', 'days' => 3],
+                    ['identity' => 'ISO-LAUT-0002', 'days' => 2],
+                ]
+                && $details['destination'] === [
+                    ['identity' => 'ISO-LAUT-0001', 'days' => 2],
+                ]
+            );
+    }
+
     public function test_both_iso_dashboards_filter_by_terima_do(): void
     {
         foreach ([IsoDaratShipment::class, IsoLautShipment::class] as $model) {

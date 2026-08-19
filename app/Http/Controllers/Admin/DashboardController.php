@@ -5,10 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ScanHistory;
 use App\Models\Shipment;
-use App\Models\TsoShipment;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Support\DsoSla;
+use App\Support\IsoDashboard;
 use App\Support\SpecialShipmentPerformance;
 use App\Support\SpecialShipmentType;
 use App\Support\TsoDashboard;
@@ -38,10 +38,11 @@ class DashboardController extends Controller
         $shipmentQuery = $this->applyPeriod($model::query(), $dateField, $month, $year);
         $scanQuery = $this->applyPeriod(ScanHistory::query(), 'scan_date', $month, $year);
 
-        if ($type === 'tso') {
+        if ($performanceType !== null) {
+            $identityField = $periodConfig['identity'];
             $scanQuery->whereIn(
                 'no_rangka',
-                TsoShipment::query()->whereNotNull('no_rangka')->select('no_rangka')
+                $model::query()->whereNotNull($identityField)->select($identityField)
             );
         }
 
@@ -59,6 +60,19 @@ class DashboardController extends Controller
             'dsoPositions' => DsoSla::positions(),
             'tsoPositionSummary' => $type === 'tso' ? TsoDashboard::positionSummary($month, $year) : [],
             'tsoPositions' => TsoDashboard::positions(),
+            'isoPositionSummary' => $type === 'iso'
+                ? IsoDashboard::positionSummary($performanceType, $month, $year)
+                : [],
+            'isoPositions' => $type === 'iso' ? IsoDashboard::positions($performanceType) : [],
+            'isoLateByCity' => $performanceType === 'iso-laut'
+                ? IsoDashboard::lateByDestination($month, $year)
+                : [],
+            'isoDoPerformance' => $performanceType === 'iso-laut'
+                ? IsoDashboard::doPerformanceStatistics($month, $year)
+                : null,
+            'isoDwellingDetails' => $performanceType === 'iso-laut'
+                ? IsoDashboard::dwellingDetails($month, $year)
+                : null,
             'specialDelayStats' => $performanceType
                 ? SpecialShipmentPerformance::statistics($performanceType, $month, $year)
                 : null,

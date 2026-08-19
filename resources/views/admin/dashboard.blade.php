@@ -185,11 +185,14 @@
 </div>
 @include('admin.dashboard.tso-position-and-latest')
 @elseif ($selectedDashboard === 'iso')
-@include('admin.dashboard._performance-stats')
+@include('admin.dashboard.iso-overview')
 @if ($selectedIsoType === 'darat')
     @include('admin.dashboard.iso-darat-table')
+    @include('admin.dashboard.iso-position-summary')
+    @include('admin.dashboard.iso-latest')
 @else
     @include('admin.dashboard.iso-laut-table')
+    @include('admin.dashboard.iso-laut-details')
 @endif
 @else
 {{-- Ringkasan operasional dan performance shipment DSO. --}}
