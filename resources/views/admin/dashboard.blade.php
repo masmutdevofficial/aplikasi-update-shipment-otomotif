@@ -78,49 +78,66 @@
 <div class="card dashboard-selector-card">
     <div class="card-body">
         <div class="dashboard-selector">
-            <div>
-                <label for="dashboardType" class="dashboard-selector-label">Pilih Dashboard</label>
+            <div class="dashboard-selector-header">
+                <span class="dashboard-selector-label">Pilih Dashboard</span>
                 <p class="dashboard-selector-description">Pilih dashboard yang ingin ditampilkan.</p>
             </div>
 
-            <form method="GET" action="{{ route('admin.dashboard') }}" class="dashboard-filter-form">
-                @if ($selectedDashboard === 'iso')
-                    <input type="hidden" name="iso_type" value="{{ $selectedIsoType }}">
-                @endif
-                <select
-                    id="dashboardType"
-                    name="type"
-                    class="form-select dashboard-selector-input"
-                    aria-label="Pilih dashboard"
-                    onchange="this.form.submit()"
-                >
-                    @foreach ($dashboardOptions as $value => $label)
-                        <option value="{{ $value }}" @selected($selectedDashboard === $value)>
-                            {{ $label }}
-                        </option>
-                    @endforeach
-                </select>
-
-                <select id="dashboardMonth" name="month" class="form-select dashboard-period-input" aria-label="Filter bulan">
-                    <option value="">Semua Bulan</option>
-                    @foreach ($monthOptions as $value => $label)
-                        <option value="{{ $value }}" @selected($selectedMonth === $value)>{{ $label }}</option>
-                    @endforeach
-                </select>
-
-                <select id="dashboardYear" name="year" class="form-select dashboard-period-input" aria-label="Filter tahun">
-                    <option value="">Semua Tahun</option>
-                    @foreach ($availableYears as $value)
-                        <option value="{{ $value }}" @selected($selectedYear === $value)>{{ $value }}</option>
-                    @endforeach
-                </select>
-
-                <button type="submit" class="btn btn-primary"><i class="fas fa-filter"></i> Terapkan</button>
+            <nav class="dashboard-tabs" aria-label="Pilihan dashboard">
                 <a
-                    href="{{ route('admin.dashboard', array_filter(['type' => $selectedDashboard, 'iso_type' => $selectedDashboard === 'iso' ? $selectedIsoType : null])) }}"
-                    class="btn btn-default"
-                >Reset</a>
-            </form>
+                    href="{{ route('admin.dashboard', array_filter(['type' => 'dso', 'month' => $selectedMonth, 'year' => $selectedYear])) }}"
+                    class="dashboard-tab {{ $selectedDashboard === 'dso' ? 'active' : '' }}"
+                    @if ($selectedDashboard === 'dso') aria-current="page" @endif
+                ><i class="fas fa-truck"></i> DSO</a>
+                <a
+                    href="{{ route('admin.dashboard', array_filter(['type' => 'tso', 'month' => $selectedMonth, 'year' => $selectedYear])) }}"
+                    class="dashboard-tab {{ $selectedDashboard === 'tso' ? 'active' : '' }}"
+                    @if ($selectedDashboard === 'tso') aria-current="page" @endif
+                ><i class="fas fa-truck-loading"></i> TSO</a>
+                <a
+                    href="{{ route('admin.dashboard', array_filter(['type' => 'iso', 'iso_type' => 'darat', 'month' => $selectedMonth, 'year' => $selectedYear])) }}"
+                    class="dashboard-tab {{ $selectedDashboard === 'iso' && $selectedIsoType === 'darat' ? 'active' : '' }}"
+                    @if ($selectedDashboard === 'iso' && $selectedIsoType === 'darat') aria-current="page" @endif
+                ><i class="fas fa-road"></i> ISO Darat</a>
+                <a
+                    href="{{ route('admin.dashboard', array_filter(['type' => 'iso', 'iso_type' => 'laut', 'month' => $selectedMonth, 'year' => $selectedYear])) }}"
+                    class="dashboard-tab {{ $selectedDashboard === 'iso' && $selectedIsoType === 'laut' ? 'active' : '' }}"
+                    @if ($selectedDashboard === 'iso' && $selectedIsoType === 'laut') aria-current="page" @endif
+                ><i class="fas fa-ship"></i> ISO Laut</a>
+            </nav>
+
+            <div class="dashboard-period-row">
+                <span class="dashboard-period-label"><i class="fas fa-calendar-alt"></i> Filter Periode</span>
+                <form method="GET" action="{{ route('admin.dashboard') }}" class="dashboard-filter-form">
+                    <input type="hidden" name="type" value="{{ $selectedDashboard }}">
+                    @if ($selectedDashboard === 'iso')
+                        <input type="hidden" name="iso_type" value="{{ $selectedIsoType }}">
+                    @endif
+                    <div class="dashboard-filter-field">
+                        <label for="dashboardMonth">Bulan</label>
+                        <select id="dashboardMonth" name="month" class="form-select dashboard-period-input">
+                            <option value="">Semua Bulan</option>
+                            @foreach ($monthOptions as $value => $label)
+                                <option value="{{ $value }}" @selected($selectedMonth === $value)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="dashboard-filter-field">
+                        <label for="dashboardYear">Tahun</label>
+                        <select id="dashboardYear" name="year" class="form-select dashboard-period-input">
+                            <option value="">Semua Tahun</option>
+                            @foreach ($availableYears as $value)
+                                <option value="{{ $value }}" @selected($selectedYear === $value)>{{ $value }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-filter"></i> Terapkan</button>
+                    <a
+                        href="{{ route('admin.dashboard', array_filter(['type' => $selectedDashboard, 'iso_type' => $selectedDashboard === 'iso' ? $selectedIsoType : null])) }}"
+                        class="btn btn-default"
+                    >Reset</a>
+                </form>
+            </div>
         </div>
     </div>
 </div>
@@ -168,21 +185,6 @@
 </div>
 @elseif ($selectedDashboard === 'iso')
 @include('admin.dashboard._performance-stats')
-<div class="iso-mode-selector" role="group" aria-label="Pilih jenis shipment ISO">
-    <a
-        href="{{ route('admin.dashboard', array_filter(['type' => 'iso', 'iso_type' => 'darat', 'month' => $selectedMonth, 'year' => $selectedYear])) }}"
-        class="btn {{ $selectedIsoType === 'darat' ? 'btn-primary' : 'btn-default' }}"
-    >
-        <i class="fas fa-truck"></i> ISO Darat
-    </a>
-    <a
-        href="{{ route('admin.dashboard', array_filter(['type' => 'iso', 'iso_type' => 'laut', 'month' => $selectedMonth, 'year' => $selectedYear])) }}"
-        class="btn {{ $selectedIsoType === 'laut' ? 'btn-primary' : 'btn-default' }}"
-    >
-        <i class="fas fa-ship"></i> ISO Laut
-    </a>
-</div>
-
 @if ($selectedIsoType === 'darat')
     @include('admin.dashboard.iso-darat-table')
 @else
@@ -190,77 +192,69 @@
 @endif
 @else
 {{-- Ringkasan operasional dan performance shipment DSO. --}}
-<div class="row">
-    <div class="col-3">
-        <div class="info-box">
-            <span class="info-box-icon bg-primary"><i class="fas fa-truck"></i></span>
-            <div class="info-box-content">
-                <span class="info-box-text">Total Shipments</span>
-                <span class="info-box-number">{{ $dashboardShipmentTotal }}</span>
-            </div>
-        </div>
-    </div>
-    <div class="col-3">
-        <div class="info-box">
-            <span class="info-box-icon bg-success"><i class="fas fa-warehouse"></i></span>
-            <div class="info-box-content">
-                <span class="info-box-text">Total Vendor</span>
-                <span class="info-box-number">{{ \App\Models\Vendor::count() }}</span>
-            </div>
-        </div>
-    </div>
-    <div class="col-3">
-        <div class="info-box">
-            <span class="info-box-icon bg-info"><i class="fas fa-users"></i></span>
-            <div class="info-box-content">
-                <span class="info-box-text">Total Users</span>
-                <span class="info-box-number">{{ \App\Models\User::count() }}</span>
-            </div>
-        </div>
-    </div>
-    <div class="col-3">
-        <div class="info-box">
-            <span class="info-box-icon bg-warning"><i class="fas fa-qrcode"></i></span>
-            <div class="info-box-content">
-                <span class="info-box-text">Scan Sesuai Periode</span>
-                <span class="info-box-number">{{ $dashboardScanTotal }}</span>
-            </div>
-        </div>
-    </div>
-</div>
-
 @php
+    $dsoSummaryCards = [
+        ['label' => 'Total Shipments', 'value' => number_format($dashboardShipmentTotal), 'icon' => 'fa-truck', 'theme' => 'blue'],
+        ['label' => 'Total Vendor', 'value' => number_format($dashboardVendorTotal), 'icon' => 'fa-warehouse', 'theme' => 'green'],
+        ['label' => 'Total Users', 'value' => number_format($dashboardUserTotal), 'icon' => 'fa-users', 'theme' => 'cyan'],
+        ['label' => 'Scan Sesuai Periode', 'value' => number_format($dashboardScanTotal), 'icon' => 'fa-qrcode', 'theme' => 'orange'],
+        ['label' => 'Shipment Dievaluasi', 'value' => number_format($delayStats['evaluated']), 'icon' => 'fa-check-circle', 'theme' => 'teal'],
+        ['label' => 'Shipment Terlambat', 'value' => number_format($delayStats['late']), 'icon' => 'fa-clock', 'theme' => 'red'],
+        ['label' => 'Persentase Keterlambatan', 'value' => number_format($delayStats['percentage'], 2, ',', '.') . '%', 'icon' => 'fa-percent', 'theme' => 'purple', 'wide' => true],
+    ];
     $dsoDoPerformanceCards = [
-        'total_received' => ['label' => 'Total Terima DO', 'icon' => 'fa-file-alt', 'color' => 'bg-primary'],
-        'not_departed_pdc' => ['label' => 'Belum Keluar PDC', 'icon' => 'fa-hourglass-half', 'color' => 'bg-secondary'],
-        'departed_pdc' => ['label' => 'Keluar Dari PDC', 'icon' => 'fa-truck-moving', 'color' => 'bg-info'],
-        'storage_port' => ['label' => 'AT Storage Port', 'icon' => 'fa-warehouse', 'color' => 'bg-warning'],
-        'vessel_loading' => ['label' => 'ATD Kapal (Loading)', 'icon' => 'fa-ship', 'color' => 'bg-primary'],
-        'vessel_arrived' => ['label' => 'ATA Kapal', 'icon' => 'fa-anchor', 'color' => 'bg-info'],
-        'destination_storage' => ['label' => 'ATA Storage Port (Destination)', 'icon' => 'fa-warehouse', 'color' => 'bg-warning'],
-        'ptd_dooring' => ['label' => 'AT PtD (Dooring)', 'icon' => 'fa-flag-checkered', 'color' => 'bg-success'],
+        'total_received' => ['label' => 'Total Terima DO', 'icon' => 'fa-file-alt', 'theme' => 'blue'],
+        'not_departed_pdc' => ['label' => 'Belum Keluar PDC', 'icon' => 'fa-hourglass-half', 'theme' => 'slate'],
+        'departed_pdc' => ['label' => 'Keluar Dari PDC', 'icon' => 'fa-truck-moving', 'theme' => 'cyan'],
+        'storage_port' => ['label' => 'AT Storage Port', 'icon' => 'fa-warehouse', 'theme' => 'orange'],
+        'vessel_loading' => ['label' => 'ATD Kapal (Loading)', 'icon' => 'fa-ship', 'theme' => 'indigo'],
+        'vessel_arrived' => ['label' => 'ATA Kapal', 'icon' => 'fa-anchor', 'theme' => 'teal'],
+        'destination_storage' => ['label' => 'ATA Storage Port (Destination)', 'icon' => 'fa-warehouse', 'theme' => 'purple'],
+        'ptd_dooring' => ['label' => 'AT PtD (Dooring)', 'icon' => 'fa-flag-checkered', 'theme' => 'green'],
     ];
 @endphp
-<div class="card card-primary">
-    <div class="card-header">
-        <h3 class="card-title"><i class="fas fa-chart-bar"></i> DSO 2 — DO Performance</h3>
-    </div>
-    <div class="card-body pb-0">
-        <div class="row">
-            @foreach ($dsoDoPerformanceCards as $key => $card)
-                <div class="col-xl-3 col-md-6">
-                    <div class="info-box">
-                        <span class="info-box-icon {{ $card['color'] }}"><i class="fas {{ $card['icon'] }}"></i></span>
-                        <div class="info-box-content">
-                            <span class="info-box-text">{{ $card['label'] }}</span>
-                            <span class="info-box-number">{{ number_format($dsoDoPerformance[$key]['count']) }}</span>
-                            <span class="text-muted small">
-                                {{ number_format($dsoDoPerformance[$key]['percentage'], 2, ',', '.') }}% dari Total Terima DO
-                            </span>
+<div class="row align-items-stretch dashboard-overview-row">
+    <div class="col-lg-5 mb-3">
+        <div class="card card-outline card-primary h-100 dashboard-overview-panel">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-tachometer-alt"></i> Ringkasan DSO</h3>
+            </div>
+            <div class="card-body">
+                <div class="dashboard-metric-grid">
+                    @foreach ($dsoSummaryCards as $card)
+                        <div class="dashboard-metric-card metric-{{ $card['theme'] }} {{ ($card['wide'] ?? false) ? 'dashboard-metric-wide' : '' }}">
+                            <span class="dashboard-metric-icon"><i class="fas {{ $card['icon'] }}"></i></span>
+                            <div>
+                                <span class="dashboard-metric-label">{{ $card['label'] }}</span>
+                                <strong class="dashboard-metric-value">{{ $card['value'] }}</strong>
+                            </div>
                         </div>
-                    </div>
+                    @endforeach
                 </div>
-            @endforeach
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-7 mb-3">
+        <div class="card card-outline card-info h-100 dashboard-overview-panel">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-chart-bar"></i> DSO 2 — DO Performance</h3>
+            </div>
+            <div class="card-body">
+                <div class="dashboard-metric-grid">
+                    @foreach ($dsoDoPerformanceCards as $key => $card)
+                        <div class="dashboard-metric-card metric-{{ $card['theme'] }}">
+                            <span class="dashboard-metric-icon"><i class="fas {{ $card['icon'] }}"></i></span>
+                            <div>
+                                <span class="dashboard-metric-label">{{ $card['label'] }}</span>
+                                <strong class="dashboard-metric-value">{{ number_format($dsoDoPerformance[$key]['count']) }}</strong>
+                                <span class="dashboard-metric-meta">
+                                    {{ number_format($dsoDoPerformance[$key]['percentage'], 2, ',', '.') }}% dari Total Terima DO
+                                </span>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -268,7 +262,7 @@
 @include('admin.dashboard.dso-performance-table')
 
 <div class="row">
-    <div class="col-md-6">
+    <div class="col-6">
         <div class="card card-info">
             <div class="card-header">
                 <h3 class="card-title"><i class="fas fa-anchor"></i> Dwelling Origin</h3>
@@ -295,7 +289,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-6">
+    <div class="col-6">
         <div class="card card-success">
             <div class="card-header">
                 <h3 class="card-title"><i class="fas fa-flag-checkered"></i> Dwelling Destination</h3>
@@ -397,10 +391,7 @@
 }
 
 .dashboard-selector {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
+    display: block;
 }
 
 .dashboard-selector-label {
@@ -412,20 +403,84 @@
 }
 
 .dashboard-selector-description {
-    margin: 0;
+    margin: 0 0 16px;
     color: #6c757d;
     font-size: 13px;
 }
 
-.dashboard-selector form {
+.dashboard-tabs {
     display: flex;
     align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
+    gap: 6px;
+    padding-bottom: 12px;
+    overflow-x: auto;
+    border-bottom: 1px solid #e2e8f0;
 }
 
-.dashboard-selector-input {
-    min-width: 220px;
+.dashboard-tab {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 16px;
+    color: #475569;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1px solid #e2e8f0;
+    border-radius: 9px;
+    background: #f8fafc;
+    transition: color .2s ease, border-color .2s ease, background .2s ease, transform .2s ease;
+}
+
+.dashboard-tab:hover {
+    color: #1d4ed8;
+    text-decoration: none;
+    border-color: #93c5fd;
+    background: #eff6ff;
+    transform: translateY(-1px);
+}
+
+.dashboard-tab.active {
+    color: #fff;
+    border-color: #2563eb;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    box-shadow: 0 5px 12px rgba(37, 99, 235, .24);
+}
+
+.dashboard-period-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    padding-top: 14px;
+    overflow-x: auto;
+}
+
+.dashboard-period-label {
+    flex: 0 0 auto;
+    padding-bottom: 9px;
+    color: #475569;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.dashboard-filter-form {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: flex-end;
+    gap: 8px;
+    min-width: max-content;
+}
+
+.dashboard-filter-field label {
+    display: block;
+    margin-bottom: 4px;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
 }
 
 .dashboard-period-input {
@@ -463,6 +518,118 @@
     text-align: center;
 }
 
+.dashboard-overview-panel {
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, .08);
+}
+
+.dashboard-overview-panel .card-header {
+    padding: 15px 18px;
+    background: #fff;
+}
+
+.dashboard-overview-panel .card-body {
+    padding: 16px;
+    background: #f8fafc;
+}
+
+.dashboard-metric-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.dashboard-metric-card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 104px;
+    padding: 14px;
+    overflow: hidden;
+    color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 6px 14px rgba(15, 23, 42, .14);
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.dashboard-metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(15, 23, 42, .2);
+}
+
+.dashboard-metric-card::after {
+    position: absolute;
+    right: -22px;
+    bottom: -32px;
+    width: 96px;
+    height: 96px;
+    content: '';
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .12);
+}
+
+.dashboard-metric-wide {
+    grid-column: 1 / -1;
+}
+
+.dashboard-metric-icon {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    flex: 0 0 42px;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    font-size: 18px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, .2);
+}
+
+.dashboard-metric-card > div {
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+}
+
+.dashboard-metric-label,
+.dashboard-metric-value,
+.dashboard-metric-meta {
+    display: block;
+}
+
+.dashboard-metric-label {
+    margin-bottom: 3px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.25;
+    opacity: .9;
+}
+
+.dashboard-metric-value {
+    font-size: 25px;
+    line-height: 1.1;
+}
+
+.dashboard-metric-meta {
+    margin-top: 4px;
+    font-size: 11px;
+    line-height: 1.25;
+    opacity: .82;
+}
+
+.metric-blue { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+.metric-green { background: linear-gradient(135deg, #16a34a, #15803d); }
+.metric-cyan { background: linear-gradient(135deg, #0891b2, #0e7490); }
+.metric-orange { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.metric-teal { background: linear-gradient(135deg, #0d9488, #0f766e); }
+.metric-red { background: linear-gradient(135deg, #ef4444, #dc2626); }
+.metric-purple { background: linear-gradient(135deg, #9333ea, #7e22ce); }
+.metric-indigo { background: linear-gradient(135deg, #4f46e5, #4338ca); }
+.metric-slate { background: linear-gradient(135deg, #64748b, #475569); }
+
 .dashboard-dwelling-table {
     max-height: 360px;
     overflow-y: auto;
@@ -475,22 +642,23 @@
     background: #fff;
 }
 
-.iso-mode-selector {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 16px;
-}
-
 @media (max-width: 576px) {
-    .dashboard-selector {
-        align-items: stretch;
+    .dashboard-period-row {
+        align-items: flex-start;
         flex-direction: column;
+        gap: 6px;
     }
 
-    .dashboard-selector form,
-    .dashboard-selector-input,
-    .dashboard-period-input {
-        width: 100%;
+    .dashboard-filter-form {
+        width: max-content;
+    }
+
+    .dashboard-metric-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-metric-wide {
+        grid-column: auto;
     }
 }
 @endpush

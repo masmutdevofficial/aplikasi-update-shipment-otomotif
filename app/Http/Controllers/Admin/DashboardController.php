@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ScanHistory;
 use App\Models\Shipment;
+use App\Models\User;
+use App\Models\Vendor;
 use App\Support\DsoSla;
 use App\Support\SpecialShipmentPerformance;
 use App\Support\SpecialShipmentType;
@@ -51,6 +53,8 @@ class DashboardController extends Controller
                 : null,
             'dashboardShipmentTotal' => (clone $shipmentQuery)->count(),
             'dashboardScanTotal' => (clone $scanQuery)->count(),
+            'dashboardVendorTotal' => Vendor::count(),
+            'dashboardUserTotal' => User::count(),
             'latestShipments' => (clone $shipmentQuery)->latest()->take(5)->get(),
             'latestScans' => (clone $scanQuery)->with('user')->latest('scan_date')->take(5)->get(),
         ]);
