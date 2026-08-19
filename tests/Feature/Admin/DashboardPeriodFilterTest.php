@@ -4,6 +4,7 @@ namespace Tests\Feature\Admin;
 
 use App\Models\IsoDaratShipment;
 use App\Models\IsoLautShipment;
+use App\Models\ScanHistory;
 use App\Models\Shipment;
 use App\Models\TsoShipment;
 use App\Models\User;
@@ -91,6 +92,70 @@ class DashboardPeriodFilterTest extends TestCase
             ->assertJsonPath('recordsTotal', 1)
             ->assertJsonFragment(['no_rangka' => 'TSO-MAY-2025-001'])
             ->assertJsonMissing(['no_rangka' => 'TSO-JUNE-2025-01']);
+    }
+
+    public function test_tso_dashboard_shows_dynamic_destination_positions_summary_and_latest_data(): void
+    {
+        TsoShipment::create([
+            'no_rangka' => 'TSO-POSITION-0001',
+            'destination' => 'Balikpapan',
+            'do_date' => '2025-05-01',
+        ]);
+        TsoShipment::create([
+            'no_rangka' => 'TSO-POSITION-0002',
+            'destination' => 'Balikpapan',
+            'do_date' => '2025-05-02',
+            'pu_date' => '2025-05-03',
+        ]);
+        TsoShipment::create([
+            'no_rangka' => 'TSO-POSITION-0003',
+            'destination' => 'Kendari Baru',
+            'do_date' => '2025-05-04',
+            'pu_date' => '2025-05-05',
+            'door_to_port' => '2025-05-06',
+            'port_to_port' => '2025-05-07',
+            'port_to_door' => '2025-05-08',
+        ]);
+        TsoShipment::create([
+            'no_rangka' => 'TSO-POSITION-OUTSIDE',
+            'destination' => 'Kendari Baru',
+            'do_date' => '2025-06-01',
+        ]);
+        ScanHistory::create([
+            'user_id' => $this->admin->id,
+            'no_rangka' => 'TSO-POSITION-0003',
+            'scan_date' => '2025-05-09',
+        ]);
+        ScanHistory::create([
+            'user_id' => $this->admin->id,
+            'no_rangka' => 'NON-TSO-SCAN',
+            'scan_date' => '2025-05-10',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get('/admin/dashboard?type=tso&month=5&year=2025')
+            ->assertOk()
+            ->assertSee('Ringkasan TSO')
+            ->assertSee('Posisi Barang per Kota (Destination)')
+            ->assertSee('Kendari Baru')
+            ->assertSee('Shipment Terbaru TSO')
+            ->assertSee('Scan Terbaru TSO')
+            ->assertSee('TSO-POSITION-0003')
+            ->assertDontSee('TSO-POSITION-OUTSIDE')
+            ->assertDontSee('NON-TSO-SCAN')
+            ->assertDontSee('Shipment Terlambat')
+            ->assertDontSee('Persentase Keterlambatan')
+            ->assertViewHas('dashboardScanTotal', 1)
+            ->assertViewHas('tsoPositionSummary', fn (array $summaries) =>
+                count($summaries) === 2
+                && $summaries[0]['destination'] === 'BALIKPAPAN'
+                && $summaries[0]['total'] === 2
+                && $summaries[0]['positions']['DO Received']['count'] === 1
+                && $summaries[0]['positions']['Pickup']['count'] === 1
+                && $summaries[1]['destination'] === 'KENDARI BARU'
+                && $summaries[1]['total'] === 1
+                && $summaries[1]['positions']['Port to Door']['count'] === 1
+            );
     }
 
     public function test_dso_dashboard_summarizes_current_late_shipments_and_positions_by_city(): void

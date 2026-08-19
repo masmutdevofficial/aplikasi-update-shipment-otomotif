@@ -143,7 +143,7 @@
 </div>
 
 @if ($selectedDashboard === 'tso')
-@include('admin.dashboard._performance-stats')
+@include('admin.dashboard.tso-overview')
 <div class="card card-primary">
     <div class="card-header">
         <h3 class="card-title"><i class="fas fa-truck-loading"></i> Data Shipment TSO</h3>
@@ -183,6 +183,7 @@
         </div>
     </div>
 </div>
+@include('admin.dashboard.tso-position-and-latest')
 @elseif ($selectedDashboard === 'iso')
 @include('admin.dashboard._performance-stats')
 @if ($selectedIsoType === 'darat')
@@ -538,6 +539,10 @@
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 12px;
+}
+
+.dashboard-metric-grid-tso {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .dashboard-metric-card {

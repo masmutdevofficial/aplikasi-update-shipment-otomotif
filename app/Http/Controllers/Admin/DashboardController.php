@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ScanHistory;
 use App\Models\Shipment;
+use App\Models\TsoShipment;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Support\DsoSla;
 use App\Support\SpecialShipmentPerformance;
 use App\Support\SpecialShipmentType;
+use App\Support\TsoDashboard;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -36,6 +38,13 @@ class DashboardController extends Controller
         $shipmentQuery = $this->applyPeriod($model::query(), $dateField, $month, $year);
         $scanQuery = $this->applyPeriod(ScanHistory::query(), 'scan_date', $month, $year);
 
+        if ($type === 'tso') {
+            $scanQuery->whereIn(
+                'no_rangka',
+                TsoShipment::query()->whereNotNull('no_rangka')->select('no_rangka')
+            );
+        }
+
         return view('admin.dashboard', [
             'selectedDashboard' => $type,
             'selectedIsoType' => $isoType,
@@ -48,6 +57,8 @@ class DashboardController extends Controller
             'dsoDwellingDetails' => $type === 'dso' ? DsoSla::dwellingDetails($month, $year) : null,
             'dsoDoPerformance' => $type === 'dso' ? DsoSla::doPerformanceStatistics($month, $year) : null,
             'dsoPositions' => DsoSla::positions(),
+            'tsoPositionSummary' => $type === 'tso' ? TsoDashboard::positionSummary($month, $year) : [],
+            'tsoPositions' => TsoDashboard::positions(),
             'specialDelayStats' => $performanceType
                 ? SpecialShipmentPerformance::statistics($performanceType, $month, $year)
                 : null,
