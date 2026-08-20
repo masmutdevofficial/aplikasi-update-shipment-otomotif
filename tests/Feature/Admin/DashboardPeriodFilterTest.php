@@ -211,7 +211,7 @@ class DashboardPeriodFilterTest extends TestCase
         );
     }
 
-    public function test_dso_dashboard_lists_dwelling_per_shipment_for_selected_period(): void
+    public function test_dso_dashboard_uses_demo_dwelling_data_for_presentation(): void
     {
         Carbon::setTestNow('2025-05-20 12:00:00');
 
@@ -242,19 +242,10 @@ class DashboardPeriodFilterTest extends TestCase
             ->assertSee('Dwelling Origin')
             ->assertSee('Dwelling Destination')
             ->assertDontSee('Referensi SLA Customer DSO')
-            ->assertSee('DSO-DWELLING-0001')
-            ->assertSee('DSO-DWELLING-0002')
+            ->assertSee('MHKE8FB3JTK260001')
+            ->assertSee('MHFAB8EMJTK260010')
             ->assertDontSee('DSO-DWELLING-OUTSIDE')
-            ->assertViewHas('dsoDwellingDetails', fn (array $details) =>
-                $details['origin'] === [
-                    ['no_rangka' => 'DSO-DWELLING-0001', 'days' => 3],
-                    ['no_rangka' => 'DSO-DWELLING-0002', 'days' => 2],
-                ]
-                && $details['destination'] === [
-                    ['no_rangka' => 'DSO-DWELLING-0001', 'days' => 4],
-                    ['no_rangka' => 'DSO-DWELLING-0002', 'days' => 1],
-                ]
-            );
+            ->assertViewMissing('dsoDwellingDetails');
     }
 
     public function test_dso_dashboard_shows_cumulative_do_performance_counts_and_percentages(): void

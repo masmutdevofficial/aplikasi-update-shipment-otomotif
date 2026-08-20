@@ -55,7 +55,6 @@ class DashboardController extends Controller
             'delayStats' => $type === 'dso' ? DsoSla::delayStatistics($month, $year) : null,
             'dsoLateByCity' => $type === 'dso' ? DsoSla::lateByCity($month, $year) : [],
             'dsoPositionSummary' => $type === 'dso' ? DsoSla::positionSummary($month, $year) : [],
-            'dsoDwellingDetails' => $type === 'dso' ? DsoSla::dwellingDetails($month, $year) : null,
             'dsoDoPerformance' => $type === 'dso' ? DsoSla::doPerformanceStatistics($month, $year) : null,
             'dsoPositions' => DsoSla::positions(),
             'tsoPositionSummary' => $type === 'tso' ? TsoDashboard::positionSummary($month, $year) : [],

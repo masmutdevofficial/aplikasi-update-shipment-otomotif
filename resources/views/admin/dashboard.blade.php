@@ -266,11 +266,44 @@
 
 @include('admin.dashboard.dso-performance-table')
 
+@php
+    // Dataset statis sementara untuk visualisasi dwelling pada presentasi.
+    $dsoDummyDwellingDetails = [
+        'origin' => [
+            ['no_rangka' => 'MHKE8FB3JTK260001', 'days' => 1],
+            ['no_rangka' => 'MHKAB1BYJTK260002', 'days' => 1],
+            ['no_rangka' => 'MHFAB8EMJTK260003', 'days' => 2],
+            ['no_rangka' => 'MHFGB8GSJTK260004', 'days' => 1],
+            ['no_rangka' => 'MHKGAGFBJTK260005', 'days' => 1],
+            ['no_rangka' => 'MHKGAGFBJTK260006', 'days' => 1],
+            ['no_rangka' => 'MHKA4GB5JTK260007', 'days' => 2],
+            ['no_rangka' => 'MROKB8CDJTK260008', 'days' => 3],
+            ['no_rangka' => 'MHKAB1BYJTK260009', 'days' => 1],
+            ['no_rangka' => 'MHFAB8EMJTK260010', 'days' => 2],
+        ],
+        'destination' => [
+            ['no_rangka' => 'MHKE8FB3JTK260001', 'days' => 3],
+            ['no_rangka' => 'MHKAB1BYJTK260002', 'days' => 4],
+            ['no_rangka' => 'MHFAB8EMJTK260003', 'days' => 3],
+            ['no_rangka' => 'MHFGB8GSJTK260004', 'days' => 3],
+            ['no_rangka' => 'MHKGAGFBJTK260005', 'days' => 4],
+            ['no_rangka' => 'MHKGAGFBJTK260006', 'days' => 3],
+            ['no_rangka' => 'MHKA4GB5JTK260007', 'days' => 4],
+            ['no_rangka' => 'MROKB8CDJTK260008', 'days' => 5],
+            ['no_rangka' => 'MHKAB1BYJTK260009', 'days' => 3],
+            ['no_rangka' => 'MHFAB8EMJTK260010', 'days' => 4],
+        ],
+    ];
+@endphp
+
 <div class="row">
     <div class="col-6">
         <div class="card card-info">
             <div class="card-header">
-                <h3 class="card-title"><i class="fas fa-anchor"></i> Dwelling Origin</h3>
+                <h3 class="card-title">
+                    <i class="fas fa-anchor"></i> Dwelling Origin
+                    <span class="badge badge-warning ml-2">Data Demo</span>
+                </h3>
             </div>
             <div class="card-body p-0 table-responsive dashboard-dwelling-table">
                 <table class="table table-sm table-striped table-hover mb-0">
@@ -281,14 +314,12 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse ($dsoDwellingDetails['origin'] as $row)
+                        @foreach ($dsoDummyDwellingDetails['origin'] as $row)
                             <tr>
-                                <td><code>{{ $row['no_rangka'] ?? '-' }}</code></td>
+                                <td><code>{{ $row['no_rangka'] }}</code></td>
                                 <td>{{ number_format($row['days']) }} hari</td>
                             </tr>
-                        @empty
-                            <tr><td colspan="2" class="text-center text-muted py-3">Belum ada data Dwelling Origin.</td></tr>
-                        @endforelse
+                        @endforeach
                     </tbody>
                 </table>
             </div>
@@ -297,7 +328,10 @@
     <div class="col-6">
         <div class="card card-success">
             <div class="card-header">
-                <h3 class="card-title"><i class="fas fa-flag-checkered"></i> Dwelling Destination</h3>
+                <h3 class="card-title">
+                    <i class="fas fa-flag-checkered"></i> Dwelling Destination
+                    <span class="badge badge-warning ml-2">Data Demo</span>
+                </h3>
             </div>
             <div class="card-body p-0 table-responsive dashboard-dwelling-table">
                 <table class="table table-sm table-striped table-hover mb-0">
@@ -308,14 +342,12 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse ($dsoDwellingDetails['destination'] as $row)
+                        @foreach ($dsoDummyDwellingDetails['destination'] as $row)
                             <tr>
-                                <td><code>{{ $row['no_rangka'] ?? '-' }}</code></td>
+                                <td><code>{{ $row['no_rangka'] }}</code></td>
                                 <td>{{ number_format($row['days']) }} hari</td>
                             </tr>
-                        @empty
-                            <tr><td colspan="2" class="text-center text-muted py-3">Belum ada data Dwelling Destination.</td></tr>
-                        @endforelse
+                        @endforeach
                     </tbody>
                 </table>
             </div>
