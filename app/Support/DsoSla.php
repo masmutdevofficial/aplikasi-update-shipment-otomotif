@@ -58,7 +58,7 @@ class DsoSla
         return null;
     }
 
-    /** @return array{completed: int, evaluated: int, late: int, percentage: float|int} */
+    /** @return array{completed: int, evaluated: int, late: int, percentage: float|int, otd: int, otd_percentage: float|int} */
     public static function delayStatistics(?int $month = null, ?int $year = null): array
     {
         $evaluatedShipments = self::periodQuery($month, $year)
@@ -69,6 +69,7 @@ class DsoSla
         $late = $evaluatedShipments
             ->filter(fn (Shipment $shipment) => $shipment->delayDays() > 0)
             ->count();
+        $otd = $evaluated - $late;
 
         return [
             // Keep the old key for callers outside the dashboard.
@@ -76,6 +77,8 @@ class DsoSla
             'evaluated' => $evaluated,
             'late' => $late,
             'percentage' => $evaluated === 0 ? 0 : round($late / $evaluated * 100, 2),
+            'otd' => $otd,
+            'otd_percentage' => $evaluated === 0 ? 0 : round($otd / $evaluated * 100, 2),
         ];
     }
 

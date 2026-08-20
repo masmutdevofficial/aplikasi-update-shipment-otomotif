@@ -192,7 +192,11 @@ class DashboardPeriodFilterTest extends TestCase
             $stats['evaluated'] === 2
             && $stats['late'] === 1
             && $stats['percentage'] === 50.0
+            && $stats['otd'] === 1
+            && $stats['otd_percentage'] === 50.0
         );
+        $response->assertSee('OTD Performance')
+            ->assertSee('50,00%');
         $response->assertViewHas('dsoLateByCity', fn (array $summaries) =>
             count($summaries) === 1
             && $summaries[0]['city'] === 'PONTIANAK'

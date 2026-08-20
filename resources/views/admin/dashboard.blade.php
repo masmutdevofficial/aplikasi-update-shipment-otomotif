@@ -205,6 +205,7 @@
         ['label' => 'Shipment Dievaluasi', 'value' => number_format($delayStats['evaluated']), 'icon' => 'fa-check-circle', 'theme' => 'teal'],
         ['label' => 'Shipment Terlambat', 'value' => number_format($delayStats['late']), 'icon' => 'fa-clock', 'theme' => 'red'],
         ['label' => 'Persentase Keterlambatan', 'value' => number_format($delayStats['percentage'], 2, ',', '.') . '%', 'icon' => 'fa-percent', 'theme' => 'purple'],
+        ['label' => 'OTD Performance', 'value' => number_format($delayStats['otd_percentage'], 2, ',', '.') . '%', 'icon' => 'fa-check-double', 'theme' => 'green'],
     ];
     $dsoDoPerformanceCards = [
         'total_received' => ['label' => 'Total Terima DO', 'icon' => 'fa-file-alt', 'theme' => 'blue'],
