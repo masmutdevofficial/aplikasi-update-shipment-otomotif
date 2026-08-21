@@ -9,13 +9,12 @@
                     <th rowspan="2">Destination</th>
                     <th rowspan="2">Total DO</th>
                     @foreach ($tsoPositions as $position)
-                        <th colspan="2" class="text-center">{{ $position }}</th>
+                        <th class="text-center">{{ $position }}</th>
                     @endforeach
                 </tr>
                 <tr>
                     @foreach ($tsoPositions as $position)
                         <th>Jumlah</th>
-                        <th>Persentase</th>
                     @endforeach
                 </tr>
             </thead>
@@ -26,11 +25,10 @@
                         <td>{{ number_format($summary['total']) }}</td>
                         @foreach ($tsoPositions as $position)
                             <td>{{ number_format($summary['positions'][$position]['count']) }}</td>
-                            <td>{{ number_format($summary['positions'][$position]['percentage'], 0) }}%</td>
                         @endforeach
                     </tr>
                 @empty
-                    <tr><td colspan="{{ 2 + (count($tsoPositions) * 2) }}" class="text-center text-muted py-3">Belum ada data posisi TSO berdasarkan destination.</td></tr>
+                    <tr><td colspan="{{ 2 + count($tsoPositions) }}" class="text-center text-muted py-3">Belum ada data posisi TSO berdasarkan destination.</td></tr>
                 @endforelse
             </tbody>
         </table>

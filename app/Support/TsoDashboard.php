@@ -56,6 +56,40 @@ class TsoDashboard
             ->all();
     }
 
+    /** @return array<string, array{count: int, percentage: float|int}> */
+    public static function doPerformanceStatistics(?int $month = null, ?int $year = null): array
+    {
+        $shipments = self::periodQuery($month, $year)
+            ->whereNotNull('do_date')
+            ->get();
+        $total = $shipments->count();
+        $positionCounts = $shipments->countBy(fn (TsoShipment $shipment) => self::ddPerformancePosition($shipment));
+        $counts = [
+            'total_received' => $total,
+            'not_departed_pdc' => (int) $positionCounts->get('not_departed_pdc', 0),
+            'dtp' => (int) $positionCounts->get('dtp', 0),
+            'ptp' => (int) $positionCounts->get('ptp', 0),
+            'ptd' => (int) $positionCounts->get('ptd', 0),
+        ];
+
+        return collect($counts)
+            ->map(fn (int $count) => [
+                'count' => $count,
+                'percentage' => $total === 0 ? 0 : round($count / $total * 100, 2),
+            ])
+            ->all();
+    }
+
+    private static function ddPerformancePosition(TsoShipment $shipment): string
+    {
+        return match (true) {
+            $shipment->port_to_door !== null => 'ptd',
+            $shipment->port_to_port !== null => 'ptp',
+            $shipment->pu_date !== null => 'dtp',
+            default => 'not_departed_pdc',
+        };
+    }
+
     private static function currentPosition(TsoShipment $shipment): string
     {
         return match (true) {

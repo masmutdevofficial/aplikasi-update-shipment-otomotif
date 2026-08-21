@@ -69,6 +69,10 @@ class SpecialShipmentController extends Controller
 
             $metrics = SpecialShipmentPerformance::calculate($type, $shipment);
 
+            if (array_key_exists('sla_customer', $config['fields'])) {
+                $row['sla_customer'] = $metrics['sla_customer'] ?? '-';
+            }
+
             foreach ($config['performance']['stages'] as $key => $_stage) {
                 $row[$key] = $metrics[$key] ?? '-';
             }

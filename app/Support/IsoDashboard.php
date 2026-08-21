@@ -105,8 +105,8 @@ class IsoDashboard
 
     /**
      * @return array{
-     *     origin: array<int, array{identity: string|null, days: int}>,
-     *     destination: array<int, array{identity: string|null, days: int}>
+     *     origin: array<int, array{city: string, average: float|int, minimum: int, maximum: int}>,
+     *     destination: array<int, array{city: string, average: float|int, minimum: int, maximum: int}>
      * }
      */
     public static function dwellingDetails(?int $month = null, ?int $year = null): array
@@ -125,10 +125,20 @@ class IsoDashboard
             ->map(function (IsoLautShipment $shipment) use ($metric) {
                 $days = SpecialShipmentPerformance::calculate('iso-laut', $shipment)[$metric];
 
-                return ['identity' => $shipment->noka, 'days' => $days];
+                return [
+                    'city' => self::normalizedDestination($shipment->destination),
+                    'days' => $days,
+                ];
             })
-            ->filter(fn (array $row) => $row['days'] !== null)
-            ->sortBy('identity')
+            ->filter(fn (array $row) => $row['city'] !== '' && $row['days'] !== null)
+            ->groupBy('city')
+            ->map(fn (Collection $rows, string $city) => [
+                'city' => $city,
+                'average' => round((float) $rows->avg('days'), 2),
+                'minimum' => (int) $rows->min('days'),
+                'maximum' => (int) $rows->max('days'),
+            ])
+            ->sortBy('city')
             ->values()
             ->all();
     }

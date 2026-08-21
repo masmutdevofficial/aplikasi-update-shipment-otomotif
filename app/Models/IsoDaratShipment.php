@@ -20,6 +20,7 @@ class IsoDaratShipment extends Model
         'origin',
         'destination',
         'area',
+        'nomor_driver',
         'terima_do',
         'keluar_dari_pdc',
         'at_ptd_dtd',

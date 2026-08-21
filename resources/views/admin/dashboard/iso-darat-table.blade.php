@@ -17,6 +17,7 @@
                         <th>Origin</th>
                         <th>Destination</th>
                         <th>Area</th>
+                        <th>Nomor Driver</th>
                         <th>Terima DO</th>
                         <th>Keluar dari PDC</th>
                         <th>AT PTD/DTD</th>

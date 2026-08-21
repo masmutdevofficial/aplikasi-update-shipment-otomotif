@@ -70,6 +70,10 @@ class SpecialShipmentImport implements ToCollection
         $knownHeaders = [];
 
         foreach ($this->config['fields'] as $field => $fieldConfig) {
+            if (($fieldConfig['importable'] ?? true) === false) {
+                continue;
+            }
+
             $knownHeaders[$this->normalizeKey($field)] = $field;
             $knownHeaders[$this->normalizeKey($fieldConfig['label'])] = $field;
         }

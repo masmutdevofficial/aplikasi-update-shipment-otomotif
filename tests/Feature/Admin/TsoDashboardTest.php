@@ -78,4 +78,43 @@ class TsoDashboardTest extends TestCase
                 'delay_days' => 1,
             ]);
     }
+
+    public function test_tso_dashboard_shows_dd_performance_info_cards(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        TsoShipment::create(['do_date' => '2025-11-01']);
+        TsoShipment::create(['do_date' => '2025-11-02', 'pu_date' => '2025-11-03']);
+        TsoShipment::create([
+            'do_date' => '2025-11-03',
+            'pu_date' => '2025-11-04',
+            'door_to_port' => '2025-11-05',
+            'port_to_port' => '2025-11-06',
+        ]);
+        TsoShipment::create([
+            'do_date' => '2025-11-04',
+            'pu_date' => '2025-11-05',
+            'door_to_port' => '2025-11-06',
+            'port_to_port' => '2025-11-07',
+            'port_to_door' => '2025-11-08',
+        ]);
+        TsoShipment::create([]);
+
+        $this->actingAs($admin)
+            ->get('/admin/dashboard?type=tso&month=11&year=2025')
+            ->assertOk()
+            ->assertSee('TSO 2 — DD Performance')
+            ->assertSee('TOTAL SHIPMENT / Terima DO')
+            ->assertSee('DTP (Delivery To Port)')
+            ->assertSee('PTP (Port To Port)')
+            ->assertSee('PTD (Port To Door)')
+            ->assertDontSee('Total Vendor')
+            ->assertViewHas('tsoDoPerformance', fn (array $stats) =>
+                $stats['total_received'] === ['count' => 4, 'percentage' => 100.0]
+                && $stats['not_departed_pdc'] === ['count' => 1, 'percentage' => 25.0]
+                && $stats['dtp'] === ['count' => 1, 'percentage' => 25.0]
+                && $stats['ptp'] === ['count' => 1, 'percentage' => 25.0]
+                && $stats['ptd'] === ['count' => 1, 'percentage' => 25.0]
+            );
+    }
 }

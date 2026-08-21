@@ -13,8 +13,8 @@ class ShipmentExport implements FromArray, WithHeadings, WithStyles
 {
     public function __construct(
         protected ?string $search = null,
-        protected ?string $dateFrom = null,
-        protected ?string $dateTo = null,
+        protected ?int $month = null,
+        protected ?int $year = null,
     ) {}
 
     public function headings(): array
@@ -51,8 +51,8 @@ class ShipmentExport implements FromArray, WithHeadings, WithStyles
 
         $shipments = $reportService->getReportForExport(
             search: $this->search,
-            dateFrom: $this->dateFrom,
-            dateTo: $this->dateTo,
+            month: $this->month,
+            year: $this->year,
         );
 
         $rows = [];

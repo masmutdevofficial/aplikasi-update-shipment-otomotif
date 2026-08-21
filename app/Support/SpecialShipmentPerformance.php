@@ -28,12 +28,13 @@ class SpecialShipmentPerformance
         $start = self::dateValue($shipment->{$performance['start']});
         $final = self::dateValue($shipment->{$performance['final']}, $start?->year);
         $actual = self::daysBetween($start, $final ?? now()->startOfDay());
-        $customer = $shipment->sla_customer !== null ? (int) $shipment->sla_customer : null;
+        $customer = self::slaCustomer($type, $shipment);
         $status = $actual !== null && $customer !== null
             ? ($actual <= $customer ? 'OTD' : 'LATE')
             : 'IN PROGRESS';
 
         $result['sla_actual'] = $actual;
+        $result['sla_customer'] = $customer;
         $result['sla_result'] = $status;
         $result['delay_days'] = $actual !== null && $customer !== null
             ? max(0, $actual - $customer)
@@ -44,6 +45,19 @@ class SpecialShipmentPerformance
         $result['progress'] = self::progress($shipment, $performance['progress'], $status);
 
         return $result;
+    }
+
+    public static function slaCustomer(string $type, Model $shipment): ?int
+    {
+        if (in_array($type, ['iso-darat', 'iso-laut'], true)) {
+            $matrixCustomer = IsoSla::customerFor($type, $shipment->destination);
+
+            if ($matrixCustomer !== null) {
+                return $matrixCustomer;
+            }
+        }
+
+        return $shipment->sla_customer !== null ? (int) $shipment->sla_customer : null;
     }
 
     /**

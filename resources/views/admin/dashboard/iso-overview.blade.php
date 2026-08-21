@@ -5,7 +5,6 @@
         ['label' => 'Total Vendor', 'value' => number_format($dashboardVendorTotal), 'icon' => 'fa-warehouse', 'theme' => 'green'],
         ['label' => 'Total Users', 'value' => number_format($dashboardUserTotal), 'icon' => 'fa-users', 'theme' => 'cyan'],
         ['label' => 'Scan Sesuai Periode', 'value' => number_format($dashboardScanTotal), 'icon' => 'fa-qrcode', 'theme' => 'orange'],
-        ['label' => 'Shipment Dievaluasi', 'value' => number_format($specialDelayStats['evaluated']), 'icon' => 'fa-check-circle', 'theme' => 'teal'],
     ];
 
     if ($selectedIsoType === 'laut') {
@@ -30,7 +29,7 @@
         <h3 class="card-title"><i class="fas fa-tachometer-alt"></i> Ringkasan {{ $isoLabel }}</h3>
     </div>
     <div class="card-body">
-        <div class="dashboard-metric-grid {{ $selectedIsoType === 'darat' ? 'dashboard-metric-grid-tso' : '' }}">
+        <div class="dashboard-metric-grid">
             @foreach ($isoSummaryCards as $card)
                 <div class="dashboard-metric-card metric-{{ $card['theme'] }}">
                     <span class="dashboard-metric-icon"><i class="fas {{ $card['icon'] }}"></i></span>

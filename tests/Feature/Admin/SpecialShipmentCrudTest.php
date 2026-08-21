@@ -2,13 +2,15 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Exports\SpecialShipmentTemplateExport;
 use App\Imports\SpecialShipmentImport;
 use App\Models\IsoDaratShipment;
 use App\Models\IsoLautShipment;
 use App\Models\TsoShipment;
 use App\Models\User;
-use App\Support\SpecialShipmentType;
+use App\Support\IsoSla;
 use App\Support\SpecialShipmentPerformance;
+use App\Support\SpecialShipmentType;
 use Carbon\Carbon;
 use Tests\TestCase;
 
@@ -165,6 +167,55 @@ class SpecialShipmentCrudTest extends TestCase
         $this->assertDatabaseHas('iso_laut_shipments', ['noka' => 'TEST-NOKA-001']);
     }
 
+    public function test_admin_can_add_iso_darat_driver_number_manually_after_upload(): void
+    {
+        $shipment = IsoDaratShipment::create(['no_spb' => 'DRIVER-SPB-001']);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.special-shipments.create', 'iso-darat'))
+            ->assertOk()
+            ->assertDontSee('Nomor Driver');
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.special-shipments.edit', ['iso-darat', $shipment->id]))
+            ->assertOk()
+            ->assertSee('Nomor Driver');
+
+        $this->actingAs($this->admin)
+            ->put(route('admin.special-shipments.update', ['iso-darat', $shipment->id]), [
+                'nomor_driver' => '0812-3456-7890',
+            ])
+            ->assertRedirect(route('admin.special-shipments.index', 'iso-darat'));
+
+        $this->assertDatabaseHas('iso_darat_shipments', [
+            'id' => $shipment->id,
+            'nomor_driver' => '0812-3456-7890',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->getJson(route('admin.special-shipments.data', ['type' => 'iso-darat', 'length' => 10]))
+            ->assertOk()
+            ->assertJsonFragment(['nomor_driver' => '0812-3456-7890']);
+    }
+
+    public function test_iso_darat_driver_number_is_not_part_of_upload_template_or_import(): void
+    {
+        $config = SpecialShipmentType::get('iso-darat');
+        $this->assertNotContains('Nomor Driver', (new SpecialShipmentTemplateExport($config))->headings());
+
+        $shipment = IsoDaratShipment::create([
+            'no_spb' => 'DRIVER-IMPORT-001',
+            'nomor_driver' => '081111111111',
+        ]);
+
+        (new SpecialShipmentImport($config))->collection(collect([
+            ['NO SPB', 'Nomor Driver'],
+            ['DRIVER-IMPORT-001', '089999999999'],
+        ]));
+
+        $this->assertSame('081111111111', $shipment->fresh()->nomor_driver);
+    }
+
     public function test_admin_can_bulk_delete_special_shipments(): void
     {
         $first = IsoDaratShipment::create(['no_spb' => 'VIN-001']);
@@ -279,6 +330,107 @@ class SpecialShipmentCrudTest extends TestCase
         $this->assertSame('OTD', $daratMetrics['sla_result']);
         $this->assertSame(6, $lautMetrics['sla_actual']);
         $this->assertSame('OTD', $lautMetrics['sla_result']);
+    }
+
+    public function test_iso_sla_matrix_overrides_uploaded_customer_sla_for_known_destinations(): void
+    {
+        $darat = IsoDaratShipment::create([
+            'destination' => 'Bandung',
+            'terima_do' => '2026-07-01',
+            'at_ptd_dtd' => '2026-07-03',
+            'sla_customer' => 99,
+        ]);
+        $laut = IsoLautShipment::create([
+            'destination' => 'Medan (Patimban)',
+            'terima_do' => '2026-07-01',
+            'at_ptd_dtd' => '2026-07-06',
+            'sla_customer' => 99,
+        ]);
+
+        $daratMetrics = SpecialShipmentPerformance::calculate('iso-darat', $darat);
+        $lautMetrics = SpecialShipmentPerformance::calculate('iso-laut', $laut);
+
+        $this->assertSame(1, $daratMetrics['sla_customer']);
+        $this->assertSame('LATE', $daratMetrics['sla_result']);
+        $this->assertSame(1, $daratMetrics['delay_days']);
+        $this->assertSame(5, $lautMetrics['sla_customer']);
+        $this->assertSame('OTD', $lautMetrics['sla_result']);
+        $this->assertSame(0, $lautMetrics['delay_days']);
+    }
+
+    public function test_iso_sla_matrix_contains_the_provided_stage_and_customer_targets(): void
+    {
+        $lautCustomers = collect(IsoSla::targets()['iso-laut'])
+            ->map(fn (array $target) => $target['customer'])
+            ->all();
+        $daratCustomers = collect(IsoSla::targets()['iso-darat'])
+            ->map(fn (array $target) => $target['customer'])
+            ->all();
+
+        $this->assertSame([
+            'BALIKPAPAN' => 5,
+            'BANJARMASIN' => 4,
+            'MAKASSAR' => 5,
+            'MANADO' => 3,
+            'MEDAN PATIMBAN' => 5,
+            'SAMARINDA' => 6,
+        ], $lautCustomers);
+        $this->assertSame([
+            'BANDUNG' => 1,
+            'BEKASI' => 3,
+            'CILEGON' => 2,
+            'CIREBON' => 1,
+            'DKI JAKARTA' => 3,
+            'LAMPUNG' => 3,
+            'MALANG' => 3,
+            'MEDAN' => 4,
+            'PADANG' => 5,
+            'PALEMBANG' => 3,
+            'PEKALONGAN' => 2,
+            'PEKANBARU' => 4,
+            'SEMARANG' => 3,
+            'SOLO MAGELANG' => 2,
+            'SURABAYA' => 3,
+            'TANGERANG' => 3,
+            'YOGYAKARTA' => 2,
+        ], $daratCustomers);
+        $this->assertSame([
+            'keluar_dari_pdc' => 0,
+            'storage_port' => 1,
+            'kapal_loading' => 0,
+            'ata_kapal' => 3,
+            'storage_port_destination' => 0,
+            'ptd_dooring' => 1,
+        ], IsoSla::targetFor('iso-laut', 'Balikpapan')['stages']);
+
+        $this->assertSame(6, IsoSla::customerFor('iso-laut', 'Samarinda'));
+        $this->assertSame(2, IsoSla::customerFor('iso-darat', 'Solo/Magelang'));
+        $this->assertSame(3, IsoSla::customerFor('iso-darat', 'DKI Jakarta'));
+        $this->assertSame([
+            'keluar_dari_pdc' => null,
+            'storage_port' => null,
+            'kapal_loading' => null,
+            'ata_kapal' => null,
+            'storage_port_destination' => null,
+            'ptd_dooring' => 1,
+        ], IsoSla::targetFor('iso-darat', 'Bandung')['stages']);
+    }
+
+    public function test_iso_datatable_returns_customer_sla_from_matrix(): void
+    {
+        IsoDaratShipment::create([
+            'no_spb' => 'MATRIX-SPB-001',
+            'destination' => 'Padang',
+            'sla_customer' => 99,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->getJson(route('admin.special-shipments.data', ['type' => 'iso-darat', 'length' => 10]))
+            ->assertOk()
+            ->assertJsonFragment([
+                'no_spb' => 'MATRIX-SPB-001',
+                'sla_customer' => 5,
+            ]);
     }
 
     public function test_ongoing_special_shipment_uses_today_for_delay(): void

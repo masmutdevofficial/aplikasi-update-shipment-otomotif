@@ -7,6 +7,7 @@ use App\Models\ScanHistory;
 use App\Models\Shipment;
 use App\Models\User;
 use App\Models\Vendor;
+use App\Support\DashboardSlaAlert;
 use App\Support\DsoSla;
 use App\Support\IsoDashboard;
 use App\Support\SpecialShipmentPerformance;
@@ -37,6 +38,8 @@ class DashboardController extends Controller
 
         $shipmentQuery = $this->applyPeriod($model::query(), $dateField, $month, $year);
         $scanQuery = $this->applyPeriod(ScanHistory::query(), 'scan_date', $month, $year);
+        $vendorQuery = $this->applyPeriod(Vendor::query(), 'created_at', $month, $year);
+        $userQuery = $this->applyPeriod(User::query(), 'created_at', $month, $year);
 
         if ($performanceType !== null) {
             $identityField = $periodConfig['identity'];
@@ -52,12 +55,20 @@ class DashboardController extends Controller
             'selectedMonth' => $month,
             'selectedYear' => $year,
             'availableYears' => $this->availableYears($model, $dateField, $year),
+            'dashboardSlaAlerts' => match ($performanceType) {
+                'iso-darat' => DashboardSlaAlert::isoDarat($month, $year),
+                'iso-laut' => DashboardSlaAlert::isoLaut($month, $year),
+                null => DashboardSlaAlert::dso($month, $year),
+                default => ['warning' => [], 'danger' => []],
+            },
             'delayStats' => $type === 'dso' ? DsoSla::delayStatistics($month, $year) : null,
             'dsoLateByCity' => $type === 'dso' ? DsoSla::lateByCity($month, $year) : [],
             'dsoPositionSummary' => $type === 'dso' ? DsoSla::positionSummary($month, $year) : [],
             'dsoDoPerformance' => $type === 'dso' ? DsoSla::doPerformanceStatistics($month, $year) : null,
+            'dsoDwellingDetails' => $type === 'dso' ? DsoSla::dwellingDetails($month, $year) : null,
             'dsoPositions' => DsoSla::positions(),
             'tsoPositionSummary' => $type === 'tso' ? TsoDashboard::positionSummary($month, $year) : [],
+            'tsoDoPerformance' => $type === 'tso' ? TsoDashboard::doPerformanceStatistics($month, $year) : null,
             'tsoPositions' => TsoDashboard::positions(),
             'isoPositionSummary' => $type === 'iso'
                 ? IsoDashboard::positionSummary($performanceType, $month, $year)
@@ -77,8 +88,8 @@ class DashboardController extends Controller
                 : null,
             'dashboardShipmentTotal' => (clone $shipmentQuery)->count(),
             'dashboardScanTotal' => (clone $scanQuery)->count(),
-            'dashboardVendorTotal' => Vendor::count(),
-            'dashboardUserTotal' => User::count(),
+            'dashboardVendorTotal' => (clone $vendorQuery)->count(),
+            'dashboardUserTotal' => (clone $userQuery)->count(),
             'latestShipments' => (clone $shipmentQuery)->latest()->take(5)->get(),
             'latestScans' => (clone $scanQuery)->with('user')->latest('scan_date')->take(5)->get(),
         ]);

@@ -186,12 +186,12 @@
 @include('admin.dashboard.tso-position-and-latest')
 @elseif ($selectedDashboard === 'iso')
 @include('admin.dashboard.iso-overview')
+@include('admin.dashboard._sla-alerts')
 @if ($selectedIsoType === 'darat')
     @include('admin.dashboard.iso-darat-table')
     @include('admin.dashboard.iso-position-summary')
     @include('admin.dashboard.iso-latest')
 @else
-    @include('admin.dashboard.iso-laut-table')
     @include('admin.dashboard.iso-laut-details')
 @endif
 @else
@@ -202,7 +202,6 @@
         ['label' => 'Total Vendor', 'value' => number_format($dashboardVendorTotal), 'icon' => 'fa-warehouse', 'theme' => 'green'],
         ['label' => 'Total Users', 'value' => number_format($dashboardUserTotal), 'icon' => 'fa-users', 'theme' => 'cyan'],
         ['label' => 'Scan Sesuai Periode', 'value' => number_format($dashboardScanTotal), 'icon' => 'fa-qrcode', 'theme' => 'orange'],
-        ['label' => 'Shipment Dievaluasi', 'value' => number_format($delayStats['evaluated']), 'icon' => 'fa-check-circle', 'theme' => 'teal'],
         ['label' => 'Shipment Terlambat', 'value' => number_format($delayStats['late']), 'icon' => 'fa-clock', 'theme' => 'red'],
         ['label' => 'Persentase Keterlambatan', 'value' => number_format($delayStats['percentage'], 2, ',', '.') . '%', 'icon' => 'fa-percent', 'theme' => 'purple'],
         ['label' => 'OTD Performance', 'value' => number_format($delayStats['otd_percentage'], 2, ',', '.') . '%', 'icon' => 'fa-check-double', 'theme' => 'green'],
@@ -264,37 +263,7 @@
     </div>
 </div>
 
-@include('admin.dashboard.dso-performance-table')
-
-@php
-    // Dataset statis sementara untuk visualisasi dwelling pada presentasi.
-    $dsoDummyDwellingDetails = [
-        'origin' => [
-            ['no_rangka' => 'MHKE8FB3JTK260001', 'days' => 1],
-            ['no_rangka' => 'MHKAB1BYJTK260002', 'days' => 1],
-            ['no_rangka' => 'MHFAB8EMJTK260003', 'days' => 2],
-            ['no_rangka' => 'MHFGB8GSJTK260004', 'days' => 1],
-            ['no_rangka' => 'MHKGAGFBJTK260005', 'days' => 1],
-            ['no_rangka' => 'MHKGAGFBJTK260006', 'days' => 1],
-            ['no_rangka' => 'MHKA4GB5JTK260007', 'days' => 2],
-            ['no_rangka' => 'MROKB8CDJTK260008', 'days' => 3],
-            ['no_rangka' => 'MHKAB1BYJTK260009', 'days' => 1],
-            ['no_rangka' => 'MHFAB8EMJTK260010', 'days' => 2],
-        ],
-        'destination' => [
-            ['no_rangka' => 'MHKE8FB3JTK260001', 'days' => 3],
-            ['no_rangka' => 'MHKAB1BYJTK260002', 'days' => 4],
-            ['no_rangka' => 'MHFAB8EMJTK260003', 'days' => 3],
-            ['no_rangka' => 'MHFGB8GSJTK260004', 'days' => 3],
-            ['no_rangka' => 'MHKGAGFBJTK260005', 'days' => 4],
-            ['no_rangka' => 'MHKGAGFBJTK260006', 'days' => 3],
-            ['no_rangka' => 'MHKA4GB5JTK260007', 'days' => 4],
-            ['no_rangka' => 'MROKB8CDJTK260008', 'days' => 5],
-            ['no_rangka' => 'MHKAB1BYJTK260009', 'days' => 3],
-            ['no_rangka' => 'MHFAB8EMJTK260010', 'days' => 4],
-        ],
-    ];
-@endphp
+@include('admin.dashboard._sla-alerts')
 
 <div class="row">
     <div class="col-6">
@@ -302,24 +271,29 @@
             <div class="card-header">
                 <h3 class="card-title">
                     <i class="fas fa-anchor"></i> Dwelling Origin
-                    <span class="badge badge-warning ml-2">Data Demo</span>
                 </h3>
             </div>
             <div class="card-body p-0 table-responsive dashboard-dwelling-table">
                 <table class="table table-sm table-striped table-hover mb-0">
                     <thead>
                         <tr>
-                            <th>No. Rangka</th>
-                            <th>Dwelling Origin</th>
+                            <th>Kota</th>
+                            <th>Avg</th>
+                            <th>Min</th>
+                            <th>Max</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($dsoDummyDwellingDetails['origin'] as $row)
+                        @forelse ($dsoDwellingDetails['origin'] as $row)
                             <tr>
-                                <td><code>{{ $row['no_rangka'] }}</code></td>
-                                <td>{{ number_format($row['days']) }} hari</td>
+                                <td><strong>{{ ucfirst(strtolower($row['city'])) }}</strong></td>
+                                <td>{{ number_format($row['average'], 2, ',', '.') }} hari</td>
+                                <td>{{ number_format($row['minimum']) }} hari</td>
+                                <td>{{ number_format($row['maximum']) }} hari</td>
                             </tr>
-                        @endforeach
+                        @empty
+                            <tr><td colspan="4" class="text-center text-muted py-3">Belum ada data Dwelling Origin.</td></tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
@@ -330,30 +304,37 @@
             <div class="card-header">
                 <h3 class="card-title">
                     <i class="fas fa-flag-checkered"></i> Dwelling Destination
-                    <span class="badge badge-warning ml-2">Data Demo</span>
                 </h3>
             </div>
             <div class="card-body p-0 table-responsive dashboard-dwelling-table">
                 <table class="table table-sm table-striped table-hover mb-0">
                     <thead>
                         <tr>
-                            <th>No. Rangka</th>
-                            <th>Dwelling Destination</th>
+                            <th>Kota</th>
+                            <th>Avg</th>
+                            <th>Min</th>
+                            <th>Max</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($dsoDummyDwellingDetails['destination'] as $row)
+                        @forelse ($dsoDwellingDetails['destination'] as $row)
                             <tr>
-                                <td><code>{{ $row['no_rangka'] }}</code></td>
-                                <td>{{ number_format($row['days']) }} hari</td>
+                                <td><strong>{{ ucfirst(strtolower($row['city'])) }}</strong></td>
+                                <td>{{ number_format($row['average'], 2, ',', '.') }} hari</td>
+                                <td>{{ number_format($row['minimum']) }} hari</td>
+                                <td>{{ number_format($row['maximum']) }} hari</td>
                             </tr>
-                        @endforeach
+                        @empty
+                            <tr><td colspan="4" class="text-center text-muted py-3">Belum ada data Dwelling Destination.</td></tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
 </div>
+
+@include('admin.dashboard.dso-performance-table')
 
 <div class="row">
     <div class="col-6">
@@ -577,8 +558,8 @@
     gap: 12px;
 }
 
-.dashboard-metric-grid-tso {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+.dashboard-metric-card-featured {
+    grid-column: span 2;
 }
 
 .dashboard-metric-card {
@@ -692,6 +673,10 @@
 
     .dashboard-metric-grid {
         grid-template-columns: 1fr;
+    }
+
+    .dashboard-metric-card-featured {
+        grid-column: auto;
     }
 
 }

@@ -34,19 +34,19 @@ class ReportService
 
     public function getReportForExport(
         ?string $search = null,
-        ?string $dateFrom = null,
-        ?string $dateTo = null,
+        ?int $month = null,
+        ?int $year = null,
     ): Collection {
         return Shipment::query()
             ->with(['shipmentUpdates.vendor'])
             ->when($search, function ($query, $search) {
                 $query->where('no_rangka', 'like', "%{$search}%");
             })
-            ->when($dateFrom, function ($query, $dateFrom) {
-                $query->whereDate('created_at', '>=', $dateFrom);
+            ->when($month !== null, function ($query) use ($month) {
+                $query->whereMonth('terima_do', $month);
             })
-            ->when($dateTo, function ($query, $dateTo) {
-                $query->whereDate('created_at', '<=', $dateTo);
+            ->when($year !== null, function ($query) use ($year) {
+                $query->whereYear('terima_do', $year);
             })
             ->latest()
             ->get();

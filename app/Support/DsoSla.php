@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\Shipment;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 
 class DsoSla
 {
@@ -143,12 +144,12 @@ class DsoSla
     }
 
     /**
-     * Detail dwelling aktual per shipment pada periode dashboard.
+     * Ringkasan dwelling aktual per kota pada periode dashboard.
      * Shipment yang belum mencapai milestone akhir dihitung sampai hari ini.
      *
      * @return array{
-     *     origin: array<int, array{no_rangka: string|null, days: int}>,
-     *     destination: array<int, array{no_rangka: string|null, days: int}>
+     *     origin: array<int, array{city: string, average: float|int, minimum: int, maximum: int}>,
+     *     destination: array<int, array{city: string, average: float|int, minimum: int, maximum: int}>
      * }
      */
     public static function dwellingDetails(?int $month = null, ?int $year = null): array
@@ -156,25 +157,33 @@ class DsoSla
         $shipments = self::periodQuery($month, $year)->get();
 
         return [
-            'origin' => $shipments
-                ->map(fn (Shipment $shipment) => [
-                    'no_rangka' => $shipment->no_rangka,
-                    'days' => $shipment->dwellingOrigin(),
-                ])
-                ->filter(fn (array $row) => $row['days'] !== null)
-                ->sortBy('no_rangka')
-                ->values()
-                ->all(),
-            'destination' => $shipments
-                ->map(fn (Shipment $shipment) => [
-                    'no_rangka' => $shipment->no_rangka,
-                    'days' => $shipment->dwellingDestination(),
-                ])
-                ->filter(fn (array $row) => $row['days'] !== null)
-                ->sortBy('no_rangka')
-                ->values()
-                ->all(),
+            'origin' => self::dwellingByCity($shipments, fn (Shipment $shipment) => $shipment->dwellingOrigin()),
+            'destination' => self::dwellingByCity($shipments, fn (Shipment $shipment) => $shipment->dwellingDestination()),
         ];
+    }
+
+    /**
+     * @param  callable(Shipment): ?int  $daysResolver
+     * @return array<int, array{city: string, average: float|int, minimum: int, maximum: int}>
+     */
+    private static function dwellingByCity(Collection $shipments, callable $daysResolver): array
+    {
+        return $shipments
+            ->map(fn (Shipment $shipment) => [
+                'city' => self::normalizedCity($shipment->kota),
+                'days' => $daysResolver($shipment),
+            ])
+            ->filter(fn (array $row) => $row['city'] !== '' && $row['days'] !== null)
+            ->groupBy('city')
+            ->map(fn (Collection $rows, string $city) => [
+                'city' => $city,
+                'average' => round((float) $rows->avg('days'), 2),
+                'minimum' => (int) $rows->min('days'),
+                'maximum' => (int) $rows->max('days'),
+            ])
+            ->sortBy('city')
+            ->values()
+            ->all();
     }
 
     /**

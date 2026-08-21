@@ -26,6 +26,7 @@
 
             <div class="row g-3">
                 @foreach ($config['fields'] as $field => $fieldConfig)
+                    @continue(($fieldConfig['edit_only'] ?? false) && ! $editing)
                     @php
                         $currentValue = old($field, $editing ? $shipment->{$field} : null);
                         if ($fieldConfig['type'] === 'date' && $currentValue instanceof \DateTimeInterface) {

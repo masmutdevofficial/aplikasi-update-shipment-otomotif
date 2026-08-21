@@ -3,29 +3,102 @@
     $currentSpecialType = $type ?? 'iso-darat';
 @endphp
 
-<div class="card" style="border-left:4px solid var(--primary);">
+<div class="card shipment-selector-card">
     <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
-            <div>
-                <label for="shipmentTypeSelector" class="form-label" style="margin-bottom:3px;">Pilih Data Shipment</label>
-                <div class="text-muted small">Setiap jenis dibuka pada halaman terpisah agar pemuatan data lebih ringan.</div>
+        <div class="shipment-selector">
+            <div class="shipment-selector-header">
+                <span class="shipment-selector-label">Pilih Shipment</span>
+                <p class="shipment-selector-description">Pilih data shipment yang ingin ditampilkan.</p>
             </div>
-            <select id="shipmentTypeSelector" class="form-select" style="width:auto; min-width:220px;" onchange="window.location.href=this.value">
-                <option value="{{ route('admin.shipments.index') }}" @selected($shipmentSection === 'dso')>Shipment DSO</option>
-                <option value="{{ route('admin.special-shipments.index', 'tso') }}" @selected($shipmentSection === 'tso')>Shipment TSO</option>
-                <option value="{{ route('admin.special-shipments.index', 'iso-darat') }}" @selected($shipmentSection === 'iso')>Shipment ISO</option>
-            </select>
-        </div>
 
-        @if ($shipmentSection === 'iso')
-            <div class="d-flex gap-2 mt-3">
-                <a href="{{ route('admin.special-shipments.index', 'iso-darat') }}" class="btn btn-sm {{ $currentSpecialType === 'iso-darat' ? 'btn-primary' : 'btn-default' }}">
-                    <i class="fas fa-truck"></i> ISO Darat
-                </a>
-                <a href="{{ route('admin.special-shipments.index', 'iso-laut') }}" class="btn btn-sm {{ $currentSpecialType === 'iso-laut' ? 'btn-primary' : 'btn-default' }}">
-                    <i class="fas fa-ship"></i> ISO Laut
-                </a>
-            </div>
-        @endif
+            <nav class="shipment-tabs" aria-label="Pilihan data shipment">
+                <a
+                    href="{{ route('admin.shipments.index') }}"
+                    class="shipment-tab {{ $shipmentSection === 'dso' ? 'active' : '' }}"
+                    @if ($shipmentSection === 'dso') aria-current="page" @endif
+                ><i class="fas fa-truck"></i> DSO</a>
+                <a
+                    href="{{ route('admin.special-shipments.index', 'tso') }}"
+                    class="shipment-tab {{ $shipmentSection === 'tso' ? 'active' : '' }}"
+                    @if ($shipmentSection === 'tso') aria-current="page" @endif
+                ><i class="fas fa-truck-loading"></i> TSO</a>
+                <a
+                    href="{{ route('admin.special-shipments.index', 'iso-darat') }}"
+                    class="shipment-tab {{ $shipmentSection === 'iso' && $currentSpecialType === 'iso-darat' ? 'active' : '' }}"
+                    @if ($shipmentSection === 'iso' && $currentSpecialType === 'iso-darat') aria-current="page" @endif
+                ><i class="fas fa-road"></i> ISO Darat</a>
+                <a
+                    href="{{ route('admin.special-shipments.index', 'iso-laut') }}"
+                    class="shipment-tab {{ $shipmentSection === 'iso' && $currentSpecialType === 'iso-laut' ? 'active' : '' }}"
+                    @if ($shipmentSection === 'iso' && $currentSpecialType === 'iso-laut') aria-current="page" @endif
+                ><i class="fas fa-ship"></i> ISO Laut</a>
+            </nav>
+        </div>
     </div>
 </div>
+
+@once
+    @push('styles')
+.shipment-selector-card {
+    border-left: 4px solid var(--primary);
+}
+
+.shipment-selector {
+    display: block;
+}
+
+.shipment-selector-label {
+    display: block;
+    margin-bottom: 3px;
+    color: #343a40;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.shipment-selector-description {
+    margin: 0 0 16px;
+    color: #6c757d;
+    font-size: 13px;
+}
+
+.shipment-tabs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-bottom: 12px;
+    overflow-x: auto;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.shipment-tab {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 16px;
+    color: #475569;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1px solid #e2e8f0;
+    border-radius: 9px;
+    background: #f8fafc;
+    transition: color .2s ease, border-color .2s ease, background .2s ease, transform .2s ease;
+}
+
+.shipment-tab:hover {
+    color: #1d4ed8;
+    text-decoration: none;
+    border-color: #93c5fd;
+    background: #eff6ff;
+    transform: translateY(-1px);
+}
+
+.shipment-tab.active {
+    color: #fff;
+    border-color: #2563eb;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    box-shadow: 0 5px 12px rgba(37, 99, 235, .24);
+}
+    @endpush
+@endonce

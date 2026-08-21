@@ -26,6 +26,7 @@ class IsoDashboardTest extends TestCase
             'origin' => null,
             'destination' => null,
             'area' => null,
+            'nomor_driver' => null,
             'terima_do' => null,
             'keluar_dari_pdc' => null,
             'at_ptd_dtd' => null,
@@ -69,6 +70,7 @@ class IsoDashboardTest extends TestCase
             'no_so_booking' => '3100551770',
             'no_spb' => 'MHCFTR90TSJ001133',
             'kategori_moda' => 'LT Darat',
+            'nomor_driver' => '081234567890',
             'terima_do' => '2025-09-02',
             'keluar_dari_pdc' => '2025-09-02',
             'at_ptd_dtd' => '2025-09-03',
@@ -80,6 +82,7 @@ class IsoDashboardTest extends TestCase
         $response->assertOk();
         $response->assertSee('Data Shipment ISO Darat');
         $response->assertSee('NO SO / BOOKING');
+        $response->assertSee('Nomor Driver');
         $response->assertSee('Keterlambatan (Hari)');
         $response->assertSee('SLA Actual');
 
@@ -89,6 +92,7 @@ class IsoDashboardTest extends TestCase
             ->assertJsonFragment([
                 'no_so_booking' => '3100551770',
                 'no_spb' => 'MHCFTR90TSJ001133',
+                'nomor_driver' => '081234567890',
                 'sla_result' => 'OTD',
                 'delay_days' => 0,
             ]);

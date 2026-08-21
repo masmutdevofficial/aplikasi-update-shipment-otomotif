@@ -80,6 +80,13 @@ class SpecialShipmentType
                     'origin' => ['label' => 'Origin', 'type' => 'text'],
                     'destination' => ['label' => 'Destination', 'type' => 'text'],
                     'area' => ['label' => 'Area', 'type' => 'text'],
+                    'nomor_driver' => [
+                        'label' => 'Nomor Driver',
+                        'type' => 'text',
+                        'max' => 50,
+                        'importable' => false,
+                        'edit_only' => true,
+                    ],
                     'terima_do' => ['label' => 'Terima DO', 'type' => 'date'],
                     'keluar_dari_pdc' => ['label' => 'Keluar dari PDC', 'type' => 'date'],
                     'at_ptd_dtd' => ['label' => 'AT PTD/DTD', 'type' => 'date'],
