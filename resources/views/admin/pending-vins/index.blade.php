@@ -22,7 +22,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($pendingVins as $pending)
+                    @foreach($pendingVins as $pending)
                         <tr>
                             <td>{{ $loop->iteration }}</td>
                             <td><code>{{ $pending->no_rangka }}</code></td>
@@ -39,9 +39,7 @@
                                 @endif
                             </td>
                         </tr>
-                    @empty
-                        <tr><td colspan="6" class="text-center text-muted py-4">Tidak ada VIN pending.</td></tr>
-                    @endforelse
+                    @endforeach
                 </tbody>
             </table>
         </div>

@@ -11,6 +11,17 @@ use Tests\TestCase;
 
 class PendingVinImportTest extends TestCase
 {
+    public function test_empty_pending_vin_table_is_left_for_datatables_to_render(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)
+            ->get(route('admin.pending-vins.index'))
+            ->assertOk()
+            ->assertDontSee('colspan="6"', false)
+            ->assertSee("emptyTable: 'Tidak ada VIN pending'", false);
+    }
+
     public function test_import_matches_pending_vin_to_new_shipment(): void
     {
         Storage::fake('r2');
