@@ -535,8 +535,12 @@
     gap: 12px;
 }
 
+.dashboard-metric-grid.dashboard-metric-grid-compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .dashboard-metric-card-featured {
-    grid-column: span 2;
+    grid-column: 1 / -1;
 }
 
 .dashboard-metric-card {
@@ -649,6 +653,10 @@
     }
 
     .dashboard-metric-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-metric-grid.dashboard-metric-grid-compact {
         grid-template-columns: 1fr;
     }
 

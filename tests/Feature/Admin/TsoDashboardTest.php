@@ -106,6 +106,7 @@ class TsoDashboardTest extends TestCase
             ->assertOk()
             ->assertSee('TSO 2 — DD Performance')
             ->assertSee('TOTAL SHIPMENT / Terima DO')
+            ->assertSee('dashboard-metric-card-featured')
             ->assertSee('DTP (Delivery To Port)')
             ->assertSee('PTP (Port To Port)')
             ->assertSee('PTD (Port To Door)')

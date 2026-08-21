@@ -43,10 +43,6 @@
     box-shadow: 0 2px 5px rgba(15, 23, 42, .12);
 }
 
-.dashboard-metric-grid-compact {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
 .dashboard-stage-alert-modal {
     position: fixed;
     z-index: 2000;
@@ -194,10 +190,6 @@
 }
 
 @media (max-width: 576px) {
-    .dashboard-metric-grid-compact {
-        grid-template-columns: 1fr;
-    }
-
     .dashboard-stage-alert-modal {
         align-items: flex-end;
         padding: 0;
