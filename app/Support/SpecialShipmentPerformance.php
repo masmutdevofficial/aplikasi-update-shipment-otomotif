@@ -61,7 +61,7 @@ class SpecialShipmentPerformance
     }
 
     /**
-     * @return array{completed: int, evaluated: int, late: int, percentage: float|int}
+     * @return array{completed: int, evaluated: int, late: int, percentage: float|int, otd: int, otd_percentage: float|int}
      */
     public static function statistics(string $type, ?int $month = null, ?int $year = null): array
     {
@@ -86,12 +86,16 @@ class SpecialShipmentPerformance
             $late += $metrics['sla_result'] === 'LATE' ? 1 : 0;
         }
 
+        $otd = $evaluated - $late;
+
         return [
             // Keep the old key for callers outside the dashboard.
             'completed' => $evaluated,
             'evaluated' => $evaluated,
             'late' => $late,
             'percentage' => $evaluated === 0 ? 0 : round($late / $evaluated * 100, 2),
+            'otd' => $otd,
+            'otd_percentage' => $evaluated === 0 ? 0 : round($otd / $evaluated * 100, 2),
         ];
     }
 

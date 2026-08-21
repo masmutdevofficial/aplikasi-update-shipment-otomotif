@@ -252,6 +252,9 @@ class DashboardPeriodFilterTest extends TestCase
             ->assertSee(route('admin.shipments.data'), false)
             ->assertDontSee('Data Demo')
             ->assertDontSee('dummyShipments')
+            ->assertDontSee('Total Vendor')
+            ->assertDontSee('Total Users')
+            ->assertDontSee('Scan Sesuai Periode')
             ->assertSee('Dwelling Origin')
             ->assertSee('Keterlambatan (Hari)');
 
@@ -489,6 +492,8 @@ class DashboardPeriodFilterTest extends TestCase
             ->get('/admin/dashboard?type=iso&iso_type=laut&month=5&year=2025')
             ->assertOk()
             ->assertSee('Ringkasan ISO Laut')
+            ->assertSee('OTD (On Time Delivery)')
+            ->assertSee('50,00%')
             ->assertSee('ISO Laut — DO Performance')
             ->assertSee('Shipment Terlambat')
             ->assertSee('Persentase Keterlambatan')
@@ -505,7 +510,13 @@ class DashboardPeriodFilterTest extends TestCase
             ->assertDontSee('ISO-LAUT-OUTSIDE')
             ->assertDontSee('NON-ISO-LAUT')
             ->assertViewHas('dashboardScanTotal', 1)
-            ->assertViewHas('specialDelayStats', fn (array $stats) => $stats['evaluated'] === 2 && $stats['late'] === 1 && $stats['percentage'] === 50.0)
+            ->assertViewHas('specialDelayStats', fn (array $stats) =>
+                $stats['evaluated'] === 2
+                && $stats['late'] === 1
+                && $stats['percentage'] === 50.0
+                && $stats['otd'] === 1
+                && $stats['otd_percentage'] === 50.0
+            )
             ->assertViewHas('isoLateByCity', fn (array $summaries) =>
                 count($summaries) === 1
                 && $summaries[0]['city'] === 'MAKASSAR'

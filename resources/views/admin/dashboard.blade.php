@@ -161,9 +161,6 @@
 @php
     $dsoSummaryCards = [
         ['label' => 'Total Shipments', 'value' => number_format($dashboardShipmentTotal), 'icon' => 'fa-truck', 'theme' => 'blue'],
-        ['label' => 'Total Vendor', 'value' => number_format($dashboardVendorTotal), 'icon' => 'fa-warehouse', 'theme' => 'green'],
-        ['label' => 'Total Users', 'value' => number_format($dashboardUserTotal), 'icon' => 'fa-users', 'theme' => 'cyan'],
-        ['label' => 'Scan Sesuai Periode', 'value' => number_format($dashboardScanTotal), 'icon' => 'fa-qrcode', 'theme' => 'orange'],
         ['label' => 'Shipment Terlambat', 'value' => number_format($delayStats['late']), 'icon' => 'fa-clock', 'theme' => 'red'],
         ['label' => 'Persentase Keterlambatan', 'value' => number_format($delayStats['percentage'], 2, ',', '.') . '%', 'icon' => 'fa-percent', 'theme' => 'purple'],
         ['label' => 'OTD Performance', 'value' => number_format($delayStats['otd_percentage'], 2, ',', '.') . '%', 'icon' => 'fa-check-double', 'theme' => 'green'],
