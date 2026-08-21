@@ -61,6 +61,7 @@ Route::middleware(['auth', CheckVendorStatus::class])->group(function () {
         ->name('admin.')
         ->group(function () {
             Route::get('/dashboard', DashboardController::class)->name('dashboard');
+            Route::get('/dashboard/alerts', [DashboardController::class, 'alerts'])->name('dashboard.alerts');
 
             // Application Settings
             Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');

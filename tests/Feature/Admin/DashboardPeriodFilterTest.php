@@ -659,4 +659,32 @@ class DashboardPeriodFilterTest extends TestCase
             ->assertSee('No. Rangka ISO-DARAT-ALERT-LATE / Nomor Driver 081200000001 sudah lewat AT PTD/DTD 1 hari.')
             ->assertSee('No. Rangka ISO-DARAT-PDC-LATE / Nomor Driver 081200000003 sudah lewat Keluar PDC 1 hari.');
     }
+
+    public function test_dashboard_limits_alerts_to_ten_and_links_to_the_complete_alert_page(): void
+    {
+        Carbon::setTestNow('2025-05-10 12:00:00');
+
+        foreach (range(1, 11) as $number) {
+            Shipment::create([
+                'no_rangka' => 'DSO-ALERT-LIMIT-'.str_pad((string) $number, 2, '0', STR_PAD_LEFT),
+                'kota' => 'Balikpapan',
+                'terima_do' => '2025-05-07',
+            ]);
+        }
+
+        $hiddenAlert = 'No. Rangka DSO-ALERT-LIMIT-11 Belum Keluar PDC lewat 1 hari.';
+
+        $this->actingAs($this->admin)
+            ->get('/admin/dashboard?type=dso&month=5&year=2025')
+            ->assertOk()
+            ->assertSee('Lihat Semua (11)')
+            ->assertDontSee($hiddenAlert);
+
+        $this->actingAs($this->admin)
+            ->get('/admin/dashboard/alerts?type=dso&month=5&year=2025')
+            ->assertOk()
+            ->assertSee('Semua Alert DSO')
+            ->assertSee('Total 11 alert')
+            ->assertSee($hiddenAlert);
+    }
 }

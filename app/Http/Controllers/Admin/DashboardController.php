@@ -55,12 +55,7 @@ class DashboardController extends Controller
             'selectedMonth' => $month,
             'selectedYear' => $year,
             'availableYears' => $this->availableYears($model, $dateField, $year),
-            'dashboardSlaAlerts' => match ($performanceType) {
-                'iso-darat' => DashboardSlaAlert::isoDarat($month, $year),
-                'iso-laut' => DashboardSlaAlert::isoLaut($month, $year),
-                null => DashboardSlaAlert::dso($month, $year),
-                default => ['warning' => [], 'danger' => []],
-            },
+            'dashboardSlaAlerts' => $this->slaAlerts($performanceType, $month, $year),
             'delayStats' => $type === 'dso' ? DsoSla::delayStatistics($month, $year) : null,
             'dsoLateByCity' => $type === 'dso' ? DsoSla::lateByCity($month, $year) : [],
             'dsoPositionSummary' => $type === 'dso' ? DsoSla::positionSummary($month, $year) : [],
@@ -93,6 +88,38 @@ class DashboardController extends Controller
             'latestShipments' => (clone $shipmentQuery)->latest()->take(5)->get(),
             'latestScans' => (clone $scanQuery)->with('user')->latest('scan_date')->take(5)->get(),
         ]);
+    }
+
+    public function alerts(Request $request)
+    {
+        $type = strtolower((string) $request->query('type', 'dso'));
+        $isoType = strtolower((string) $request->query('iso_type', 'darat'));
+        $type = in_array($type, ['dso', 'tso', 'iso'], true) ? $type : 'dso';
+        $isoType = in_array($isoType, ['darat', 'laut'], true) ? $isoType : 'darat';
+        $month = $this->validMonth($request->query('month'));
+        $year = $this->validYear($request->query('year'));
+        $performanceType = $type === 'dso'
+            ? null
+            : ($type === 'tso' ? 'tso' : "iso-{$isoType}");
+
+        return view('admin.dashboard.alerts', [
+            'selectedDashboard' => $type,
+            'selectedIsoType' => $isoType,
+            'selectedMonth' => $month,
+            'selectedYear' => $year,
+            'dashboardSlaAlerts' => $this->slaAlerts($performanceType, $month, $year),
+        ]);
+    }
+
+    /** @return array{warning: array<int, string>, danger: array<int, string>} */
+    private function slaAlerts(?string $performanceType, ?int $month, ?int $year): array
+    {
+        return match ($performanceType) {
+            'iso-darat' => DashboardSlaAlert::isoDarat($month, $year),
+            'iso-laut' => DashboardSlaAlert::isoLaut($month, $year),
+            null => DashboardSlaAlert::dso($month, $year),
+            default => ['warning' => [], 'danger' => []],
+        };
     }
 
     private function applyPeriod(Builder $query, string $dateField, ?int $month, ?int $year): Builder
