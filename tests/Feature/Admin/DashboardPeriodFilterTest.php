@@ -381,7 +381,7 @@ class DashboardPeriodFilterTest extends TestCase
             );
     }
 
-    public function test_iso_darat_dashboard_shows_summary_dynamic_positions_and_latest_data_without_late_cards(): void
+    public function test_iso_darat_dashboard_shows_performance_summary_dynamic_positions_and_latest_data(): void
     {
         IsoDaratShipment::create([
             'no_spb' => 'ISO-DARAT-0001',
@@ -430,8 +430,9 @@ class DashboardPeriodFilterTest extends TestCase
             ->assertSee('ISO-DARAT-0002')
             ->assertDontSee('ISO-DARAT-OUTSIDE')
             ->assertDontSee('NON-ISO-DARAT')
-            ->assertDontSee('Shipment Terlambat')
-            ->assertDontSee('Persentase Keterlambatan')
+            ->assertSee('Shipment Terlambat')
+            ->assertSee('Persentase Keterlambatan')
+            ->assertSee('OTD (On Time Delivery)')
             ->assertViewHas('dashboardScanTotal', 1)
             ->assertViewHas('isoPositionSummary', fn (array $summaries) =>
                 count($summaries) === 2
@@ -503,6 +504,7 @@ class DashboardPeriodFilterTest extends TestCase
             ->assertSee('Ambon Baru')
             ->assertSee('Dwelling Origin')
             ->assertSee('Dwelling Destination')
+            ->assertSeeInOrder(['Dwelling Origin', 'Dwelling Destination', 'Ringkasan Late per Kota'])
             ->assertSeeInOrder(['Dwelling Origin', 'Dwelling Destination', 'Data Shipment ISO Laut'])
             ->assertSee('Shipment Terbaru ISO Laut')
             ->assertSee('Scan Terbaru ISO Laut')

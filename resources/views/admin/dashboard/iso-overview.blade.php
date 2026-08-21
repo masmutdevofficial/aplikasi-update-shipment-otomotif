@@ -4,11 +4,9 @@
         ['label' => 'Total Shipments', 'value' => number_format($dashboardShipmentTotal), 'icon' => $selectedIsoType === 'laut' ? 'fa-ship' : 'fa-truck', 'theme' => 'blue'],
     ];
 
-    if ($selectedIsoType === 'laut') {
-        $isoSummaryCards[] = ['label' => 'Shipment Terlambat', 'value' => number_format($specialDelayStats['late']), 'icon' => 'fa-clock', 'theme' => 'red'];
-        $isoSummaryCards[] = ['label' => 'Persentase Keterlambatan', 'value' => number_format($specialDelayStats['percentage'], 2, ',', '.') . '%', 'icon' => 'fa-percent', 'theme' => 'purple'];
-        $isoSummaryCards[] = ['label' => 'OTD (On Time Delivery)', 'value' => number_format($specialDelayStats['otd_percentage'], 2, ',', '.') . '%', 'icon' => 'fa-check-double', 'theme' => 'green'];
-    }
+    $isoSummaryCards[] = ['label' => 'Shipment Terlambat', 'value' => number_format($specialDelayStats['late']), 'icon' => 'fa-clock', 'theme' => 'red'];
+    $isoSummaryCards[] = ['label' => 'Persentase Keterlambatan', 'value' => number_format($specialDelayStats['percentage'], 2, ',', '.') . '%', 'icon' => 'fa-percent', 'theme' => 'purple'];
+    $isoSummaryCards[] = ['label' => 'OTD (On Time Delivery)', 'value' => number_format($specialDelayStats['otd_percentage'], 2, ',', '.') . '%', 'icon' => 'fa-check-double', 'theme' => 'green'];
 
     $isoLautPerformanceCards = [
         'total_received' => ['label' => 'Total Terima DO', 'icon' => 'fa-file-alt', 'theme' => 'blue'],
