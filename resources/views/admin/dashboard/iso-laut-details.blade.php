@@ -24,6 +24,8 @@
 
 @include('admin.dashboard.iso-position-summary')
 
+@include('admin.dashboard.iso-laut-table')
+
 <div class="row">
     <div class="col-6">
         <div class="card card-info">
@@ -70,7 +72,5 @@
         </div>
     </div>
 </div>
-
-@include('admin.dashboard.iso-laut-table')
 
 @include('admin.dashboard.iso-latest')

@@ -103,6 +103,26 @@ class IsoDashboard
             ->all();
     }
 
+    /** @return array<string, array{count: int, percentage: float|int}> */
+    public static function daratMilestoneStatistics(?int $month = null, ?int $year = null): array
+    {
+        $shipments = self::periodQuery('iso-darat', $month, $year)
+            ->whereNotNull('terima_do')
+            ->get();
+        $total = $shipments->count();
+        $counts = [
+            'departed_pdc' => $shipments->whereNotNull('keluar_dari_pdc')->count(),
+            'ptd_dtd' => $shipments->filter(fn (IsoDaratShipment $shipment) => self::hasValue($shipment->at_ptd_dtd))->count(),
+        ];
+
+        return collect($counts)
+            ->map(fn (int $count) => [
+                'count' => $count,
+                'percentage' => $total === 0 ? 0 : round($count / $total * 100, 2),
+            ])
+            ->all();
+    }
+
     /**
      * @return array{
      *     origin: array<int, array{city: string, average: float|int, minimum: int, maximum: int}>,

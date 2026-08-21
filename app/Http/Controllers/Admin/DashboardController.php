@@ -75,6 +75,9 @@ class DashboardController extends Controller
             'isoDoPerformance' => $performanceType === 'iso-laut'
                 ? IsoDashboard::doPerformanceStatistics($month, $year)
                 : null,
+            'isoDaratMilestones' => $performanceType === 'iso-darat'
+                ? IsoDashboard::daratMilestoneStatistics($month, $year)
+                : null,
             'isoDwellingDetails' => $performanceType === 'iso-laut'
                 ? IsoDashboard::dwellingDetails($month, $year)
                 : null,
@@ -111,14 +114,14 @@ class DashboardController extends Controller
         ]);
     }
 
-    /** @return array{warning: array<int, string>, danger: array<int, string>} */
+    /** @return array{warning: array<int, string>, danger: array<int, string>, stages: array<string, array{warning: array<int, string>, danger: array<int, string>}>} */
     private function slaAlerts(?string $performanceType, ?int $month, ?int $year): array
     {
         return match ($performanceType) {
             'iso-darat' => DashboardSlaAlert::isoDarat($month, $year),
             'iso-laut' => DashboardSlaAlert::isoLaut($month, $year),
             null => DashboardSlaAlert::dso($month, $year),
-            default => ['warning' => [], 'danger' => []],
+            default => ['warning' => [], 'danger' => [], 'stages' => []],
         };
     }
 

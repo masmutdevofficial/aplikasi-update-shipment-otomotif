@@ -35,6 +35,8 @@
     </div>
 </div>
 
+@include('admin.dashboard._tso-data-table')
+
 <div class="row">
     <div class="col-6">
         <div class="card card-primary">

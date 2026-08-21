@@ -144,52 +144,14 @@
 
 @if ($selectedDashboard === 'tso')
 @include('admin.dashboard.tso-overview')
-<div class="card card-primary">
-    <div class="card-header">
-        <h3 class="card-title"><i class="fas fa-truck-loading"></i> Data Shipment TSO</h3>
-    </div>
-    <div class="card-body p-0">
-        <div class="tso-table-scroll">
-            <table id="table-tso-shipments" class="table table-striped table-hover mb-0">
-                <thead>
-                    <tr>
-                        <th>No</th>
-                        <th>Unit Type</th>
-                        <th>Origin</th>
-                        <th>Destination</th>
-                        <th>Detail Destination</th>
-                        <th>No Rangka</th>
-                        <th>Doc</th>
-                        <th>DO Date</th>
-                        <th>PU Date</th>
-                        <th>Door to Port</th>
-                        <th>Port to Port</th>
-                        <th>Port to Door</th>
-                        <th>Vessel PTP</th>
-                        <th>SLA Customer</th>
-                        <th>DO to Pickup</th>
-                        <th>Door to Port</th>
-                        <th>Port to Port</th>
-                        <th>Port to Door</th>
-                        <th>SLA Actual</th>
-                        <th>Result</th>
-                        <th title="Maksimal 0 atau SLA Actual - SLA Customer">Keterlambatan (Hari)</th>
-                        <th>Max Arrival</th>
-                        <th>Progress</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-    </div>
-</div>
 @include('admin.dashboard.tso-position-and-latest')
 @elseif ($selectedDashboard === 'iso')
 @include('admin.dashboard.iso-overview')
+@include('admin.dashboard._sla-alert-modal')
 @include('admin.dashboard._sla-alerts')
 @if ($selectedIsoType === 'darat')
-    @include('admin.dashboard.iso-darat-table')
     @include('admin.dashboard.iso-position-summary')
+    @include('admin.dashboard.iso-darat-table')
     @include('admin.dashboard.iso-latest')
 @else
     @include('admin.dashboard.iso-laut-details')
@@ -208,12 +170,12 @@
     ];
     $dsoDoPerformanceCards = [
         'total_received' => ['label' => 'Total Terima DO', 'icon' => 'fa-file-alt', 'theme' => 'blue'],
-        'not_departed_pdc' => ['label' => 'Belum Keluar PDC', 'icon' => 'fa-hourglass-half', 'theme' => 'slate'],
+        'not_departed_pdc' => ['label' => 'Belum Keluar PDC', 'icon' => 'fa-hourglass-half', 'theme' => 'slate', 'alert_stage' => 'not_departed_pdc'],
         'departed_pdc' => ['label' => 'Keluar Dari PDC', 'icon' => 'fa-truck-moving', 'theme' => 'cyan'],
-        'storage_port' => ['label' => 'AT Storage Port', 'icon' => 'fa-warehouse', 'theme' => 'orange'],
-        'vessel_loading' => ['label' => 'ATD Kapal (Loading)', 'icon' => 'fa-ship', 'theme' => 'indigo'],
+        'storage_port' => ['label' => 'AT Storage Port', 'icon' => 'fa-warehouse', 'theme' => 'orange', 'alert_stage' => 'storage_port'],
+        'vessel_loading' => ['label' => 'ATD Kapal (Loading)', 'icon' => 'fa-ship', 'theme' => 'indigo', 'alert_stage' => 'vessel_loading'],
         'vessel_arrived' => ['label' => 'ATA Kapal', 'icon' => 'fa-anchor', 'theme' => 'teal'],
-        'destination_storage' => ['label' => 'ATA Storage Port (Destination)', 'icon' => 'fa-warehouse', 'theme' => 'purple'],
+        'destination_storage' => ['label' => 'ATA Storage Port (Destination)', 'icon' => 'fa-warehouse', 'theme' => 'purple', 'alert_stage' => 'destination_storage'],
         'ptd_dooring' => ['label' => 'AT PtD (Dooring)', 'icon' => 'fa-flag-checkered', 'theme' => 'green'],
     ];
 @endphp
@@ -246,7 +208,21 @@
             <div class="card-body">
                 <div class="dashboard-metric-grid dashboard-metric-grid-performance">
                     @foreach ($dsoDoPerformanceCards as $key => $card)
-                        <div class="dashboard-metric-card metric-{{ $card['theme'] }}">
+                        @php
+                            $alertStage = $card['alert_stage'] ?? null;
+                            $stageAlerts = $alertStage ? ($dashboardSlaAlerts['stages'][$alertStage] ?? ['warning' => [], 'danger' => []]) : ['warning' => [], 'danger' => []];
+                            $stageAlertTotal = count($stageAlerts['warning']) + count($stageAlerts['danger']);
+                        @endphp
+                        <div
+                            class="dashboard-metric-card metric-{{ $card['theme'] }} {{ $stageAlertTotal > 0 ? 'dashboard-alert-trigger' : '' }}"
+                            @if ($stageAlertTotal > 0)
+                                role="button"
+                                tabindex="0"
+                                data-alert-stage="{{ $alertStage }}"
+                                data-alert-label="{{ $card['label'] }}"
+                                title="Klik untuk melihat {{ number_format($stageAlertTotal) }} alert"
+                            @endif
+                        >
                             <span class="dashboard-metric-icon"><i class="fas {{ $card['icon'] }}"></i></span>
                             <div>
                                 <span class="dashboard-metric-label">{{ $card['label'] }}</span>
@@ -254,6 +230,9 @@
                                 <span class="dashboard-metric-meta">
                                     {{ number_format($dsoDoPerformance[$key]['percentage'], 2, ',', '.') }}% dari Total Terima DO
                                 </span>
+                                @if ($stageAlertTotal > 0)
+                                    <span class="dashboard-metric-alert-badge"><i class="fas fa-bell"></i> {{ number_format($stageAlertTotal) }} alert</span>
+                                @endif
                             </div>
                         </div>
                     @endforeach
@@ -263,6 +242,7 @@
     </div>
 </div>
 
+@include('admin.dashboard._sla-alert-modal')
 @include('admin.dashboard._sla-alerts')
 
 <div class="row">

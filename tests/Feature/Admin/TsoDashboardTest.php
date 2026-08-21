@@ -67,6 +67,7 @@ class TsoDashboardTest extends TestCase
         ]);
         $response->assertSee('Keterlambatan (Hari)');
         $response->assertSee('SLA Actual');
+        $response->assertSeeInOrder(['Posisi Barang per Kota (Destination)', 'Data Shipment TSO']);
 
         $this->actingAs($admin)
             ->getJson(route('admin.special-shipments.data', ['type' => 'tso', 'length' => 10]))

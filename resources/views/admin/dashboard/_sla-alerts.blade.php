@@ -58,7 +58,7 @@
     </div>
 @endif
 
-@if ($dashboardSlaAlerts['danger'] !== [])
+@if ($showAllDashboardSlaAlerts && $dashboardSlaAlerts['danger'] !== [])
     <div class="card card-danger" id="danger-alerts">
         <div class="card-header d-flex align-items-center justify-content-between">
             <h3 class="card-title"><i class="fas fa-times-circle"></i> Shipment Melewati SLA</h3>

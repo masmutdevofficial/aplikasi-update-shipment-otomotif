@@ -10,10 +10,10 @@ use Illuminate\Database\Eloquent\Builder;
 
 class DashboardSlaAlert
 {
-    /** @return array{warning: array<int, string>, danger: array<int, string>} */
+    /** @return array{warning: array<int, string>, danger: array<int, string>, stages: array<string, array{warning: array<int, string>, danger: array<int, string>}>} */
     public static function dso(?int $month = null, ?int $year = null): array
     {
-        $alerts = self::emptyAlerts();
+        $alerts = self::emptyAlerts(['not_departed_pdc', 'storage_port', 'vessel_loading', 'destination_storage']);
 
         foreach (self::periodQuery(Shipment::query(), 'terima_do', $month, $year)->get() as $shipment) {
             $target = DsoSla::targetFor($shipment->kota, $shipment->tujuan_pengiriman);
@@ -26,26 +26,26 @@ class DashboardSlaAlert
             $prefix = 'No. Rangka '.($shipment->no_rangka ?: '-');
 
             if ($shipment->keluar_dari_pdc === null) {
-                self::addAlert($alerts, $prefix, 'PDC', $shipment->terima_do->copy()->addDays($stages[0]));
+                self::addAlert($alerts, 'not_departed_pdc', $prefix, 'PDC', $shipment->terima_do->copy()->addDays($stages[0]));
             } elseif ($shipment->at_storage_port === null) {
-                self::addAlert($alerts, $prefix, 'AT Storage Port', $shipment->keluar_dari_pdc->copy()->addDays($stages[1]));
+                self::addAlert($alerts, 'storage_port', $prefix, 'AT Storage Port', $shipment->keluar_dari_pdc->copy()->addDays($stages[1]));
             } elseif ($shipment->atd_kapal_loading === null) {
-                self::addAlert($alerts, $prefix, 'ATD Kapal', $shipment->at_storage_port->copy()->addDays($stages[2]));
+                self::addAlert($alerts, 'vessel_loading', $prefix, 'ATD Kapal', $shipment->at_storage_port->copy()->addDays($stages[2]));
             } elseif ($shipment->ata_storage_port_destination === null) {
                 $deadline = $shipment->ata_kapal !== null
                     ? $shipment->ata_kapal->copy()->addDays($stages[4])
                     : $shipment->atd_kapal_loading->copy()->addDays($stages[3] + $stages[4]);
-                self::addAlert($alerts, $prefix, 'ATA Storage Port', $deadline);
+                self::addAlert($alerts, 'destination_storage', $prefix, 'ATA Storage Port', $deadline);
             }
         }
 
         return $alerts;
     }
 
-    /** @return array{warning: array<int, string>, danger: array<int, string>} */
+    /** @return array{warning: array<int, string>, danger: array<int, string>, stages: array<string, array{warning: array<int, string>, danger: array<int, string>}>} */
     public static function isoLaut(?int $month = null, ?int $year = null): array
     {
-        $alerts = self::emptyAlerts();
+        $alerts = self::emptyAlerts(['not_departed_pdc', 'storage_port', 'vessel_loading', 'destination_storage']);
 
         foreach (self::periodQuery(IsoLautShipment::query(), 'terima_do', $month, $year)->get() as $shipment) {
             $target = IsoSla::targetFor('iso-laut', $shipment->destination);
@@ -58,26 +58,26 @@ class DashboardSlaAlert
             $prefix = 'No. Rangka '.($shipment->noka ?: '-');
 
             if ($shipment->keluar_dari_pdc === null) {
-                self::addAlert($alerts, $prefix, 'PDC', $shipment->terima_do->copy()->addDays($stages['keluar_dari_pdc']));
+                self::addAlert($alerts, 'not_departed_pdc', $prefix, 'PDC', $shipment->terima_do->copy()->addDays($stages['keluar_dari_pdc']));
             } elseif ($shipment->at_storage_port === null) {
-                self::addAlert($alerts, $prefix, 'AT Storage Port', $shipment->keluar_dari_pdc->copy()->addDays($stages['storage_port']));
+                self::addAlert($alerts, 'storage_port', $prefix, 'AT Storage Port', $shipment->keluar_dari_pdc->copy()->addDays($stages['storage_port']));
             } elseif ($shipment->atd_kapal_loading === null) {
-                self::addAlert($alerts, $prefix, 'ATD Kapal', $shipment->at_storage_port->copy()->addDays($stages['kapal_loading']));
+                self::addAlert($alerts, 'vessel_loading', $prefix, 'ATD Kapal', $shipment->at_storage_port->copy()->addDays($stages['kapal_loading']));
             } elseif ($shipment->ata_storage_port_destination === null) {
                 $deadline = $shipment->ata_kapal !== null
                     ? $shipment->ata_kapal->copy()->addDays($stages['storage_port_destination'])
                     : $shipment->atd_kapal_loading->copy()->addDays($stages['ata_kapal'] + $stages['storage_port_destination']);
-                self::addAlert($alerts, $prefix, 'ATA Storage Port', $deadline);
+                self::addAlert($alerts, 'destination_storage', $prefix, 'ATA Storage Port', $deadline);
             }
         }
 
         return $alerts;
     }
 
-    /** @return array{warning: array<int, string>, danger: array<int, string>} */
+    /** @return array{warning: array<int, string>, danger: array<int, string>, stages: array<string, array{warning: array<int, string>, danger: array<int, string>}>} */
     public static function isoDarat(?int $month = null, ?int $year = null): array
     {
-        $alerts = self::emptyAlerts();
+        $alerts = self::emptyAlerts(['departed_pdc', 'ptd_dtd']);
 
         foreach (self::periodQuery(IsoDaratShipment::query(), 'terima_do', $month, $year)->get() as $shipment) {
             $target = IsoSla::targetFor('iso-darat', $shipment->destination);
@@ -90,10 +90,11 @@ class DashboardSlaAlert
                 .' / Nomor Driver '.($shipment->nomor_driver ?: '-');
 
             if ($shipment->keluar_dari_pdc === null) {
-                self::addAlert($alerts, $prefix, 'Keluar PDC', $shipment->terima_do->copy(), true);
+                self::addAlert($alerts, 'departed_pdc', $prefix, 'Keluar PDC', $shipment->terima_do->copy(), true);
             } elseif (! self::hasMilestone($shipment->at_ptd_dtd)) {
                 self::addAlert(
                     $alerts,
+                    'ptd_dtd',
                     $prefix,
                     'AT PTD/DTD',
                     $shipment->terima_do->copy()->addDays($target['customer']),
@@ -105,9 +106,10 @@ class DashboardSlaAlert
         return $alerts;
     }
 
-    /** @param array{warning: array<int, string>, danger: array<int, string>} $alerts */
+    /** @param array{warning: array<int, string>, danger: array<int, string>, stages: array<string, array{warning: array<int, string>, danger: array<int, string>}>} $alerts */
     private static function addAlert(
         array &$alerts,
+        string $stageKey,
         string $prefix,
         string $milestone,
         CarbonInterface $deadline,
@@ -121,17 +123,21 @@ class DashboardSlaAlert
 
         if ($remaining >= 0) {
             $time = $remaining === 0 ? 'hari ini' : '1 hari lagi';
-            $alerts['warning'][] = $isoDarat
+            $message = $isoDarat
                 ? "{$prefix} deadline {$milestone} {$time}."
                 : "{$prefix} Belum Keluar {$milestone} — deadline {$time}.";
+            $alerts['warning'][] = $message;
+            $alerts['stages'][$stageKey]['warning'][] = $message;
 
             return;
         }
 
         $overdueDays = abs($remaining);
-        $alerts['danger'][] = $isoDarat
+        $message = $isoDarat
             ? "{$prefix} sudah lewat {$milestone} {$overdueDays} hari."
             : "{$prefix} Belum Keluar {$milestone} lewat {$overdueDays} hari.";
+        $alerts['danger'][] = $message;
+        $alerts['stages'][$stageKey]['danger'][] = $message;
     }
 
     private static function periodQuery(
@@ -146,10 +152,14 @@ class DashboardSlaAlert
             ->when($year !== null, fn (Builder $builder) => $builder->whereYear($dateField, $year));
     }
 
-    /** @return array{warning: array<int, string>, danger: array<int, string>} */
-    private static function emptyAlerts(): array
+    /** @param array<int, string> $stageKeys */
+    private static function emptyAlerts(array $stageKeys): array
     {
-        return ['warning' => [], 'danger' => []];
+        return [
+            'warning' => [],
+            'danger' => [],
+            'stages' => array_fill_keys($stageKeys, ['warning' => [], 'danger' => []]),
+        ];
     }
 
     private static function hasMilestone(mixed $value): bool

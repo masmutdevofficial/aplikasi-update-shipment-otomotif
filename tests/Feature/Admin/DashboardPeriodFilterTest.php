@@ -248,6 +248,10 @@ class DashboardPeriodFilterTest extends TestCase
             ->assertOk()
             ->assertSee('Ringkasan Late per Kota')
             ->assertSee('Dashboard 2 — Posisi Barang per Kota')
+            ->assertSeeInOrder(['Dashboard 2 — Posisi Barang per Kota', 'Performance Shipment DSO'])
+            ->assertSee(route('admin.shipments.data'), false)
+            ->assertDontSee('Data Demo')
+            ->assertDontSee('dummyShipments')
             ->assertSee('Dwelling Origin')
             ->assertSee('Keterlambatan (Hari)');
 
@@ -415,6 +419,7 @@ class DashboardPeriodFilterTest extends TestCase
             ->assertOk()
             ->assertSee('Ringkasan ISO Darat')
             ->assertSee('Posisi Barang per Kota (Destination) — ISO Darat')
+            ->assertSeeInOrder(['Posisi Barang per Kota (Destination) — ISO Darat', 'Data Shipment ISO Darat'])
             ->assertSee('Madiun Baru')
             ->assertSee('Shipment Terbaru ISO Darat')
             ->assertSee('Scan Terbaru ISO Darat')
@@ -489,6 +494,7 @@ class DashboardPeriodFilterTest extends TestCase
             ->assertSee('Persentase Keterlambatan')
             ->assertSee('Ringkasan Late per Kota')
             ->assertSee('Posisi Barang per Kota (Destination) — ISO Laut')
+            ->assertSeeInOrder(['Posisi Barang per Kota (Destination) — ISO Laut', 'Data Shipment ISO Laut'])
             ->assertSee('Ambon Baru')
             ->assertSee('Dwelling Origin')
             ->assertSee('Dwelling Destination')
@@ -591,13 +597,17 @@ class DashboardPeriodFilterTest extends TestCase
             ->get('/admin/dashboard?type=dso&month=5&year=2025')
             ->assertOk()
             ->assertSee('Deadline Shipment Mendekat')
-            ->assertSee('Shipment Melewati SLA')
+            ->assertDontSee('Shipment Melewati SLA')
+            ->assertSee('data-alert-stage="not_departed_pdc"', false)
+            ->assertSee('data-alert-stage="storage_port"', false)
             ->assertSee('No. Rangka DSO-ALERT-WARNING Belum Keluar AT Storage Port — deadline 1 hari lagi.')
             ->assertSee('No. Rangka DSO-ALERT-OVERDUE Belum Keluar PDC lewat 1 hari.');
 
         $alerts = DashboardSlaAlert::dso(5, 2025);
         $this->assertCount(1, $alerts['warning']);
         $this->assertCount(1, $alerts['danger']);
+        $this->assertCount(1, $alerts['stages']['not_departed_pdc']['danger']);
+        $this->assertCount(1, $alerts['stages']['storage_port']['warning']);
     }
 
     public function test_iso_laut_dashboard_shows_stage_deadline_alerts(): void
@@ -623,6 +633,9 @@ class DashboardPeriodFilterTest extends TestCase
         $this->actingAs($this->admin)
             ->get('/admin/dashboard?type=iso&iso_type=laut&month=5&year=2025')
             ->assertOk()
+            ->assertSee('data-alert-stage="vessel_loading"', false)
+            ->assertSee('data-alert-stage="destination_storage"', false)
+            ->assertDontSee('Shipment Melewati SLA')
             ->assertSee('No. Rangka ISO-LAUT-ALERT-LATE Belum Keluar ATD Kapal lewat 1 hari.')
             ->assertSee('No. Rangka ISO-LAUT-ALERT-DUE Belum Keluar ATA Storage Port — deadline hari ini.');
     }
@@ -655,6 +668,10 @@ class DashboardPeriodFilterTest extends TestCase
         $this->actingAs($this->admin)
             ->get('/admin/dashboard?type=iso&iso_type=darat&month=5&year=2025')
             ->assertOk()
+            ->assertSee('ISO Darat — Delivery Performance')
+            ->assertSee('data-alert-stage="departed_pdc"', false)
+            ->assertSee('data-alert-stage="ptd_dtd"', false)
+            ->assertDontSee('Shipment Melewati SLA')
             ->assertSee('No. Rangka ISO-DARAT-ALERT-DUE / Nomor Driver 081200000002 deadline AT PTD/DTD 1 hari lagi.')
             ->assertSee('No. Rangka ISO-DARAT-ALERT-LATE / Nomor Driver 081200000001 sudah lewat AT PTD/DTD 1 hari.')
             ->assertSee('No. Rangka ISO-DARAT-PDC-LATE / Nomor Driver 081200000003 sudah lewat Keluar PDC 1 hari.');
@@ -668,23 +685,28 @@ class DashboardPeriodFilterTest extends TestCase
             Shipment::create([
                 'no_rangka' => 'DSO-ALERT-LIMIT-'.str_pad((string) $number, 2, '0', STR_PAD_LEFT),
                 'kota' => 'Balikpapan',
-                'terima_do' => '2025-05-07',
+                'terima_do' => '2025-05-08',
             ]);
         }
 
-        $hiddenAlert = 'No. Rangka DSO-ALERT-LIMIT-11 Belum Keluar PDC lewat 1 hari.';
+        $lastAlert = 'No. Rangka DSO-ALERT-LIMIT-11 Belum Keluar PDC — deadline hari ini.';
 
-        $this->actingAs($this->admin)
+        $response = $this->actingAs($this->admin)
             ->get('/admin/dashboard?type=dso&month=5&year=2025')
             ->assertOk()
             ->assertSee('Lihat Semua (11)')
-            ->assertDontSee($hiddenAlert);
+            ->assertSee('11 alert');
+
+        $this->assertSame(
+            10,
+            substr_count($response->getContent(), 'class="dashboard-alert-item dashboard-alert-item-warning"'),
+        );
 
         $this->actingAs($this->admin)
             ->get('/admin/dashboard/alerts?type=dso&month=5&year=2025')
             ->assertOk()
             ->assertSee('Semua Alert DSO')
             ->assertSee('Total 11 alert')
-            ->assertSee($hiddenAlert);
+            ->assertSee($lastAlert);
     }
 }

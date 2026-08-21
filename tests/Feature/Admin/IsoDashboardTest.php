@@ -85,6 +85,9 @@ class IsoDashboardTest extends TestCase
         $response->assertSee('Nomor Driver');
         $response->assertSee('Keterlambatan (Hari)');
         $response->assertSee('SLA Actual');
+        $response->assertDontSee('Total Vendor');
+        $response->assertDontSee('Total Users');
+        $response->assertDontSee('Scan Sesuai Periode');
 
         $this->actingAs($admin)
             ->getJson(route('admin.special-shipments.data', ['type' => 'iso-darat', 'length' => 10]))
@@ -115,6 +118,9 @@ class IsoDashboardTest extends TestCase
         $response->assertSee('Data Shipment ISO Laut');
         $response->assertSee('NO BOOKING DTP');
         $response->assertSee('Keterlambatan (Hari)');
+        $response->assertDontSee('Total Vendor');
+        $response->assertDontSee('Total Users');
+        $response->assertDontSee('Scan Sesuai Periode');
 
         $this->actingAs($admin)
             ->getJson(route('admin.special-shipments.data', ['type' => 'iso-laut', 'length' => 10]))
