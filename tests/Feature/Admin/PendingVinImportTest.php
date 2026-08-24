@@ -22,6 +22,48 @@ class PendingVinImportTest extends TestCase
             ->assertSee("emptyTable: 'Tidak ada VIN pending'", false);
     }
 
+    public function test_admin_can_delete_pending_vin_and_its_r2_document(): void
+    {
+        Storage::fake('r2');
+        config(['filesystems.document_disk' => 'r2']);
+
+        $admin = User::factory()->admin()->create();
+        $vendorUser = User::factory()->vendor()->create();
+        $vendor = Vendor::create([
+            'user_id' => $vendorUser->id,
+            'vendor_name' => 'PTD Dooring Test',
+            'position' => 'AT PtD (Dooring)',
+            'created_by' => $admin->id,
+            'updated_by' => $admin->id,
+        ]);
+        $vin = 'MHFAA8GS4N0000002';
+        $documentPath = "shipment-documents/{$vin}/proof.png";
+        Storage::disk('r2')->put($documentPath, 'test-image');
+
+        $pendingVin = PendingVin::create([
+            'no_rangka' => $vin,
+            'vendor_id' => $vendor->id,
+            'position' => $vendor->position,
+            'scan_date' => '2026-08-24',
+            'document_path' => $documentPath,
+            'created_by' => $vendorUser->id,
+            'updated_by' => $vendorUser->id,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.pending-vins.index'))
+            ->assertOk()
+            ->assertSee('Hapus');
+
+        $this->actingAs($admin)
+            ->delete(route('admin.pending-vins.destroy', $pendingVin))
+            ->assertRedirect(route('admin.pending-vins.index'))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseMissing('pending_vins', ['id' => $pendingVin->id]);
+        Storage::disk('r2')->assertMissing($documentPath);
+    }
+
     public function test_import_matches_pending_vin_to_new_shipment(): void
     {
         Storage::fake('r2');

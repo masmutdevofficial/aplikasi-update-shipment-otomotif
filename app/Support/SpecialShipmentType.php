@@ -135,7 +135,9 @@ class SpecialShipmentType
                     'atd_kapal_loading' => ['label' => 'ATD Kapal (Loading)', 'type' => 'date'],
                     'ata_kapal' => ['label' => 'ATA Kapal', 'type' => 'date'],
                     'ata_storage_port_destination' => ['label' => 'ATA Storage Port (Destination)', 'type' => 'date'],
-                    'at_ptd_dtd' => ['label' => 'AT PTD/DTD', 'type' => 'text'],
+                    // Stored as text for compatibility with historical files that may
+                    // contain values such as #VALUE!, while manual entry uses a date picker.
+                    'at_ptd_dtd' => ['label' => 'AT PTD/DTD', 'type' => 'text', 'input_type' => 'date'],
                     'sla_customer' => ['label' => 'SLA Customer (Days)', 'type' => 'integer', 'min' => 1],
                 ],
                 'performance' => [

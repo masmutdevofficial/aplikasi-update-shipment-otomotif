@@ -19,6 +19,7 @@
                         <th>Vendor</th>
                         <th>Tanggal Scan</th>
                         <th>Dokumen Scan</th>
+                        <th>Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -37,6 +38,15 @@
                                 @else
                                     <span class="text-muted">-</span>
                                 @endif
+                            </td>
+                            <td>
+                                <form action="{{ route('admin.pending-vins.destroy', $pending) }}" method="POST" onsubmit="return confirm('Hapus VIN pending {{ $pending->no_rangka }} beserta gambar dokumennya? Data yang dihapus tidak dapat dikembalikan.');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Hapus VIN pending">
+                                        <i class="fas fa-trash-alt"></i> Hapus
+                                    </button>
+                                </form>
                             </td>
                         </tr>
                     @endforeach

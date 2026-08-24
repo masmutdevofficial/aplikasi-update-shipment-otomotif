@@ -103,6 +103,7 @@ Route::middleware(['auth', CheckVendorStatus::class])->group(function () {
                     Route::delete('/{shipment}', [SpecialShipmentController::class, 'destroy'])->name('destroy');
                 });
             Route::get('/pending-vins', [PendingVinController::class, 'index'])->name('pending-vins.index');
+            Route::delete('/pending-vins/{pendingVin}', [PendingVinController::class, 'destroy'])->name('pending-vins.destroy');
 
             // Reports
             Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');

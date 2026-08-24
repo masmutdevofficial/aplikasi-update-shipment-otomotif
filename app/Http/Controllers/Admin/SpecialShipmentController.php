@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Imports\SpecialShipmentImport;
 use App\Support\SpecialShipmentPerformance;
 use App\Support\SpecialShipmentType;
+use App\Support\ShipmentDashboard;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -108,10 +109,15 @@ class SpecialShipmentController extends Controller
     {
         $config = SpecialShipmentType::get($type);
         $model = $config['model'];
-        $model::create($request->validate($this->rules($config)));
+        $shipment = $model::create($request->validate($this->rules($config)));
+        $periodField = $config['performance']['start'];
 
         return redirect()->route('admin.special-shipments.index', $type)
-            ->with('success', "Data {$config['short_label']} berhasil ditambahkan.");
+            ->with([
+                'success' => "Data {$config['short_label']} berhasil ditambahkan dan otomatis tersedia di dashboard.",
+                'dashboard_url' => ShipmentDashboard::url($type, $shipment->{$periodField}),
+                'dashboard_label' => ShipmentDashboard::label($type),
+            ]);
     }
 
     public function edit(string $type, string $shipment)
@@ -129,9 +135,14 @@ class SpecialShipmentController extends Controller
         $model = $config['model'];
         $shipment = $model::query()->findOrFail($shipment);
         $shipment->update($request->validate($this->rules($config)));
+        $periodField = $config['performance']['start'];
 
         return redirect()->route('admin.special-shipments.index', $type)
-            ->with('success', "Data {$config['short_label']} berhasil diperbarui.");
+            ->with([
+                'success' => "Data {$config['short_label']} berhasil diperbarui dan perubahan otomatis tersedia di dashboard.",
+                'dashboard_url' => ShipmentDashboard::url($type, $shipment->{$periodField}),
+                'dashboard_label' => ShipmentDashboard::label($type),
+            ]);
     }
 
     public function destroy(string $type, string $shipment)

@@ -17,6 +17,12 @@
                 <h3 class="card-title"><i class="fas fa-edit"></i> Edit Shipment: {{ $shipment->no_rangka }}</h3>
             </div>
             <div class="card-body">
+                <div class="alert alert-info mb-4">
+                    <div class="alert-content">
+                        <strong><i class="fas fa-sync-alt"></i> Terhubung ke Dashboard DSO</strong><br>
+                        Semua kolom input manual menampilkan nilai yang tersimpan. Setelah diedit, nilai terbaru otomatis tampil pada tabel Shipments dan card Performance Shipment DSO.
+                    </div>
+                </div>
                 <form method="POST" action="{{ route('admin.shipments.update', $shipment) }}">
                     @csrf
                     @method('PUT')
@@ -160,7 +166,7 @@
 
                         {{-- Terima DO --}}
                         <div class="col-md-6">
-                            <label for="terima_do" class="form-label fw-semibold">Tanggal Terima DO</label>
+                            <label for="terima_do" class="form-label fw-semibold">Terima DO</label>
                             <input type="date"
                                    class="form-control @error('terima_do') is-invalid @enderror"
                                    id="terima_do"
@@ -173,7 +179,7 @@
 
                         {{-- Keluar dari PDC --}}
                         <div class="col-md-6">
-                            <label for="keluar_dari_pdc" class="form-label fw-semibold">Tanggal Keluar dari PDC</label>
+                            <label for="keluar_dari_pdc" class="form-label fw-semibold">Keluar dari PDC</label>
                             <input type="date"
                                    class="form-control @error('keluar_dari_pdc') is-invalid @enderror"
                                    id="keluar_dari_pdc"
@@ -200,7 +206,7 @@
 
                         {{-- Keberangkatan Kapal --}}
                         <div class="col-md-6">
-                            <label for="keberangkatan_kapal" class="form-label fw-semibold">Tanggal Keberangkatan Kapal</label>
+                            <label for="keberangkatan_kapal" class="form-label fw-semibold">Keberangkatan Kapal</label>
                             <input type="date"
                                    class="form-control @error('keberangkatan_kapal') is-invalid @enderror"
                                    id="keberangkatan_kapal"

@@ -10,6 +10,7 @@ use App\Imports\ShipmentImport;
 use App\Models\Shipment;
 use App\Services\ShipmentService;
 use App\Support\DsoSla;
+use App\Support\ShipmentDashboard;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -142,13 +143,17 @@ class ShipmentController extends Controller
 
     public function store(StoreShipmentRequest $request)
     {
-        $this->shipmentService->createShipment(
+        $shipment = $this->shipmentService->createShipment(
             data: $request->validated(),
             createdBy: auth()->id(),
         );
 
         return redirect()->route('admin.shipments.index')
-            ->with('success', 'Data shipment berhasil ditambahkan.');
+            ->with([
+                'success' => 'Data shipment berhasil ditambahkan dan otomatis tersedia di Dashboard DSO.',
+                'dashboard_url' => ShipmentDashboard::url('dso', $shipment->terima_do),
+                'dashboard_label' => ShipmentDashboard::label('dso'),
+            ]);
     }
 
     public function edit(Shipment $shipment)
@@ -158,14 +163,18 @@ class ShipmentController extends Controller
 
     public function update(UpdateShipmentRequest $request, Shipment $shipment)
     {
-        $this->shipmentService->updateShipment(
+        $shipment = $this->shipmentService->updateShipment(
             shipment: $shipment,
             data: $request->validated(),
             updatedBy: auth()->id(),
         );
 
         return redirect()->route('admin.shipments.index')
-            ->with('success', 'Data shipment berhasil diperbarui.');
+            ->with([
+                'success' => 'Data shipment berhasil diperbarui dan perubahan otomatis tersedia di Dashboard DSO.',
+                'dashboard_url' => ShipmentDashboard::url('dso', $shipment->terima_do),
+                'dashboard_label' => ShipmentDashboard::label('dso'),
+            ]);
     }
 
     public function destroy(Shipment $shipment)

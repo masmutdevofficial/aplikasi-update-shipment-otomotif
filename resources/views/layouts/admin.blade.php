@@ -635,7 +635,14 @@
                     {{-- Flash Messages --}}
                     @if (session('success'))
                         <div class="alert alert-success">
-                            <div class="alert-content">{{ session('success') }}</div>
+                            <div class="alert-content">
+                                {{ session('success') }}
+                                @if (session('dashboard_url'))
+                                    <a href="{{ session('dashboard_url') }}" class="btn btn-sm btn-success ml-2">
+                                        <i class="fas fa-chart-line"></i> {{ session('dashboard_label', 'Lihat Dashboard') }}
+                                    </a>
+                                @endif
+                            </div>
                             <button class="btn-close-alert" onclick="this.closest('.alert').remove()">&times;</button>
                         </div>
                     @endif

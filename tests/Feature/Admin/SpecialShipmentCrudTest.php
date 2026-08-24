@@ -70,7 +70,7 @@ class SpecialShipmentCrudTest extends TestCase
                 'delay_days',
                 'max_arrival',
                 'progress',
-            ]]);
+            ]]]);
         $this->assertGreaterThanOrEqual(15, $response->json('recordsTotal'));
     }
 
