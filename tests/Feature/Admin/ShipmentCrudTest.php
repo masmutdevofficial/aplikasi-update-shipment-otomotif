@@ -7,6 +7,7 @@ use App\Models\Shipment;
 use App\Models\PendingVin;
 use App\Models\User;
 use App\Models\Vendor;
+use App\Support\ShipmentUploadTemplate;
 use Carbon\Carbon;
 use Tests\TestCase;
 
@@ -402,18 +403,33 @@ class ShipmentCrudTest extends TestCase
     public function test_dso_excel_import_accepts_actual_time_columns(): void
     {
         $import = new ShipmentImport($this->admin->id);
+        $headers = ShipmentUploadTemplate::dsoHeadings();
+        $row = array_fill(0, count($headers), null);
+        $values = [
+            'Lokasi' => 'D720',
+            'Type Kendaraan' => 'SIGRA',
+            'No. Rangka' => 'MHKS6GJ6JTJ200820',
+            'No. Engine' => '3NR5A03703',
+            'Warna' => 'BRONZE METALLIC',
+            'Asal PDC' => 'KARAWANG',
+            'Kota' => 'PONTIANAK',
+            'Tujuan Pengiriman' => 'PONTIANAK',
+            'Terima DO' => '01-Jul-26',
+            'Keluar dari PDC' => '02-Jul-26',
+            'AT Storage Port' => '02-Jul-26',
+            'ATD Kapal (Loading)' => '03-Jul-26',
+            'ATA Kapal' => '06-Jul-26',
+            'ATA Storage Port (Destination)' => '06-Jul-26',
+            'AT PtD (Dooring)' => '06-Jul-26',
+        ];
+
+        foreach ($values as $header => $value) {
+            $row[array_search($header, $headers, true)] = $value;
+        }
+
         $import->collection(collect([
-            collect([
-                'Lokasi', 'Type Kendaraan', 'No. Rangka', 'No. Engine', 'Warna',
-                'Asal PDC', 'Kota', 'Tujuan Pengiriman', 'Terima DO', 'Keluar dari PDC',
-                'AT Storage Port', 'ATD Kapal (Loading)', 'ATA Kapal',
-                'ATA Storage Port (Destination)', 'AT PtD (Dooring)',
-            ]),
-            collect([
-                'D720', 'SIGRA', 'MHKS6GJ6JTJ200820', '3NR5A03703', 'BRONZE METALLIC',
-                'KARAWANG', 'PONTIANAK', 'PONTIANAK', '01-Jul-26', '02-Jul-26',
-                '02-Jul-26', '03-Jul-26', '06-Jul-26', '06-Jul-26', '06-Jul-26',
-            ]),
+            collect($headers),
+            collect($row),
         ]));
 
         $this->assertSame(1, $import->importedCount);

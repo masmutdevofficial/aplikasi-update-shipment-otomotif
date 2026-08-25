@@ -1,0 +1,10 @@
+.git
+.codex-tmp
+node_modules
+vendor
+outputs
+output
+.env
+.phpunit.result.cache
+test_output.txt
+tests-report.xml

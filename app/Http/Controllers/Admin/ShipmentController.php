@@ -209,16 +209,28 @@ class ShipmentController extends Controller
     public function importExcel(Request $request)
     {
         $request->validate([
-            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:5120'],
+            'file' => ['required', 'file', 'mimes:xlsx', 'max:5120'],
         ], [
             'file.required' => 'Pilih file Excel terlebih dahulu.',
-            'file.mimes'    => 'File harus berformat .xlsx, .xls, atau .csv.',
+            'file.mimes'    => 'File wajib berformat .xlsx dari Master Template DSO.',
             'file.max'      => 'Ukuran file maksimal 5 MB.',
         ]);
 
         $import = new ShipmentImport(createdBy: auth()->id());
 
-        Excel::import($import, $request->file('file'));
+        try {
+            Excel::import($import, $request->file('file'));
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return back()->withErrors([
+                'file' => 'File tidak dapat dibaca. Download ulang Master Template DSO dan simpan tetap dalam format .xlsx.',
+            ]);
+        }
+
+        if ($import->invalidTemplate) {
+            return back()->withErrors(['file' => $import->errors[0]['pesan']]);
+        }
 
         $failCount = count($import->errors);
 
@@ -251,6 +263,6 @@ class ShipmentController extends Controller
 
     public function downloadTemplate()
     {
-        return Excel::download(new ShipmentTemplateExport(), 'Format_Upload.xlsx');
+        return Excel::download(new ShipmentTemplateExport(), 'Master_Upload_DSO.xlsx');
     }
 }

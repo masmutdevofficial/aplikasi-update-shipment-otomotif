@@ -4,6 +4,7 @@ namespace App\Imports;
 
 use App\Models\Shipment;
 use App\Services\PendingVinService;
+use App\Support\ShipmentUploadTemplate;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\ToCollection;
@@ -14,43 +15,12 @@ class ShipmentImport implements ToCollection
     public int $updatedCount  = 0;
     public int $skippedCount  = 0;
     public int $matchedPendingCount = 0;
+    public bool $invalidTemplate = false;
 
     /** @var array<array{baris: int, pesan: string}> */
     public array $errors = [];
 
     private string $createdBy;
-
-    /**
-     * Pemetaan nama kolom Excel ke nama field internal.
-     * Mendukung template bawaan dan manifest yang punya header di tengah file.
-     */
-    private const COLUMN_MAP = [
-        'lokasi'              => ['lokasi'],
-        'no_do'               => ['no_do', 'nodo', 'nomor_do', 'no do', 'nomor do'],
-        'type_kendaraan'      => ['type_kendaraan', 'tipe_kendaraan', 'jenis_kendaraan', 'type kendaraan'],
-        'no_rangka'           => ['no_rangka', 'no rangka', 'nomor_rangka', 'vin'],
-        'no_engine'           => ['no_engine', 'no engine', 'no_engine_', 'nomor_engine', 'no mesin'],
-        'warna'               => ['warna', 'warna kendaraan'],
-        'asal_pdc'            => ['asal_pdc', 'asal pdc', 'pdc asal'],
-        'kota'                => ['kota', 'kota tujuan'],
-        'tujuan_pengiriman'   => ['tujuan_pengiriman', 'tujuan pengiriman', 'tujuan', 'dealer'],
-        'terima_do'           => ['terima_do', 'terima do', 'tgl_terima_do', 'tanggal_terima_do', 'tanggal terima do'],
-        'keluar_dari_pdc'     => ['keluar_dari_pdc', 'keluar dari pdc', 'keluar pdc', 'tgl_keluar_pdc', 'tanggal keluar pdc'],
-        'nama_kapal'          => ['nama_kapal', 'nama kapal', 'jenis_kapal', 'jenis kapal', 'kapal'],
-        'keberangkatan_kapal' => [
-            'keberangkatan_kapal', 'keberangkatan kapal', 'tgl_keberangkatan',
-            'tanggal_atd', 'tanggal atd', 'atd', 'etd', 'departure',
-            'tanggal keberangkatan kapal',
-        ],
-        'at_storage_port' => ['at_storage_port', 'at storage port'],
-        'atd_kapal_loading' => ['atd_kapal_loading', 'atd kapal loading', 'atd kapal (loading)'],
-        'ata_kapal' => ['ata_kapal', 'ata kapal'],
-        'ata_storage_port_destination' => [
-            'ata_storage_port_destination', 'ata storage port destination',
-            'ata storage port (destination)',
-        ],
-        'at_ptd_dooring' => ['at_ptd_dooring', 'at ptd dooring', 'at ptd (dooring)', 'at ptd'],
-    ];
 
     private const REQUIRED_CREATE_FIELDS = [
         'lokasi' => 'Lokasi',
@@ -71,19 +41,24 @@ class ShipmentImport implements ToCollection
     public function collection(Collection $rows): void
     {
         $rows = $rows->values();
-        $headerIndex = $this->findHeaderRow($rows);
+        $header = $rows->first();
+        $headerValues = $header instanceof Collection ? $header->toArray() : (array) $header;
 
-        if ($headerIndex === null) {
+        if ($header === null || !ShipmentUploadTemplate::headerMatches(
+            $headerValues,
+            ShipmentUploadTemplate::dsoHeadings(),
+        )) {
+            $this->invalidTemplate = true;
             $this->errors[] = [
                 'baris' => 1,
-                'pesan' => 'Header kolom tidak ditemukan. Pastikan file memiliki kolom No. Rangka/VIN.',
+                'pesan' => ShipmentUploadTemplate::invalidHeaderMessage('DSO'),
             ];
             return;
         }
 
-        $headerColumns = $this->buildHeaderColumns($rows->get($headerIndex)->toArray());
+        $headerColumns = array_flip(array_keys(ShipmentUploadTemplate::dsoFields()));
 
-        for ($index = $headerIndex + 1; $index < $rows->count(); $index++) {
+        for ($index = 1; $index < $rows->count(); $index++) {
             $rowNum = $index + 1;
             $data = $this->rowToData($rows->get($index)->toArray(), $headerColumns);
 
@@ -93,57 +68,6 @@ class ShipmentImport implements ToCollection
 
             $this->importRow($data, $rowNum);
         }
-    }
-
-    /**
-     * Cari baris header. Manifest kapal punya kop surat, jadi header tidak selalu baris pertama.
-     */
-    private function findHeaderRow(Collection $rows): ?int
-    {
-        foreach ($rows as $index => $row) {
-            $headerColumns = $this->buildHeaderColumns($row->toArray());
-
-            if (!isset($headerColumns['no_rangka'])) {
-                continue;
-            }
-
-            if (count($headerColumns) >= 3) {
-                return $index;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * @return array<string, int>
-     */
-    private function buildHeaderColumns(array $row): array
-    {
-        $normalizedHeaders = [];
-
-        foreach ($row as $index => $value) {
-            if ($value === null || trim((string) $value) === '') {
-                continue;
-            }
-
-            $normalizedHeaders[$this->normalizeKey((string) $value)] = $index;
-        }
-
-        $columns = [];
-
-        foreach (self::COLUMN_MAP as $field => $candidates) {
-            foreach ($candidates as $candidate) {
-                $normalized = $this->normalizeKey($candidate);
-
-                if (array_key_exists($normalized, $normalizedHeaders)) {
-                    $columns[$field] = $normalizedHeaders[$normalized];
-                    break;
-                }
-            }
-        }
-
-        return $columns;
     }
 
     /**
@@ -361,14 +285,6 @@ class ShipmentImport implements ToCollection
         }
 
         return $date;
-    }
-
-    private function normalizeKey(string $key): string
-    {
-        $key = strtolower(trim($key));
-        $key = preg_replace('/[^a-z0-9]+/', '_', $key);
-
-        return trim(preg_replace('/_+/', '_', $key), '_');
     }
 
     /**

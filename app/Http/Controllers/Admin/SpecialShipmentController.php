@@ -180,11 +180,29 @@ class SpecialShipmentController extends Controller
     {
         $config = SpecialShipmentType::get($type);
         $request->validate([
-            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:5120'],
+            'file' => ['required', 'file', 'mimes:xlsx', 'max:5120'],
+        ], [
+            'file.required' => 'Pilih file Excel terlebih dahulu.',
+            'file.mimes' => "File wajib berformat .xlsx dari Master Template {$config['short_label']}.",
+            'file.max' => 'Ukuran file maksimal 5 MB.',
         ]);
 
         $import = new SpecialShipmentImport($config);
-        Excel::import($import, $request->file('file'));
+
+        try {
+            Excel::import($import, $request->file('file'));
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return back()->withErrors([
+                'file' => "File tidak dapat dibaca. Download ulang Master Template {$config['short_label']} dan simpan tetap dalam format .xlsx.",
+            ]);
+        }
+
+        if ($import->invalidTemplate) {
+            return back()->withErrors(['file' => $import->errors[0]['pesan']]);
+        }
+
         $message = "Import {$config['short_label']} selesai: {$import->importedCount} data ditambahkan, {$import->updatedCount} data diperbarui.";
 
         if ($import->errors !== []) {
@@ -202,9 +220,9 @@ class SpecialShipmentController extends Controller
     public function template(string $type)
     {
         $config = SpecialShipmentType::get($type);
-        $filename = 'Format_Upload_' . str_replace('-', '_', strtoupper($type)) . '.xlsx';
+        $filename = 'Master_Upload_' . str_replace(' ', '_', $config['short_label']) . '.xlsx';
 
-        return Excel::download(new SpecialShipmentTemplateExport($config), $filename);
+        return Excel::download(new SpecialShipmentTemplateExport($type, $config), $filename);
     }
 
     private function rules(array $config): array

@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Support\IsoSla;
 use App\Support\SpecialShipmentPerformance;
 use App\Support\SpecialShipmentType;
+use App\Support\ShipmentUploadTemplate;
 use Carbon\Carbon;
 use Tests\TestCase;
 
@@ -224,18 +225,20 @@ class SpecialShipmentCrudTest extends TestCase
     public function test_iso_darat_driver_number_is_not_part_of_upload_template_or_import(): void
     {
         $config = SpecialShipmentType::get('iso-darat');
-        $this->assertNotContains('Nomor Driver', (new SpecialShipmentTemplateExport($config))->headings());
+        $this->assertNotContains('Nomor Driver', (new SpecialShipmentTemplateExport('iso-darat', $config))->headings());
 
         $shipment = IsoDaratShipment::create([
             'no_spb' => 'DRIVER-IMPORT-001',
             'nomor_driver' => '081111111111',
         ]);
 
-        (new SpecialShipmentImport($config))->collection(collect([
+        $import = new SpecialShipmentImport($config);
+        $import->collection(collect([
             ['NO SPB', 'Nomor Driver'],
             ['DRIVER-IMPORT-001', '089999999999'],
         ]));
 
+        $this->assertTrue($import->invalidTemplate);
         $this->assertSame('081111111111', $shipment->fresh()->nomor_driver);
     }
 
@@ -257,7 +260,7 @@ class SpecialShipmentCrudTest extends TestCase
     public function test_special_import_adds_and_updates_rows_by_identity(): void
     {
         $import = new SpecialShipmentImport(SpecialShipmentType::get('iso-laut'));
-        $header = array_column(SpecialShipmentType::get('iso-laut')['fields'], 'label');
+        $header = ShipmentUploadTemplate::specialHeadings(SpecialShipmentType::get('iso-laut'));
         $firstRow = array_fill(0, count($header), null);
         $firstRow[array_search('NOKA', $header, true)] = 'TEST-NOKA-IMPORT-001';
         $firstRow[array_search('Origin', $header, true)] = 'KARAWANG BARAT';
@@ -289,7 +292,7 @@ class SpecialShipmentCrudTest extends TestCase
     public function test_import_infers_year_for_short_dates_in_the_same_row(): void
     {
         $config = SpecialShipmentType::get('iso-darat');
-        $headers = array_column($config['fields'], 'label');
+        $headers = ShipmentUploadTemplate::specialHeadings($config);
         $row = array_fill(0, count($headers), null);
         $row[array_search('NO SPB', $headers, true)] = 'TEST-SPB-DATE-001';
         $row[array_search('Terima DO', $headers, true)] = '2-Sep-25';

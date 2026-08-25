@@ -2,6 +2,7 @@
 
 namespace App\Imports;
 
+use App\Support\ShipmentUploadTemplate;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\ToCollection;
@@ -11,6 +12,7 @@ class SpecialShipmentImport implements ToCollection
 {
     public int $importedCount = 0;
     public int $updatedCount = 0;
+    public bool $invalidTemplate = false;
 
     /** @var array<int, array{baris: int, pesan: string}> */
     public array $errors = [];
@@ -22,16 +24,24 @@ class SpecialShipmentImport implements ToCollection
     public function collection(Collection $rows): void
     {
         $rows = $rows->values();
-        $headerIndex = $this->findHeaderRow($rows);
+        $header = $rows->first();
+        $headerValues = $header instanceof Collection ? $header->toArray() : (array) $header;
 
-        if ($headerIndex === null) {
-            $this->errors[] = ['baris' => 1, 'pesan' => 'Header kolom tidak ditemukan atau tidak sesuai template.'];
+        if ($header === null || !ShipmentUploadTemplate::headerMatches(
+            $headerValues,
+            ShipmentUploadTemplate::specialHeadings($this->config),
+        )) {
+            $this->invalidTemplate = true;
+            $this->errors[] = [
+                'baris' => 1,
+                'pesan' => ShipmentUploadTemplate::invalidHeaderMessage($this->config['short_label']),
+            ];
             return;
         }
 
-        $columns = $this->mapHeader($rows->get($headerIndex)->toArray());
+        $columns = array_flip(array_keys(ShipmentUploadTemplate::specialImportableFields($this->config)));
 
-        for ($index = $headerIndex + 1; $index < $rows->count(); $index++) {
+        for ($index = 1; $index < $rows->count(); $index++) {
             $data = [];
 
             foreach ($columns as $field => $columnIndex) {
@@ -49,46 +59,6 @@ class SpecialShipmentImport implements ToCollection
 
             $this->persist($data);
         }
-    }
-
-    private function findHeaderRow(Collection $rows): ?int
-    {
-        foreach ($rows as $index => $row) {
-            if (count($this->mapHeader($row->toArray())) >= 1) {
-                return $index;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * @return array<string, int>
-     */
-    private function mapHeader(array $row): array
-    {
-        $knownHeaders = [];
-
-        foreach ($this->config['fields'] as $field => $fieldConfig) {
-            if (($fieldConfig['importable'] ?? true) === false) {
-                continue;
-            }
-
-            $knownHeaders[$this->normalizeKey($field)] = $field;
-            $knownHeaders[$this->normalizeKey($fieldConfig['label'])] = $field;
-        }
-
-        $columns = [];
-
-        foreach ($row as $index => $header) {
-            $normalized = $this->normalizeKey((string) $header);
-
-            if (isset($knownHeaders[$normalized])) {
-                $columns[$knownHeaders[$normalized]] = $index;
-            }
-        }
-
-        return $columns;
     }
 
     private function normalizeRow(array &$data, int $rowNumber): bool
@@ -190,11 +160,6 @@ class SpecialShipmentImport implements ToCollection
         } catch (\Throwable) {
             return null;
         }
-    }
-
-    private function normalizeKey(string $value): string
-    {
-        return trim(preg_replace('/_+/', '_', preg_replace('/[^a-z0-9]+/', '_', strtolower(trim($value)))), '_');
     }
 
     private function isBlank(mixed $value): bool

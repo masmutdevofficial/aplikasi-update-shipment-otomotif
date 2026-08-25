@@ -6,6 +6,7 @@ use App\Imports\ShipmentImport;
 use App\Models\PendingVin;
 use App\Models\User;
 use App\Models\Vendor;
+use App\Support\ShipmentUploadTemplate;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -91,9 +92,27 @@ class PendingVinImportTest extends TestCase
         ]);
 
         $import = new ShipmentImport($admin->id);
+        $headers = ShipmentUploadTemplate::dsoHeadings();
+        $row = array_fill(0, count($headers), null);
+        $values = [
+            'Lokasi' => 'Jakarta',
+            'No. DO' => 'DO-001',
+            'Type Kendaraan' => 'Avanza',
+            'No. Rangka' => $vin,
+            'No. Engine' => 'ENG001',
+            'Warna' => 'Putih',
+            'Asal PDC' => 'PDC Jakarta',
+            'Kota' => 'Jakarta',
+            'Tujuan Pengiriman' => 'Surabaya',
+        ];
+
+        foreach ($values as $header => $value) {
+            $row[array_search($header, $headers, true)] = $value;
+        }
+
         $import->collection(collect([
-            collect(['Lokasi', 'No. DO', 'Type Kendaraan', 'No. Rangka', 'No. Engine', 'Warna', 'Asal PDC', 'Kota', 'Tujuan Pengiriman']),
-            collect(['Jakarta', 'DO-001', 'Avanza', $vin, 'ENG001', 'Putih', 'PDC Jakarta', 'Jakarta', 'Surabaya']),
+            collect($headers),
+            collect($row),
         ]));
 
         $this->assertSame(1, $import->importedCount);

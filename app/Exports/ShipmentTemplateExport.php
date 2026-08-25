@@ -2,6 +2,7 @@
 
 namespace App\Exports;
 
+use App\Support\ShipmentUploadTemplate;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithStyles;
@@ -13,72 +14,39 @@ class ShipmentTemplateExport implements FromArray, WithHeadings, WithStyles, Wit
 {
     public function title(): string
     {
-        return 'Format Upload';
+        return 'Master Upload DSO';
     }
 
     public function headings(): array
     {
-        return [
-            'Lokasi',
-            'No. DO',
-            'Type Kendaraan',
-            'No. Rangka',
-            'No. Engine',
-            'Warna',
-            'Asal PDC',
-            'Kota',
-            'Tujuan Pengiriman',
-            'Terima DO',
-            'Keluar dari PDC',
-            'Nama Kapal',
-            'Keberangkatan Kapal',
-            'AT Storage Port',
-            'ATD Kapal (Loading)',
-            'ATA Kapal',
-            'ATA Storage Port (Destination)',
-            'AT PtD (Dooring)',
-        ];
+        return ShipmentUploadTemplate::dsoHeadings();
     }
 
     public function array(): array
     {
-        // One example row so users understand the expected format
-        return [
-            [
-                'Jakarta Utara',
-                '',
-                'AVANZA 1.3 E M/T',
-                'MHKM1BA3JFK123456',
-                'K3VE1234567',
-                'PUTIH',
-                'PDC Sunter',
-                'Surabaya',
-                'Dealer ABC Surabaya',
-                '2026-04-01',
-                '',
-                '',
-                '',
-                '',
-                '',
-                '',
-                '',
-                '',
-            ],
-        ];
+        return [ShipmentUploadTemplate::dsoSample()];
     }
 
     public function styles(Worksheet $sheet): array
     {
+        $sheet->freezePane('A2');
+        $sheet->setAutoFilter('A1:R2');
+        $sheet->getRowDimension(1)->setRowHeight(32);
+        $sheet->getRowDimension(2)->setRowHeight(24);
+        $sheet->getStyle('A1:R2')->getAlignment()->setVertical('center');
+        $sheet->getStyle('A1:R2')->getBorders()->getBottom()
+            ->setBorderStyle('thin')
+            ->getColor()->setRGB('CBD5E1');
+
         return [
-            // Bold header row
             1 => [
                 'font'      => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
                 'fill'      => ['fillType' => 'solid', 'startColor' => ['rgb' => '2563EB']],
-                'alignment' => ['horizontal' => 'center'],
+                'alignment' => ['horizontal' => 'center', 'wrapText' => true],
             ],
-            // Example row styling
             2 => [
-                'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => 'F0F9FF']],
+                'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => 'FFF7D6']],
+                'font' => ['color' => ['rgb' => '5B6472']],
             ],
         ];
     }
