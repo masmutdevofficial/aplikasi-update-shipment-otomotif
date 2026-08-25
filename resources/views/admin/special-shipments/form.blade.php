@@ -60,7 +60,12 @@
                         }
                     @endphp
                     <div class="col-md-6">
-                        <label for="{{ $field }}" class="form-label">{{ $fieldConfig['label'] }}</label>
+                        <label for="{{ $field }}" class="form-label">
+                            {{ $fieldConfig['label'] }}
+                            @if ($fieldConfig['scan_automatic'] ?? false)
+                                <span class="badge badge-info ml-1">Opsional — scan vendor</span>
+                            @endif
+                        </label>
                         <input
                             type="{{ $inputType }}"
                             class="form-control @error($field) is-invalid @enderror"
@@ -71,6 +76,9 @@
                             @if(isset($fieldConfig['min'])) min="{{ $fieldConfig['min'] }}" @endif
                         >
                         @error($field)<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        @if ($fieldConfig['scan_automatic'] ?? false)
+                            <small class="form-text text-muted">Boleh dikosongkan; tanggal akan muncul setelah vendor melakukan scan.</small>
+                        @endif
                         @if ($storedValueWarning !== null)
                             <small class="form-text text-warning">
                                 Nilai lama “{{ $storedValueWarning }}” bukan tanggal valid. Pilih tanggal yang benar lalu simpan.

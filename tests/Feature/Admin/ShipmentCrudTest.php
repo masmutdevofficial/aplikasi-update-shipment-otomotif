@@ -102,6 +102,28 @@ class ShipmentCrudTest extends TestCase
         $this->assertDatabaseHas('shipments', ['no_rangka' => 'MHFAA8GS4N0000001']);
     }
 
+    public function test_dso_storage_port_and_vessel_loading_are_optional_for_admin(): void
+    {
+        $this->actingAs($this->admin)
+            ->get(route('admin.shipments.create'))
+            ->assertOk()
+            ->assertSee('Opsional — scan vendor')
+            ->assertSee('Boleh dikosongkan; tanggal akan muncul setelah vendor melakukan scan.');
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.shipments.store'), $this->validShipmentData([
+                'no_rangka' => 'MHFAA8GS4N0000003',
+            ]))
+            ->assertRedirect(route('admin.shipments.index'))
+            ->assertSessionDoesntHaveErrors(['at_storage_port', 'atd_kapal_loading']);
+
+        $this->assertDatabaseHas('shipments', [
+            'no_rangka' => 'MHFAA8GS4N0000003',
+            'at_storage_port' => null,
+            'atd_kapal_loading' => null,
+        ]);
+    }
+
     public function test_manual_shipment_creation_matches_pending_vin(): void
     {
         $vendorUser = User::factory()->vendor()->create();

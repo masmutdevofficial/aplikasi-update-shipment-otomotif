@@ -167,6 +167,29 @@ class SpecialShipmentCrudTest extends TestCase
         $this->assertDatabaseHas('iso_laut_shipments', ['noka' => 'TEST-NOKA-001']);
     }
 
+    public function test_iso_laut_storage_port_and_vessel_loading_are_optional_for_admin(): void
+    {
+        $this->actingAs($this->admin)
+            ->get(route('admin.special-shipments.create', 'iso-laut'))
+            ->assertOk()
+            ->assertSee('Opsional — scan vendor')
+            ->assertSee('Boleh dikosongkan; tanggal akan muncul setelah vendor melakukan scan.');
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.special-shipments.store', 'iso-laut'), [
+                'noka' => 'OPTIONAL-SCAN-NOKA',
+                'terima_do' => '2026-08-24',
+            ])
+            ->assertRedirect(route('admin.special-shipments.index', 'iso-laut'))
+            ->assertSessionDoesntHaveErrors(['at_storage_port', 'atd_kapal_loading']);
+
+        $this->assertDatabaseHas('iso_laut_shipments', [
+            'noka' => 'OPTIONAL-SCAN-NOKA',
+            'at_storage_port' => null,
+            'atd_kapal_loading' => null,
+        ]);
+    }
+
     public function test_admin_can_add_iso_darat_driver_number_manually_after_upload(): void
     {
         $shipment = IsoDaratShipment::create(['no_spb' => 'DRIVER-SPB-001']);

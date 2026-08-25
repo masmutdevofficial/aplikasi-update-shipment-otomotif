@@ -131,8 +131,16 @@ class SpecialShipmentType
                     'terima_do' => ['label' => 'Terima DO', 'type' => 'date'],
                     'keluar_dari_pdc' => ['label' => 'Keluar dari PDC', 'type' => 'date'],
                     'jenis_kapal' => ['label' => 'Jenis Kapal', 'type' => 'text'],
-                    'at_storage_port' => ['label' => 'AT Storage Port', 'type' => 'date'],
-                    'atd_kapal_loading' => ['label' => 'ATD Kapal (Loading)', 'type' => 'date'],
+                    'at_storage_port' => [
+                        'label' => 'AT Storage Port',
+                        'type' => 'date',
+                        'scan_automatic' => true,
+                    ],
+                    'atd_kapal_loading' => [
+                        'label' => 'ATD Kapal (Loading)',
+                        'type' => 'date',
+                        'scan_automatic' => true,
+                    ],
                     'ata_kapal' => ['label' => 'ATA Kapal', 'type' => 'date'],
                     'ata_storage_port_destination' => ['label' => 'ATA Storage Port (Destination)', 'type' => 'date'],
                     // Stored as text for compatibility with historical files that may
