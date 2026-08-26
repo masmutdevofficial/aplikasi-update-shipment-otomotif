@@ -753,7 +753,7 @@ class DashboardPeriodFilterTest extends TestCase
             ->assertSee('data-alert-stage="vessel_loading"', false)
             ->assertDontSee('Shipment Melewati SLA')
             ->assertSee('No. Rangka ISO-LAUT-ALERT-LATE Belum Keluar ATD Kapal lewat 1 hari.')
-            ->assertSee('No. Rangka ISO-LAUT-ALERT-DUE Belum Keluar ATA Storage Port — deadline hari ini.');
+            ->assertSee('No. Rangka ISO-LAUT-ALERT-DUE Belum Keluar ATA Storage Port — deadline 1 hari lagi.');
     }
 
     public function test_iso_laut_alert_counts_follow_each_shipments_current_position(): void

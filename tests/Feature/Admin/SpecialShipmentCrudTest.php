@@ -443,6 +443,7 @@ class SpecialShipmentCrudTest extends TestCase
     {
         foreach (IsoSla::targets()['iso-laut'] as $target) {
             $this->assertSame(0, $target['stages']['keluar_dari_pdc']);
+            $this->assertSame(0, $target['stages']['ptd_dooring']);
         }
 
         $lautCustomers = collect(IsoSla::targets()['iso-laut'])
@@ -484,8 +485,8 @@ class SpecialShipmentCrudTest extends TestCase
             'storage_port' => 1,
             'kapal_loading' => 0,
             'ata_kapal' => 3,
-            'storage_port_destination' => 0,
-            'ptd_dooring' => 1,
+            'storage_port_destination' => 1,
+            'ptd_dooring' => 0,
         ], IsoSla::targetFor('iso-laut', 'Balikpapan')['stages']);
 
         $this->assertSame(6, IsoSla::customerFor('iso-laut', 'Samarinda'));

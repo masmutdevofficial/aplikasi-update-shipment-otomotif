@@ -35,14 +35,14 @@ class DsoSla
     public static function destinations(): array
     {
         return [
-            'BALIKPAPAN' => ['stages' => [0, 3, 1, 3, 0, 1], 'total' => 8],
-            'SAMARINDA' => ['stages' => [0, 3, 1, 3, 0, 2], 'total' => 9],
-            'BANJARMASIN' => ['stages' => [0, 2, 1, 3, 0, 1], 'total' => 7],
-            'MEDAN' => ['stages' => [0, 2, 1, 4, 0, 1], 'total' => 8],
-            'MAKASSAR' => ['stages' => [0, 3, 1, 2, 0, 2], 'total' => 8],
-            'PONTIANAK' => ['stages' => [0, 2, 1, 2, 0, 1], 'total' => 6],
-            'GORONTALO' => ['stages' => [0, 2, 1, 4, 0, 5], 'total' => 12],
-            'MANADO' => ['stages' => [0, 3, 1, 11, 0, 3], 'total' => 18],
+            'BALIKPAPAN' => ['stages' => [0, 3, 1, 3, 1, 0], 'total' => 8],
+            'SAMARINDA' => ['stages' => [0, 3, 1, 3, 2, 0], 'total' => 9],
+            'BANJARMASIN' => ['stages' => [0, 2, 1, 3, 1, 0], 'total' => 7],
+            'MEDAN' => ['stages' => [0, 2, 1, 4, 1, 0], 'total' => 8],
+            'MAKASSAR' => ['stages' => [0, 3, 1, 2, 2, 0], 'total' => 8],
+            'PONTIANAK' => ['stages' => [0, 2, 1, 2, 1, 0], 'total' => 6],
+            'GORONTALO' => ['stages' => [0, 2, 1, 4, 5, 0], 'total' => 12],
+            'MANADO' => ['stages' => [0, 3, 1, 11, 3, 0], 'total' => 18],
         ];
     }
 

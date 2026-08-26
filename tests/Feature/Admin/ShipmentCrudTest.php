@@ -262,10 +262,11 @@ class ShipmentCrudTest extends TestCase
         ]);
     }
 
-    public function test_dso_first_stage_sla_is_zero_for_every_destination(): void
+    public function test_dso_boundary_stage_sla_is_zero_for_every_destination(): void
     {
         foreach (DsoSla::destinations() as $target) {
             $this->assertSame(0, $target['stages'][0]);
+            $this->assertSame(0, $target['stages'][5]);
             $this->assertSame(array_sum($target['stages']), $target['total']);
         }
     }

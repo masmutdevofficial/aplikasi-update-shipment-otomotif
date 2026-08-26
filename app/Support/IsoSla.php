@@ -7,6 +7,8 @@ class IsoSla
     /**
      * Tahap keluar_dari_pdc pada ISO Laut merupakan target saat shipment
      * masih berstatus Belum Keluar PDC dan bernilai 0 hari untuk semua tujuan.
+     * Nilai PtD/Dooring dipindahkan ke Storage Port Destination sehingga
+     * tahap PtD/Dooring juga bernilai 0 hari untuk semua tujuan ISO Laut.
      *
      * @return array<string, array<string, array{stages: array<string, int|null>, customer: int}>>
      */
@@ -14,12 +16,12 @@ class IsoSla
     {
         return [
             'iso-laut' => [
-                'BALIKPAPAN' => self::target([0, 1, 0, 3, 0, 1], 5),
+                'BALIKPAPAN' => self::target([0, 1, 0, 3, 1, 0], 5),
                 'BANJARMASIN' => self::target([0, 0, 0, 3, 0, 0], 4),
                 'MAKASSAR' => self::target([0, 1, 0, 2, 0, 0], 5),
                 'MANADO' => self::target([0, 1, 0, 2, 0, 0], 3),
                 'MEDAN PATIMBAN' => self::target([0, 0, 0, 4, 0, 0], 5),
-                'SAMARINDA' => self::target([0, 1, 0, 3, 0, 2], 6),
+                'SAMARINDA' => self::target([0, 1, 0, 3, 2, 0], 6),
             ],
             'iso-darat' => [
                 'BANDUNG' => self::daratTarget(1),
