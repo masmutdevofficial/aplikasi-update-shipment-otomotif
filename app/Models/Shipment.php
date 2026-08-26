@@ -33,6 +33,7 @@ class Shipment extends Model
         'ata_kapal',
         'ata_storage_port_destination',
         'at_ptd_dooring',
+        'do_hold',
         'created_by',
         'updated_by',
     ];
@@ -48,52 +49,90 @@ class Shipment extends Model
             'ata_kapal' => 'date',
             'ata_storage_port_destination' => 'date',
             'at_ptd_dooring' => 'date',
+            'do_hold' => 'boolean',
         ];
+    }
+
+    public function isDoHold(): bool
+    {
+        return $this->do_hold === true;
     }
 
     public function leadTimeDoReleaseToPickup(): ?int
     {
+        if ($this->isDoHold()) {
+            return null;
+        }
+
         return $this->daysBetween($this->terima_do, $this->keluar_dari_pdc);
     }
 
     public function leadTimeStoragePort(): ?int
     {
+        if ($this->isDoHold()) {
+            return null;
+        }
+
         return $this->daysBetween($this->keluar_dari_pdc, $this->at_storage_port);
     }
 
     public function leadTimeKapalLoading(): ?int
     {
+        if ($this->isDoHold()) {
+            return null;
+        }
+
         return $this->daysBetween($this->at_storage_port, $this->atd_kapal_loading);
     }
 
     public function leadTimeKapalAboard(): ?int
     {
+        if ($this->isDoHold()) {
+            return null;
+        }
+
         return $this->daysBetween($this->atd_kapal_loading, $this->ata_kapal);
     }
 
     public function leadTimeStoragePortDestination(): ?int
     {
+        if ($this->isDoHold()) {
+            return null;
+        }
+
         return $this->daysBetween($this->ata_kapal, $this->ata_storage_port_destination);
     }
 
     public function leadTimePtdDooring(): ?int
     {
+        if ($this->isDoHold()) {
+            return null;
+        }
+
         return $this->daysBetween($this->ata_storage_port_destination, $this->at_ptd_dooring);
     }
 
     public function dwellingOrigin(): ?int
     {
+        if ($this->isDoHold()) {
+            return null;
+        }
+
         return $this->daysUntilMilestoneOrToday($this->at_storage_port, $this->atd_kapal_loading);
     }
 
     public function dwellingDestination(): ?int
     {
+        if ($this->isDoHold()) {
+            return null;
+        }
+
         return $this->daysUntilMilestoneOrToday($this->ata_storage_port_destination, $this->at_ptd_dooring);
     }
 
     public function slaActual(): ?int
     {
-        if ($this->terima_do === null) {
+        if ($this->isDoHold() || $this->terima_do === null) {
             return null;
         }
 
@@ -105,6 +144,10 @@ class Shipment extends Model
 
     public function slaCustomer(): ?int
     {
+        if ($this->isDoHold()) {
+            return null;
+        }
+
         $target = DsoSla::targetFor($this->kota, $this->tujuan_pengiriman);
 
         return $target['total'] ?? null;
@@ -112,6 +155,10 @@ class Shipment extends Model
 
     public function slaResult(): string
     {
+        if ($this->isDoHold()) {
+            return 'DO HOLD';
+        }
+
         $actual = $this->slaActual();
         $customer = $this->slaCustomer();
 
@@ -136,6 +183,10 @@ class Shipment extends Model
 
     public function maxArrival(): ?CarbonInterface
     {
+        if ($this->isDoHold()) {
+            return null;
+        }
+
         $customer = $this->slaCustomer();
 
         return $this->terima_do && $customer !== null
@@ -145,6 +196,10 @@ class Shipment extends Model
 
     public function shipmentProgress(): string
     {
+        if ($this->isDoHold()) {
+            return 'DO HOLD';
+        }
+
         return match (true) {
             $this->at_ptd_dooring !== null => $this->slaResult(),
             $this->ata_storage_port_destination !== null => 'Storage Port (Destination)',
@@ -159,6 +214,10 @@ class Shipment extends Model
 
     public function currentPosition(): string
     {
+        if ($this->isDoHold()) {
+            return 'DO HOLD';
+        }
+
         return match (true) {
             $this->at_ptd_dooring !== null => 'AT PtD (Dooring)',
             $this->ata_storage_port_destination !== null => 'ATA Storage Port (Destination)',

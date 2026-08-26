@@ -67,7 +67,7 @@ class ShipmentController extends Controller
         }
 
         $recordsFiltered = (clone $query)->count();
-        $orderColumn = (string) $request->input('columns.' . (int) $request->input('order.0.column', 2) . '.name', 'lokasi');
+        $orderColumn = (string) $request->input('columns.'.(int) $request->input('order.0.column', 2).'.name', 'lokasi');
         $orderColumn = in_array($orderColumn, $columns, true) ? $orderColumn : 'lokasi';
         $orderDirection = strtolower((string) $request->input('order.0.dir', 'asc')) === 'desc' ? 'desc' : 'asc';
         $start = max(0, (int) $request->input('start', 0));
@@ -90,14 +90,14 @@ class ShipmentController extends Controller
             'kota' => e($shipment->kota ?? '-'),
             'tujuan_pengiriman' => e($shipment->tujuan_pengiriman ?? '-'),
             'terima_do' => $shipment->terima_do?->format('d-M-y') ?? '-',
-            'keluar_dari_pdc' => $shipment->keluar_dari_pdc?->format('d-M-y') ?? '-',
-            'nama_kapal' => e($shipment->nama_kapal ?? '-'),
-            'keberangkatan_kapal' => $shipment->keberangkatan_kapal?->format('d-M-y') ?? '-',
-            'at_storage_port' => $shipment->at_storage_port?->format('d-M-y') ?? '-',
-            'atd_kapal_loading' => $shipment->atd_kapal_loading?->format('d-M-y') ?? '-',
-            'ata_kapal' => $shipment->ata_kapal?->format('d-M-y') ?? '-',
-            'ata_storage_port_destination' => $shipment->ata_storage_port_destination?->format('d-M-y') ?? '-',
-            'at_ptd_dooring' => $shipment->at_ptd_dooring?->format('d-M-y') ?? '-',
+            'keluar_dari_pdc' => $this->displayDoHoldDate($shipment, 'keluar_dari_pdc'),
+            'nama_kapal' => $shipment->isDoHold() ? 'DO HOLD' : e($shipment->nama_kapal ?? '-'),
+            'keberangkatan_kapal' => $this->displayDoHoldDate($shipment, 'keberangkatan_kapal'),
+            'at_storage_port' => $this->displayDoHoldDate($shipment, 'at_storage_port'),
+            'atd_kapal_loading' => $this->displayDoHoldDate($shipment, 'atd_kapal_loading'),
+            'ata_kapal' => $this->displayDoHoldDate($shipment, 'ata_kapal'),
+            'ata_storage_port_destination' => $this->displayDoHoldDate($shipment, 'ata_storage_port_destination'),
+            'at_ptd_dooring' => $this->displayDoHoldDate($shipment, 'at_ptd_dooring'),
             'lead_time_do_release_pickup' => $shipment->leadTimeDoReleaseToPickup() ?? '-',
             'lead_time_storage_port' => $shipment->leadTimeStoragePort() ?? '-',
             'dwelling_origin' => $shipment->dwellingOrigin() ?? '-',
@@ -120,6 +120,15 @@ class ShipmentController extends Controller
             'recordsFiltered' => $recordsFiltered,
             'data' => $data,
         ]);
+    }
+
+    private function displayDoHoldDate(Shipment $shipment, string $field): string
+    {
+        if ($shipment->isDoHold()) {
+            return 'DO HOLD';
+        }
+
+        return $shipment->{$field}?->format('d-M-y') ?? '-';
     }
 
     private function validMonth(mixed $value): ?int
@@ -212,8 +221,8 @@ class ShipmentController extends Controller
             'file' => ['required', 'file', 'mimes:xlsx', 'max:5120'],
         ], [
             'file.required' => 'Pilih file Excel terlebih dahulu.',
-            'file.mimes'    => 'File wajib berformat .xlsx dari Master Template DSO.',
-            'file.max'      => 'Ukuran file maksimal 5 MB.',
+            'file.mimes' => 'File wajib berformat .xlsx dari Master Template DSO.',
+            'file.max' => 'Ukuran file maksimal 5 MB.',
         ]);
 
         $import = new ShipmentImport(createdBy: auth()->id());
@@ -254,15 +263,15 @@ class ShipmentController extends Controller
             })->join('<br>');
 
             return redirect()->route('admin.shipments.index')
-                ->with('warning', $message . ".<br><strong>{$failCount} baris gagal:</strong><br>{$errorMessages}");
+                ->with('warning', $message.".<br><strong>{$failCount} baris gagal:</strong><br>{$errorMessages}");
         }
 
         return redirect()->route('admin.shipments.index')
-            ->with('success', $message . '.');
+            ->with('success', $message.'.');
     }
 
     public function downloadTemplate()
     {
-        return Excel::download(new ShipmentTemplateExport(), 'Master_Upload_DSO.xlsx');
+        return Excel::download(new ShipmentTemplateExport, 'Master_Upload_DSO.xlsx');
     }
 }

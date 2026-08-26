@@ -16,6 +16,10 @@ class DashboardSlaAlert
         $alerts = self::emptyAlerts(['not_departed_pdc', 'storage_port', 'vessel_loading', 'destination_storage']);
 
         foreach (self::periodQuery(Shipment::query(), 'terima_do', $month, $year)->get() as $shipment) {
+            if ($shipment->isDoHold()) {
+                continue;
+            }
+
             $target = DsoSla::targetFor($shipment->kota, $shipment->tujuan_pengiriman);
 
             if ($shipment->terima_do === null || $target === null) {

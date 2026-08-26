@@ -3,17 +3,17 @@
 namespace Tests\Feature\Admin;
 
 use App\Imports\ShipmentImport;
-use App\Models\Shipment;
 use App\Models\PendingVin;
+use App\Models\Shipment;
 use App\Models\User;
 use App\Models\Vendor;
+use App\Support\DsoSla;
 use App\Support\ShipmentUploadTemplate;
 use Carbon\Carbon;
 use Tests\TestCase;
 
 class ShipmentCrudTest extends TestCase
 {
-
     private User $admin;
 
     protected function setUp(): void
@@ -393,8 +393,7 @@ class ShipmentCrudTest extends TestCase
         $response = $this->actingAs($this->admin)->get(route('admin.shipments.index'));
 
         $response->assertOk();
-        $response->assertViewHas('delayStats', fn (array $stats) =>
-            $stats['completed'] >= 2
+        $response->assertViewHas('delayStats', fn (array $stats) => $stats['completed'] >= 2
             && $stats['late'] >= 1
             && $stats['percentage'] > 0
         );
@@ -441,5 +440,72 @@ class ShipmentCrudTest extends TestCase
             'ata_storage_port_destination' => '2026-07-06',
             'at_ptd_dooring' => '2026-07-06',
         ]);
+    }
+
+    public function test_dso_excel_import_accepts_do_hold_in_milestone_columns(): void
+    {
+        $import = new ShipmentImport($this->admin->id);
+        $headers = ShipmentUploadTemplate::dsoHeadings();
+        $row = array_fill(0, count($headers), null);
+        $values = [
+            'Lokasi' => 'D720',
+            'Type Kendaraan' => 'SIGRA',
+            'No. Rangka' => 'MHKS6GJ6JTJ200821',
+            'No. Engine' => '3NR5A03704',
+            'Warna' => 'PUTIH',
+            'Asal PDC' => 'KARAWANG',
+            'Kota' => 'PONTIANAK',
+            'Tujuan Pengiriman' => 'PONTIANAK',
+            'Terima DO' => '01-Jul-26',
+            'Keluar dari PDC' => 'DO HOLD',
+            'Nama Kapal' => 'DO HOLD',
+            'Keberangkatan Kapal' => 'DO HOLD',
+            'AT Storage Port' => 'DO HOLD',
+            'ATD Kapal (Loading)' => 'DO HOLD',
+            'ATA Kapal' => 'DO HOLD',
+            'ATA Storage Port (Destination)' => 'DO HOLD',
+            'AT PtD (Dooring)' => 'DO HOLD',
+        ];
+
+        foreach ($values as $header => $value) {
+            $row[array_search($header, $headers, true)] = $value;
+        }
+
+        $import->collection(collect([collect($headers), collect($row)]));
+
+        $this->assertSame(1, $import->importedCount);
+        $this->assertSame([], $import->errors);
+        $this->assertDatabaseHas('shipments', [
+            'no_rangka' => 'MHKS6GJ6JTJ200821',
+            'do_hold' => true,
+            'keluar_dari_pdc' => null,
+            'at_ptd_dooring' => null,
+        ]);
+
+        $shipment = Shipment::query()->where('no_rangka', 'MHKS6GJ6JTJ200821')->firstOrFail();
+        $this->assertTrue($shipment->isDoHold());
+        $this->assertNull($shipment->slaActual());
+        $this->assertSame('DO HOLD', $shipment->slaResult());
+        $this->assertSame('DO HOLD', $shipment->shipmentProgress());
+        $this->assertSame(1, DsoSla::doHoldStatistics()['total']);
+
+        $this->actingAs($this->admin)
+            ->getJson(route('admin.shipments.data', [
+                'length' => 10,
+                'search' => ['value' => 'MHKS6GJ6JTJ200821'],
+            ]))
+            ->assertOk()
+            ->assertJsonFragment([
+                'keluar_dari_pdc' => 'DO HOLD',
+                'nama_kapal' => 'DO HOLD',
+                'keberangkatan_kapal' => 'DO HOLD',
+                'at_storage_port' => 'DO HOLD',
+                'atd_kapal_loading' => 'DO HOLD',
+                'ata_kapal' => 'DO HOLD',
+                'ata_storage_port_destination' => 'DO HOLD',
+                'at_ptd_dooring' => 'DO HOLD',
+                'sla_result' => 'DO HOLD',
+                'progress' => 'DO HOLD',
+            ]);
     }
 }

@@ -67,6 +67,55 @@ class DashboardPeriodFilterTest extends TestCase
             ->assertJsonMissing(['no_rangka' => 'DSO-JUNE-2025-01']);
     }
 
+    public function test_dso_dashboard_counts_do_hold_separately_from_milestone_and_late_cards(): void
+    {
+        Shipment::factory()->create([
+            'no_rangka' => 'DSO-NORMAL-MAY-01',
+            'kota' => 'PONTIANAK',
+            'terima_do' => '2025-05-01',
+            'keluar_dari_pdc' => '2025-05-02',
+            'at_storage_port' => '2025-05-02',
+            'atd_kapal_loading' => '2025-05-03',
+            'ata_kapal' => '2025-05-06',
+            'ata_storage_port_destination' => '2025-05-06',
+            'at_ptd_dooring' => '2025-05-07',
+        ]);
+        Shipment::factory()->create([
+            'no_rangka' => 'DSO-HOLD-MAY-0001',
+            'kota' => 'PONTIANAK',
+            'terima_do' => '2025-05-01',
+            'keluar_dari_pdc' => '2025-05-02',
+            'at_storage_port' => '2025-05-03',
+            'atd_kapal_loading' => '2025-05-04',
+            'ata_kapal' => '2025-05-05',
+            'ata_storage_port_destination' => '2025-05-06',
+            'at_ptd_dooring' => '2025-05-20',
+            'do_hold' => true,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get('/admin/dashboard?type=dso&month=5&year=2025')
+            ->assertOk()
+            ->assertSee('Total DO Hold')
+            ->assertSee('DO Hold Keterlambatan')
+            ->assertViewHas('dsoDoHoldStats', fn (array $stats) => $stats['total'] === 1 && $stats['percentage'] === 50.0
+            )
+            ->assertViewHas('delayStats', fn (array $stats) => $stats['evaluated'] === 1 && $stats['late'] === 0
+            )
+            ->assertViewHas('dsoDoPerformance', fn (array $stats) => $stats['total_received']['count'] === 2
+                && $stats['departed_pdc']['count'] === 1
+                && $stats['storage_port']['count'] === 1
+                && $stats['vessel_loading']['count'] === 1
+                && $stats['vessel_arrived']['count'] === 1
+                && $stats['destination_storage']['count'] === 1
+                && $stats['ptd_dooring']['count'] === 1
+            );
+
+        $alerts = DashboardSlaAlert::dso(5, 2025);
+        $this->assertSame([], $alerts['warning']);
+        $this->assertSame([], $alerts['danger']);
+    }
+
     public function test_dashboard_filters_vendor_user_and_scan_totals_by_period(): void
     {
         $insideUser = User::factory()->create([
@@ -209,8 +258,7 @@ class DashboardPeriodFilterTest extends TestCase
             ->assertDontSee('Shipment Terlambat')
             ->assertDontSee('Persentase Keterlambatan')
             ->assertViewHas('dashboardScanTotal', 1)
-            ->assertViewHas('tsoPositionSummary', fn (array $summaries) =>
-                count($summaries) === 2
+            ->assertViewHas('tsoPositionSummary', fn (array $summaries) => count($summaries) === 2
                 && $summaries[0]['destination'] === 'BALIKPAPAN'
                 && $summaries[0]['total'] === 2
                 && $summaries[0]['positions']['DO Received']['count'] === 1
@@ -258,8 +306,7 @@ class DashboardPeriodFilterTest extends TestCase
             ->assertSee('Dwelling Origin')
             ->assertSee('Keterlambatan (Hari)');
 
-        $response->assertViewHas('delayStats', fn (array $stats) =>
-            $stats['evaluated'] === 2
+        $response->assertViewHas('delayStats', fn (array $stats) => $stats['evaluated'] === 2
             && $stats['late'] === 1
             && $stats['percentage'] === 50.0
             && $stats['otd'] === 1
@@ -267,14 +314,12 @@ class DashboardPeriodFilterTest extends TestCase
         );
         $response->assertSee('OTD Performance')
             ->assertSee('50,00%');
-        $response->assertViewHas('dsoLateByCity', fn (array $summaries) =>
-            count($summaries) === 1
+        $response->assertViewHas('dsoLateByCity', fn (array $summaries) => count($summaries) === 1
             && $summaries[0]['city'] === 'PONTIANAK'
             && $summaries[0]['total'] === 2
             && $summaries[0]['late'] === 1
         );
-        $response->assertViewHas('dsoPositionSummary', fn (array $summaries) =>
-            count($summaries) === 1
+        $response->assertViewHas('dsoPositionSummary', fn (array $summaries) => count($summaries) === 1
             && $summaries[0]['total'] === 2
             && $summaries[0]['positions']['Belum Keluar PDC']['count'] === 1
             && $summaries[0]['positions']['AT Storage Port']['count'] === 1
@@ -317,13 +362,12 @@ class DashboardPeriodFilterTest extends TestCase
             ->assertSeeInOrder(['Dwelling Origin', 'Dwelling Destination', 'Performance Shipment DSO'])
             ->assertDontSee('Referensi SLA Customer DSO')
             ->assertDontSee('DSO-DWELLING-OUTSIDE')
-            ->assertViewHas('dsoDwellingDetails', fn (array $details) =>
-                $details['origin'] === [[
-                    'city' => 'MAKASSAR',
-                    'average' => 2.5,
-                    'minimum' => 2,
-                    'maximum' => 3,
-                ]]
+            ->assertViewHas('dsoDwellingDetails', fn (array $details) => $details['origin'] === [[
+                'city' => 'MAKASSAR',
+                'average' => 2.5,
+                'minimum' => 2,
+                'maximum' => 3,
+            ]]
                 && $details['destination'] === [[
                     'city' => 'MAKASSAR',
                     'average' => 2.5,
@@ -369,8 +413,7 @@ class DashboardPeriodFilterTest extends TestCase
             ->assertSee('Belum Keluar PDC')
             ->assertSee('AT PtD (Dooring)')
             ->assertSee('33,33% dari Total Terima DO')
-            ->assertViewHas('dsoDoPerformance', fn (array $stats) =>
-                $stats['total_received'] === ['count' => 3, 'percentage' => 100.0]
+            ->assertViewHas('dsoDoPerformance', fn (array $stats) => $stats['total_received'] === ['count' => 3, 'percentage' => 100.0]
                 && $stats['not_departed_pdc'] === ['count' => 1, 'percentage' => 33.33]
                 && $stats['departed_pdc'] === ['count' => 2, 'percentage' => 66.67]
                 && $stats['storage_port'] === ['count' => 2, 'percentage' => 66.67]
@@ -434,8 +477,7 @@ class DashboardPeriodFilterTest extends TestCase
             ->assertSee('Persentase Keterlambatan')
             ->assertSee('OTD (On Time Delivery)')
             ->assertViewHas('dashboardScanTotal', 1)
-            ->assertViewHas('isoPositionSummary', fn (array $summaries) =>
-                count($summaries) === 2
+            ->assertViewHas('isoPositionSummary', fn (array $summaries) => count($summaries) === 2
                 && $summaries[0]['destination'] === 'MADIUN BARU'
                 && $summaries[0]['positions']['Pickup']['count'] === 1
                 && $summaries[1]['destination'] === 'SURABAYA'
@@ -512,36 +554,32 @@ class DashboardPeriodFilterTest extends TestCase
             ->assertDontSee('ISO-LAUT-OUTSIDE')
             ->assertDontSee('NON-ISO-LAUT')
             ->assertViewHas('dashboardScanTotal', 1)
-            ->assertViewHas('specialDelayStats', fn (array $stats) =>
-                $stats['evaluated'] === 2
+            ->assertViewHas('specialDelayStats', fn (array $stats) => $stats['evaluated'] === 2
                 && $stats['late'] === 1
                 && $stats['percentage'] === 50.0
                 && $stats['otd'] === 1
                 && $stats['otd_percentage'] === 50.0
             )
-            ->assertViewHas('isoLateByCity', fn (array $summaries) =>
-                count($summaries) === 1
+            ->assertViewHas('isoLateByCity', fn (array $summaries) => count($summaries) === 1
                 && $summaries[0]['city'] === 'MAKASSAR'
                 && $summaries[0]['total'] === 2
                 && $summaries[0]['late'] === 1
             )
-            ->assertViewHas('isoPositionSummary', fn (array $summaries) =>
-                count($summaries) === 2
+            ->assertViewHas('isoPositionSummary', fn (array $summaries) => count($summaries) === 2
                 && $summaries[0]['destination'] === 'AMBON BARU'
                 && $summaries[0]['positions']['DO Received']['count'] === 1
                 && $summaries[1]['destination'] === 'MAKASSAR'
                 && $summaries[1]['positions']['Storage Port']['count'] === 1
                 && $summaries[1]['positions']['PTD/DTD']['count'] === 1
             )
-            ->assertViewHas('isoDwellingDetails', fn (array $details) =>
-                $details['origin'] === [
-                    [
-                        'city' => 'MAKASSAR',
-                        'average' => 2.5,
-                        'minimum' => 2,
-                        'maximum' => 3,
-                    ],
-                ]
+            ->assertViewHas('isoDwellingDetails', fn (array $details) => $details['origin'] === [
+                [
+                    'city' => 'MAKASSAR',
+                    'average' => 2.5,
+                    'minimum' => 2,
+                    'maximum' => 3,
+                ],
+            ]
                 && $details['destination'] === [
                     [
                         'city' => 'MAKASSAR',

@@ -48,7 +48,7 @@ class DsoSla
 
     public static function targetFor(?string $kota, ?string $tujuan = null): ?array
     {
-        $haystack = strtoupper(trim(($kota ?? '') . ' ' . ($tujuan ?? '')));
+        $haystack = strtoupper(trim(($kota ?? '').' '.($tujuan ?? '')));
 
         foreach (self::destinations() as $destination => $target) {
             if (str_contains($haystack, $destination)) {
@@ -63,6 +63,7 @@ class DsoSla
     public static function delayStatistics(?int $month = null, ?int $year = null): array
     {
         $evaluatedShipments = self::periodQuery($month, $year)
+            ->where('do_hold', false)
             ->whereNotNull('terima_do')
             ->get()
             ->filter(fn (Shipment $shipment) => $shipment->slaCustomer() !== null);
@@ -87,6 +88,7 @@ class DsoSla
     public static function lateByCity(?int $month = null, ?int $year = null): array
     {
         return self::periodQuery($month, $year)
+            ->where('do_hold', false)
             ->whereNotNull('terima_do')
             ->get()
             ->groupBy(fn (Shipment $shipment) => self::normalizedCity($shipment->kota))
@@ -119,6 +121,7 @@ class DsoSla
     public static function positionSummary(?int $month = null, ?int $year = null): array
     {
         return self::periodQuery($month, $year)
+            ->where('do_hold', false)
             ->whereNotNull('terima_do')
             ->get()
             ->groupBy(fn (Shipment $shipment) => self::normalizedCity($shipment->kota))
@@ -154,7 +157,7 @@ class DsoSla
      */
     public static function dwellingDetails(?int $month = null, ?int $year = null): array
     {
-        $shipments = self::periodQuery($month, $year)->get();
+        $shipments = self::periodQuery($month, $year)->where('do_hold', false)->get();
 
         return [
             'origin' => self::dwellingByCity($shipments, fn (Shipment $shipment) => $shipment->dwellingOrigin()),
@@ -198,15 +201,16 @@ class DsoSla
             ->whereNotNull('terima_do')
             ->get();
         $total = $shipments->count();
+        $activeShipments = $shipments->reject(fn (Shipment $shipment) => $shipment->isDoHold());
         $counts = [
             'total_received' => $total,
-            'not_departed_pdc' => $shipments->whereNull('keluar_dari_pdc')->count(),
-            'departed_pdc' => $shipments->whereNotNull('keluar_dari_pdc')->count(),
-            'storage_port' => $shipments->whereNotNull('at_storage_port')->count(),
-            'vessel_loading' => $shipments->whereNotNull('atd_kapal_loading')->count(),
-            'vessel_arrived' => $shipments->whereNotNull('ata_kapal')->count(),
-            'destination_storage' => $shipments->whereNotNull('ata_storage_port_destination')->count(),
-            'ptd_dooring' => $shipments->whereNotNull('at_ptd_dooring')->count(),
+            'not_departed_pdc' => $activeShipments->whereNull('keluar_dari_pdc')->count(),
+            'departed_pdc' => $activeShipments->whereNotNull('keluar_dari_pdc')->count(),
+            'storage_port' => $activeShipments->whereNotNull('at_storage_port')->count(),
+            'vessel_loading' => $activeShipments->whereNotNull('atd_kapal_loading')->count(),
+            'vessel_arrived' => $activeShipments->whereNotNull('ata_kapal')->count(),
+            'destination_storage' => $activeShipments->whereNotNull('ata_storage_port_destination')->count(),
+            'ptd_dooring' => $activeShipments->whereNotNull('at_ptd_dooring')->count(),
         ];
 
         return collect($counts)
@@ -215,6 +219,19 @@ class DsoSla
                 'percentage' => $total === 0 ? 0 : round($count / $total * 100, 2),
             ])
             ->all();
+    }
+
+    /** @return array{total: int, percentage: float|int} */
+    public static function doHoldStatistics(?int $month = null, ?int $year = null): array
+    {
+        $shipments = self::periodQuery($month, $year)->get();
+        $totalShipments = $shipments->count();
+        $totalDoHold = $shipments->filter(fn (Shipment $shipment) => $shipment->isDoHold())->count();
+
+        return [
+            'total' => $totalDoHold,
+            'percentage' => $totalShipments === 0 ? 0 : round($totalDoHold / $totalShipments * 100, 2),
+        ];
     }
 
     private static function periodQuery(?int $month, ?int $year): Builder

@@ -8,13 +8,18 @@ use App\Support\ShipmentUploadTemplate;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\ToCollection;
+use PhpOffice\PhpSpreadsheet\Shared\Date;
 
 class ShipmentImport implements ToCollection
 {
     public int $importedCount = 0;
-    public int $updatedCount  = 0;
-    public int $skippedCount  = 0;
+
+    public int $updatedCount = 0;
+
+    public int $skippedCount = 0;
+
     public int $matchedPendingCount = 0;
+
     public bool $invalidTemplate = false;
 
     /** @var array<array{baris: int, pesan: string}> */
@@ -33,6 +38,17 @@ class ShipmentImport implements ToCollection
         'tujuan_pengiriman' => 'Tujuan Pengiriman',
     ];
 
+    private const DO_HOLD_FIELDS = [
+        'keluar_dari_pdc',
+        'nama_kapal',
+        'keberangkatan_kapal',
+        'at_storage_port',
+        'atd_kapal_loading',
+        'ata_kapal',
+        'ata_storage_port_destination',
+        'at_ptd_dooring',
+    ];
+
     public function __construct(string $createdBy)
     {
         $this->createdBy = $createdBy;
@@ -44,7 +60,7 @@ class ShipmentImport implements ToCollection
         $header = $rows->first();
         $headerValues = $header instanceof Collection ? $header->toArray() : (array) $header;
 
-        if ($header === null || !ShipmentUploadTemplate::headerMatches(
+        if ($header === null || ! ShipmentUploadTemplate::headerMatches(
             $headerValues,
             ShipmentUploadTemplate::dsoHeadings(),
         )) {
@@ -53,6 +69,7 @@ class ShipmentImport implements ToCollection
                 'baris' => 1,
                 'pesan' => ShipmentUploadTemplate::invalidHeaderMessage('DSO'),
             ];
+
             return;
         }
 
@@ -62,7 +79,7 @@ class ShipmentImport implements ToCollection
             $rowNum = $index + 1;
             $data = $this->rowToData($rows->get($index)->toArray(), $headerColumns);
 
-            if (!$this->hasMappedValue($data)) {
+            if (! $this->hasMappedValue($data)) {
                 continue;
             }
 
@@ -86,19 +103,19 @@ class ShipmentImport implements ToCollection
 
     private function importRow(array $data, int $rowNum): void
     {
-        $lokasi              = $this->value($data, 'lokasi');
-        $no_do               = $this->value($data, 'no_do');
-        $type_kendaraan      = $this->value($data, 'type_kendaraan');
-        $no_rangka           = strtoupper(trim((string) $this->value($data, 'no_rangka')));
-        $no_engine           = $this->value($data, 'no_engine');
-        $warna               = $this->value($data, 'warna');
-        $asal_pdc            = $this->value($data, 'asal_pdc');
-        $kota                = $this->value($data, 'kota');
-        $tujuan_pengiriman   = $this->value($data, 'tujuan_pengiriman');
-        $terima_do_raw       = $this->value($data, 'terima_do');
+        $lokasi = $this->value($data, 'lokasi');
+        $no_do = $this->value($data, 'no_do');
+        $type_kendaraan = $this->value($data, 'type_kendaraan');
+        $no_rangka = strtoupper(trim((string) $this->value($data, 'no_rangka')));
+        $no_engine = $this->value($data, 'no_engine');
+        $warna = $this->value($data, 'warna');
+        $asal_pdc = $this->value($data, 'asal_pdc');
+        $kota = $this->value($data, 'kota');
+        $tujuan_pengiriman = $this->value($data, 'tujuan_pengiriman');
+        $terima_do_raw = $this->value($data, 'terima_do');
         $keluar_dari_pdc_raw = $this->value($data, 'keluar_dari_pdc');
-        $nama_kapal          = $this->value($data, 'nama_kapal');
-        $keberangkatan_raw   = $this->value($data, 'keberangkatan_kapal');
+        $nama_kapal = $this->value($data, 'nama_kapal');
+        $keberangkatan_raw = $this->value($data, 'keberangkatan_kapal');
         $actualDateInputs = [
             'at_storage_port' => ['AT Storage Port', $this->value($data, 'at_storage_port')],
             'atd_kapal_loading' => ['ATD Kapal (Loading)', $this->value($data, 'atd_kapal_loading')],
@@ -106,27 +123,32 @@ class ShipmentImport implements ToCollection
             'ata_storage_port_destination' => ['ATA Storage Port (Destination)', $this->value($data, 'ata_storage_port_destination')],
             'at_ptd_dooring' => ['AT PtD (Dooring)', $this->value($data, 'at_ptd_dooring')],
         ];
+        $doHoldInputs = array_map(fn (string $field) => $this->value($data, $field), self::DO_HOLD_FIELDS);
+        $doHoldStatusProvided = collect($doHoldInputs)->contains(fn (mixed $value) => ! $this->isBlank($value));
+        $isDoHold = collect($doHoldInputs)->contains(fn (mixed $value) => $this->isDoHoldValue($value));
 
         if ($no_rangka === '') {
             $this->errors[] = ['baris' => $rowNum, 'pesan' => 'Kolom No. Rangka (VIN) wajib diisi'];
+
             return;
         }
 
-        if (!preg_match('/^[A-HJ-NPR-Z0-9]{17}$/i', $no_rangka)) {
+        if (! preg_match('/^[A-HJ-NPR-Z0-9]{17}$/i', $no_rangka)) {
             $this->errors[] = [
                 'baris' => $rowNum,
                 'pesan' => "No. Rangka \"{$no_rangka}\" harus tepat 17 karakter huruf/angka (tidak boleh I, O, atau Q)",
             ];
+
             return;
         }
 
         $terima_do = $this->parseOptionalDate($terima_do_raw, 'Terima DO', $rowNum);
-        $keluar_dari_pdc = $this->parseOptionalDate($keluar_dari_pdc_raw, 'Keluar dari PDC', $rowNum);
-        $keberangkatan_kapal = $this->parseOptionalDate($keberangkatan_raw, 'Keberangkatan Kapal', $rowNum);
+        $keluar_dari_pdc = $this->parseOptionalDateOrHold($keluar_dari_pdc_raw, 'Keluar dari PDC', $rowNum);
+        $keberangkatan_kapal = $this->parseOptionalDateOrHold($keberangkatan_raw, 'Keberangkatan Kapal', $rowNum);
         $actualDates = [];
 
         foreach ($actualDateInputs as $field => [$label, $value]) {
-            $actualDates[$field] = $this->parseOptionalDate($value, $label, $rowNum);
+            $actualDates[$field] = $this->parseOptionalDateOrHold($value, $label, $rowNum);
         }
 
         if ($terima_do === false || $keluar_dari_pdc === false || $keberangkatan_kapal === false || in_array(false, $actualDates, true)) {
@@ -140,6 +162,10 @@ class ShipmentImport implements ToCollection
             $updates = [
                 'updated_by' => $this->createdBy,
             ];
+
+            if ($doHoldStatusProvided) {
+                $updates['do_hold'] = $isDoHold;
+            }
 
             $this->setIfPresent($updates, 'no_do', $no_do);
             $this->setIfPresent($updates, 'terima_do', $terima_do);
@@ -174,34 +200,36 @@ class ShipmentImport implements ToCollection
             'tujuan_pengiriman' => $tujuan_pengiriman,
         ]);
 
-        if (!empty($rowErrors)) {
+        if (! empty($rowErrors)) {
             foreach ($rowErrors as $msg) {
                 $this->errors[] = ['baris' => $rowNum, 'pesan' => $msg];
             }
+
             return;
         }
 
         $shipment = Shipment::create([
-            'lokasi'              => trim((string) $lokasi),
-            'no_do'               => $no_do !== null ? trim((string) $no_do) : null,
-            'type_kendaraan'      => trim((string) $type_kendaraan),
-            'no_rangka'           => $no_rangka,
-            'no_engine'           => trim((string) $no_engine),
-            'warna'               => trim((string) $warna),
-            'asal_pdc'            => trim((string) $asal_pdc),
-            'kota'                => trim((string) $kota),
-            'tujuan_pengiriman'   => trim((string) $tujuan_pengiriman),
-            'terima_do'           => $terima_do,
-            'keluar_dari_pdc'     => $keluar_dari_pdc,
-            'nama_kapal'          => $hasKapalData && $nama_kapal !== null ? trim((string) $nama_kapal) : null,
+            'lokasi' => trim((string) $lokasi),
+            'no_do' => $no_do !== null ? trim((string) $no_do) : null,
+            'type_kendaraan' => trim((string) $type_kendaraan),
+            'no_rangka' => $no_rangka,
+            'no_engine' => trim((string) $no_engine),
+            'warna' => trim((string) $warna),
+            'asal_pdc' => trim((string) $asal_pdc),
+            'kota' => trim((string) $kota),
+            'tujuan_pengiriman' => trim((string) $tujuan_pengiriman),
+            'terima_do' => $terima_do,
+            'keluar_dari_pdc' => $keluar_dari_pdc,
+            'nama_kapal' => $hasKapalData && $nama_kapal !== null ? trim((string) $nama_kapal) : null,
             'keberangkatan_kapal' => $keberangkatan_kapal,
             'at_storage_port' => $actualDates['at_storage_port'],
             'atd_kapal_loading' => $actualDates['atd_kapal_loading'],
             'ata_kapal' => $actualDates['ata_kapal'],
             'ata_storage_port_destination' => $actualDates['ata_storage_port_destination'],
             'at_ptd_dooring' => $actualDates['at_ptd_dooring'],
-            'created_by'          => $this->createdBy,
-            'updated_by'          => $this->createdBy,
+            'do_hold' => $isDoHold,
+            'created_by' => $this->createdBy,
+            'updated_by' => $this->createdBy,
         ]);
 
         $this->matchedPendingCount += app(PendingVinService::class)->matchForShipment($shipment);
@@ -227,7 +255,7 @@ class ShipmentImport implements ToCollection
 
     private function value(array $data, string $field): mixed
     {
-        return array_key_exists($field, $data) && !$this->isBlank($data[$field])
+        return array_key_exists($field, $data) && ! $this->isBlank($data[$field])
             ? $data[$field]
             : null;
     }
@@ -235,7 +263,7 @@ class ShipmentImport implements ToCollection
     private function hasMappedValue(array $data): bool
     {
         foreach ($data as $value) {
-            if (!$this->isBlank($value)) {
+            if (! $this->isBlank($value)) {
                 return true;
             }
         }
@@ -265,9 +293,20 @@ class ShipmentImport implements ToCollection
         $updates[$field] = is_string($value) ? trim($value) : $value;
     }
 
-    /**
-     * @return string|false|null
-     */
+    private function isDoHoldValue(mixed $value): bool
+    {
+        return ! is_object($value) && strtoupper(trim((string) $value)) === 'DO HOLD';
+    }
+
+    private function parseOptionalDateOrHold(mixed $value, string $label, int $rowNum): string|false|null
+    {
+        if ($this->isDoHoldValue($value)) {
+            return null;
+        }
+
+        return $this->parseOptionalDate($value, $label, $rowNum);
+    }
+
     private function parseOptionalDate(mixed $value, string $label, int $rowNum): string|false|null
     {
         if ($this->isBlank($value)) {
@@ -276,11 +315,12 @@ class ShipmentImport implements ToCollection
 
         $date = $this->parseDate($value);
 
-        if (!$date) {
+        if (! $date) {
             $this->errors[] = [
                 'baris' => $rowNum,
                 'pesan' => "Format tanggal {$label} tidak dikenali. Gunakan format seperti 2026-04-01 atau 01/04/2026",
             ];
+
             return false;
         }
 
@@ -303,7 +343,7 @@ class ShipmentImport implements ToCollection
         // Excel menyimpan tanggal sebagai serial number (angka > 1000)
         if (is_numeric($value) && (int) $value > 1000) {
             try {
-                return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject((float) $value)
+                return Date::excelToDateTimeObject((float) $value)
                     ->format('Y-m-d');
             } catch (\Exception) {
                 // lanjut ke parsing string

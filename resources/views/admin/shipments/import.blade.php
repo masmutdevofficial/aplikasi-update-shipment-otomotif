@@ -22,7 +22,7 @@
                     <li>Download master template melalui tombol di bawah.</li>
                     <li>Ganti atau hapus <strong>baris contoh data</strong>, lalu isi data mulai baris berikutnya.</li>
                     <li>Jangan mengubah nama, urutan, menambah, atau menghapus header kolom.</li>
-                    <li>Isi tanggal dengan format <code>YYYY-MM-DD</code> dan simpan tetap sebagai <strong>.xlsx</strong>.</li>
+                    <li>Isi tanggal dengan format <code>YYYY-MM-DD</code>. Untuk shipment hold, isi <strong>DO HOLD</strong> pada salah satu kolom milestone dari Keluar dari PDC sampai AT PtD (Dooring), lalu simpan tetap sebagai <strong>.xlsx</strong>.</li>
                     <li>Upload file yang sudah diisi melalui form pada halaman ini.</li>
                 </ol>
                 <a href="{{ route('admin.shipments.template') }}" class="btn btn-primary">
