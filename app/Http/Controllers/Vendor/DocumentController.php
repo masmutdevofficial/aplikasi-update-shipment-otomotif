@@ -104,13 +104,13 @@ class DocumentController extends Controller
         $shipmentModel = $source['model']::query()->findOrFail($shipment);
         $identifier = (string) $shipmentModel->{$source['identity']};
         $request->validate([
-            'document' => ['bail', 'required', 'file', 'image', 'mimes:jpeg,jpg,png', 'max:5120'],
+            'document' => ['bail', 'required', 'file', 'image', 'mimes:jpeg,jpg,png', 'max:10240'],
         ], [
             'document.required' => 'Pilih foto dokumen terlebih dahulu.',
-            'document.uploaded' => 'Upload foto gagal. Pastikan koneksi stabil, lalu gunakan foto PNG/JPEG dengan ukuran maksimal 5 MB.',
+            'document.uploaded' => 'Upload foto gagal. Pastikan koneksi stabil, lalu gunakan foto PNG/JPEG dengan ukuran maksimal 10 MB.',
             'document.image' => 'Dokumen harus berupa gambar PNG atau JPEG.',
             'document.mimes' => 'Dokumen harus berformat PNG atau JPEG.',
-            'document.max' => 'Ukuran dokumen maksimal 5 MB. Silakan kompres foto lalu coba lagi.',
+            'document.max' => 'Ukuran dokumen maksimal 10 MB. Silakan kompres foto lalu coba lagi.',
         ]);
 
         try {

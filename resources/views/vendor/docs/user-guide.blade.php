@@ -213,7 +213,7 @@
 
         <div class="step-item"><span class="step-number">1</span><span>Dari menu navigasi, klik <strong>Upload Dokumen</strong>.</span></div>
         <div class="step-item"><span class="step-number">2</span><span>Cari No. Rangka, No. SPB, atau NOKA shipment.</span></div>
-        <div class="step-item"><span class="step-number">3</span><span>Pilih foto PNG/JPEG maksimal 5 MB, lalu klik <strong>Upload</strong>.</span></div>
+        <div class="step-item"><span class="step-number">3</span><span>Pilih foto PNG/JPEG maksimal 10 MB, lalu klik <strong>Upload</strong>.</span></div>
         <div class="step-item"><span class="step-number">4</span><span>Gunakan tombol <strong>Lihat</strong> untuk membuka dokumen atau <strong>Ganti</strong> untuk memperbaruinya.</span></div>
     </div>
 </div>

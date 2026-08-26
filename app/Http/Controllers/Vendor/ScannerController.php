@@ -32,7 +32,11 @@ class ScannerController extends Controller
     public function scan(Request $request)
     {
         $request->validate([
-            'image' => ['required', 'string', 'max:7000000'],
+            // Base64 menambah ukuran sekitar 33%; 14 juta karakter cukup
+            // untuk gambar biner 10 MB sekaligus membatasi payload berlebih.
+            'image' => ['required', 'string', 'max:14000000'],
+        ], [
+            'image.max' => 'Ukuran gambar scan maksimal 10 MB.',
         ]);
 
         $user = auth()->user();
@@ -49,6 +53,10 @@ class ScannerController extends Controller
 
         if (! $imageData) {
             return response()->json(['error' => 'Gagal memproses gambar.'], 422);
+        }
+
+        if (strlen($imageData) > 10 * 1024 * 1024) {
+            return response()->json(['error' => 'Ukuran gambar scan maksimal 10 MB.'], 422);
         }
 
         // OCR processing via OpenAI Vision

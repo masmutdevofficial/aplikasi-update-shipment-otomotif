@@ -374,7 +374,7 @@
             const imageData = canvas.toDataURL('image/jpeg', 0.85);
             const sizeKB = Math.round(imageData.length * 0.75 / 1024);
 
-            if (sizeKB > 2500) {
+            if (sizeKB > 10240) {
                 showResult('warning', 'Ukuran gambar terlalu besar (' + sizeKB + ' KB). Silakan input VIN secara manual.');
                 return;
             }

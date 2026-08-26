@@ -13,7 +13,7 @@
     </div>
     <div class="card-body">
         <p class="text-muted mb-0">
-            Pilih foto dokumen PNG/JPEG maksimal 5 MB. Dokumen yang sudah ada dapat dilihat atau diganti.
+            Pilih foto dokumen PNG/JPEG maksimal 10 MB. Dokumen yang sudah ada dapat dilihat atau diganti.
         </p>
     </div>
 </div>
