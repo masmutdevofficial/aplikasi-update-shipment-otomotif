@@ -13,10 +13,17 @@ class DashboardSlaAlert
     /** @return array{warning: array<int, string>, danger: array<int, string>, stages: array<string, array{warning: array<int, string>, danger: array<int, string>}>} */
     public static function dso(?int $month = null, ?int $year = null): array
     {
-        $alerts = self::emptyAlerts(['not_departed_pdc', 'storage_port', 'vessel_loading', 'destination_storage']);
+        $alerts = self::emptyAlerts([
+            'not_departed_pdc',
+            'departed_pdc',
+            'storage_port',
+            'vessel_loading',
+            'vessel_arrived',
+            'destination_storage',
+        ]);
 
         foreach (self::periodQuery(Shipment::query(), 'terima_do', $month, $year)->get() as $shipment) {
-            if ($shipment->isDoHold()) {
+            if ($shipment->isDoHold() || trim((string) $shipment->kota) === '') {
                 continue;
             }
 
@@ -29,17 +36,37 @@ class DashboardSlaAlert
             $stages = $target['stages'];
             $prefix = 'No. Rangka '.($shipment->no_rangka ?: '-');
 
-            if ($shipment->keluar_dari_pdc === null) {
-                self::addAlert($alerts, 'not_departed_pdc', $prefix, 'PDC', $shipment->terima_do->copy()->addDays($stages[0]));
-            } elseif ($shipment->at_storage_port === null) {
-                self::addAlert($alerts, 'storage_port', $prefix, 'AT Storage Port', $shipment->keluar_dari_pdc->copy()->addDays($stages[1]));
-            } elseif ($shipment->atd_kapal_loading === null) {
-                self::addAlert($alerts, 'vessel_loading', $prefix, 'ATD Kapal', $shipment->at_storage_port->copy()->addDays($stages[2]));
-            } elseif ($shipment->ata_storage_port_destination === null) {
-                $deadline = $shipment->ata_kapal !== null
-                    ? $shipment->ata_kapal->copy()->addDays($stages[4])
-                    : $shipment->atd_kapal_loading->copy()->addDays($stages[3] + $stages[4]);
-                self::addAlert($alerts, 'destination_storage', $prefix, 'ATA Storage Port', $deadline);
+            switch ($shipment->currentPosition()) {
+                case 'Belum Keluar PDC':
+                    self::addAlert($alerts, 'not_departed_pdc', $prefix, 'PDC', $shipment->terima_do->copy()->addDays($stages[0]));
+                    break;
+                case 'Keluar dari PDC':
+                    self::addAlert($alerts, 'departed_pdc', $prefix, 'AT Storage Port', $shipment->keluar_dari_pdc->copy()->addDays($stages[1]));
+                    break;
+                case 'AT Storage Port':
+                    self::addAlert($alerts, 'storage_port', $prefix, 'ATD Kapal', $shipment->at_storage_port->copy()->addDays($stages[2]));
+                    break;
+                case 'ATD Kapal (Loading)':
+                    self::addAlert(
+                        $alerts,
+                        'vessel_loading',
+                        $prefix,
+                        'ATA Storage Port',
+                        $shipment->atd_kapal_loading->copy()->addDays($stages[3] + $stages[4]),
+                    );
+                    break;
+                case 'ATA Kapal':
+                    self::addAlert($alerts, 'vessel_arrived', $prefix, 'ATA Storage Port', $shipment->ata_kapal->copy()->addDays($stages[4]));
+                    break;
+                case 'ATA Storage Port (Destination)':
+                    self::addAlert(
+                        $alerts,
+                        'destination_storage',
+                        $prefix,
+                        'AT PtD (Dooring)',
+                        $shipment->ata_storage_port_destination->copy()->addDays($stages[5]),
+                    );
+                    break;
             }
         }
 
@@ -49,7 +76,14 @@ class DashboardSlaAlert
     /** @return array{warning: array<int, string>, danger: array<int, string>, stages: array<string, array{warning: array<int, string>, danger: array<int, string>}>} */
     public static function isoLaut(?int $month = null, ?int $year = null): array
     {
-        $alerts = self::emptyAlerts(['not_departed_pdc', 'storage_port', 'vessel_loading', 'destination_storage']);
+        $alerts = self::emptyAlerts([
+            'not_departed_pdc',
+            'departed_pdc',
+            'storage_port',
+            'vessel_loading',
+            'vessel_arrived',
+            'destination_storage',
+        ]);
 
         foreach (self::periodQuery(IsoLautShipment::query(), 'terima_do', $month, $year)->get() as $shipment) {
             $target = IsoSla::targetFor('iso-laut', $shipment->destination);
@@ -61,17 +95,43 @@ class DashboardSlaAlert
             $stages = $target['stages'];
             $prefix = 'No. Rangka '.($shipment->noka ?: '-');
 
-            if ($shipment->keluar_dari_pdc === null) {
-                self::addAlert($alerts, 'not_departed_pdc', $prefix, 'PDC', $shipment->terima_do->copy()->addDays($stages['keluar_dari_pdc']));
-            } elseif ($shipment->at_storage_port === null) {
-                self::addAlert($alerts, 'storage_port', $prefix, 'AT Storage Port', $shipment->keluar_dari_pdc->copy()->addDays($stages['storage_port']));
-            } elseif ($shipment->atd_kapal_loading === null) {
-                self::addAlert($alerts, 'vessel_loading', $prefix, 'ATD Kapal', $shipment->at_storage_port->copy()->addDays($stages['kapal_loading']));
-            } elseif ($shipment->ata_storage_port_destination === null) {
-                $deadline = $shipment->ata_kapal !== null
-                    ? $shipment->ata_kapal->copy()->addDays($stages['storage_port_destination'])
-                    : $shipment->atd_kapal_loading->copy()->addDays($stages['ata_kapal'] + $stages['storage_port_destination']);
-                self::addAlert($alerts, 'destination_storage', $prefix, 'ATA Storage Port', $deadline);
+            switch (IsoDashboard::currentPosition('iso-laut', $shipment)) {
+                case 'DO Received':
+                    self::addAlert($alerts, 'not_departed_pdc', $prefix, 'PDC', $shipment->terima_do->copy()->addDays($stages['keluar_dari_pdc']));
+                    break;
+                case 'Pickup':
+                    self::addAlert($alerts, 'departed_pdc', $prefix, 'AT Storage Port', $shipment->keluar_dari_pdc->copy()->addDays($stages['storage_port']));
+                    break;
+                case 'Storage Port':
+                    self::addAlert($alerts, 'storage_port', $prefix, 'ATD Kapal', $shipment->at_storage_port->copy()->addDays($stages['kapal_loading']));
+                    break;
+                case 'Kapal (Loading)':
+                    self::addAlert(
+                        $alerts,
+                        'vessel_loading',
+                        $prefix,
+                        'ATA Storage Port',
+                        $shipment->atd_kapal_loading->copy()->addDays($stages['ata_kapal'] + $stages['storage_port_destination']),
+                    );
+                    break;
+                case 'Kapal (Aboard)':
+                    self::addAlert(
+                        $alerts,
+                        'vessel_arrived',
+                        $prefix,
+                        'ATA Storage Port',
+                        $shipment->ata_kapal->copy()->addDays($stages['storage_port_destination']),
+                    );
+                    break;
+                case 'Storage Port (Destination)':
+                    self::addAlert(
+                        $alerts,
+                        'destination_storage',
+                        $prefix,
+                        'AT PTD/DTD',
+                        $shipment->ata_storage_port_destination->copy()->addDays($stages['ptd_dooring']),
+                    );
+                    break;
             }
         }
 

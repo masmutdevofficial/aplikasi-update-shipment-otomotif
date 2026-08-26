@@ -170,10 +170,10 @@
     $dsoDoPerformanceCards = [
         'total_received' => ['label' => 'Total Terima DO', 'icon' => 'fa-file-alt', 'theme' => 'blue'],
         'not_departed_pdc' => ['label' => 'Belum Keluar PDC', 'icon' => 'fa-hourglass-half', 'theme' => 'slate', 'alert_stage' => 'not_departed_pdc'],
-        'departed_pdc' => ['label' => 'Keluar Dari PDC', 'icon' => 'fa-truck-moving', 'theme' => 'cyan'],
+        'departed_pdc' => ['label' => 'Keluar Dari PDC', 'icon' => 'fa-truck-moving', 'theme' => 'cyan', 'alert_stage' => 'departed_pdc'],
         'storage_port' => ['label' => 'AT Storage Port', 'icon' => 'fa-warehouse', 'theme' => 'orange', 'alert_stage' => 'storage_port'],
         'vessel_loading' => ['label' => 'ATD Kapal (Loading)', 'icon' => 'fa-ship', 'theme' => 'indigo', 'alert_stage' => 'vessel_loading'],
-        'vessel_arrived' => ['label' => 'ATA Kapal', 'icon' => 'fa-anchor', 'theme' => 'teal'],
+        'vessel_arrived' => ['label' => 'ATA Kapal', 'icon' => 'fa-anchor', 'theme' => 'teal', 'alert_stage' => 'vessel_arrived'],
         'destination_storage' => ['label' => 'ATA Storage Port (Destination)', 'icon' => 'fa-warehouse', 'theme' => 'purple', 'alert_stage' => 'destination_storage'],
         'ptd_dooring' => ['label' => 'AT PtD (Dooring)', 'icon' => 'fa-flag-checkered', 'theme' => 'green'],
     ];

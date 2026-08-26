@@ -80,19 +80,20 @@ class IsoDashboard
     /** @return array<string, array{count: int, percentage: float|int}> */
     public static function doPerformanceStatistics(?int $month = null, ?int $year = null): array
     {
-        $shipments = self::periodQuery('iso-laut', $month, $year)
-            ->whereNotNull('terima_do')
-            ->get();
-        $total = $shipments->count();
+        $destinationSummaries = collect(self::positionSummary('iso-laut', $month, $year));
+        $total = (int) $destinationSummaries->sum('total');
+        $positionCount = fn (string $position): int => (int) $destinationSummaries->sum(
+            fn (array $summary) => $summary['positions'][$position]['count'] ?? 0
+        );
         $counts = [
             'total_received' => $total,
-            'not_departed_pdc' => $shipments->whereNull('keluar_dari_pdc')->count(),
-            'departed_pdc' => $shipments->whereNotNull('keluar_dari_pdc')->count(),
-            'storage_port' => $shipments->whereNotNull('at_storage_port')->count(),
-            'vessel_loading' => $shipments->whereNotNull('atd_kapal_loading')->count(),
-            'vessel_arrived' => $shipments->whereNotNull('ata_kapal')->count(),
-            'destination_storage' => $shipments->whereNotNull('ata_storage_port_destination')->count(),
-            'ptd_dtd' => $shipments->filter(fn (IsoLautShipment $shipment) => self::hasValue($shipment->at_ptd_dtd))->count(),
+            'not_departed_pdc' => $positionCount('DO Received'),
+            'departed_pdc' => $positionCount('Pickup'),
+            'storage_port' => $positionCount('Storage Port'),
+            'vessel_loading' => $positionCount('Kapal (Loading)'),
+            'vessel_arrived' => $positionCount('Kapal (Aboard)'),
+            'destination_storage' => $positionCount('Storage Port (Destination)'),
+            'ptd_dtd' => $positionCount('PTD/DTD'),
         ];
 
         return collect($counts)
@@ -163,7 +164,7 @@ class IsoDashboard
             ->all();
     }
 
-    private static function currentPosition(string $type, Model $shipment): string
+    public static function currentPosition(string $type, Model $shipment): string
     {
         if ($type === 'iso-darat') {
             return match (true) {

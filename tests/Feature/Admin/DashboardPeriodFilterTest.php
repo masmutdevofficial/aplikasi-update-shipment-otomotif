@@ -10,6 +10,8 @@ use App\Models\TsoShipment;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Support\DashboardSlaAlert;
+use App\Support\DsoSla;
+use App\Support\IsoDashboard;
 use Carbon\Carbon;
 use Tests\TestCase;
 
@@ -578,6 +580,15 @@ class DashboardPeriodFilterTest extends TestCase
                 && $summaries[1]['positions']['Storage Port']['count'] === 1
                 && $summaries[1]['positions']['PTD/DTD']['count'] === 1
             )
+            ->assertViewHas('isoDoPerformance', fn (array $stats) => $stats['total_received'] === ['count' => 3, 'percentage' => 100.0]
+                && $stats['not_departed_pdc'] === ['count' => 1, 'percentage' => 33.33]
+                && $stats['departed_pdc'] === ['count' => 0, 'percentage' => 0.0]
+                && $stats['storage_port'] === ['count' => 1, 'percentage' => 33.33]
+                && $stats['vessel_loading'] === ['count' => 0, 'percentage' => 0.0]
+                && $stats['vessel_arrived'] === ['count' => 0, 'percentage' => 0.0]
+                && $stats['destination_storage'] === ['count' => 0, 'percentage' => 0.0]
+                && $stats['ptd_dtd'] === ['count' => 1, 'percentage' => 33.33]
+            )
             ->assertViewHas('isoDwellingDetails', fn (array $details) => $details['origin'] === [
                 [
                     'city' => 'MAKASSAR',
@@ -638,12 +649,13 @@ class DashboardPeriodFilterTest extends TestCase
     {
         Carbon::setTestNow('2025-05-10 12:00:00');
 
-        Shipment::create([
+        Shipment::factory()->create([
             'no_rangka' => 'DSO-ALERT-OVERDUE',
             'kota' => 'Balikpapan',
             'terima_do' => '2025-05-07',
+            'keluar_dari_pdc' => null,
         ]);
-        Shipment::create([
+        Shipment::factory()->create([
             'no_rangka' => 'DSO-ALERT-WARNING',
             'kota' => 'Pontianak',
             'terima_do' => '2025-05-08',
@@ -656,7 +668,7 @@ class DashboardPeriodFilterTest extends TestCase
             ->assertSee('Deadline Shipment Mendekat')
             ->assertDontSee('Shipment Melewati SLA')
             ->assertSee('data-alert-stage="not_departed_pdc"', false)
-            ->assertSee('data-alert-stage="storage_port"', false)
+            ->assertSee('data-alert-stage="departed_pdc"', false)
             ->assertSee('No. Rangka DSO-ALERT-WARNING Belum Keluar AT Storage Port — deadline 1 hari lagi.')
             ->assertSee('No. Rangka DSO-ALERT-OVERDUE Belum Keluar PDC lewat 1 hari.');
 
@@ -664,7 +676,54 @@ class DashboardPeriodFilterTest extends TestCase
         $this->assertCount(1, $alerts['warning']);
         $this->assertCount(1, $alerts['danger']);
         $this->assertCount(1, $alerts['stages']['not_departed_pdc']['danger']);
-        $this->assertCount(1, $alerts['stages']['storage_port']['warning']);
+        $this->assertCount(1, $alerts['stages']['departed_pdc']['warning']);
+    }
+
+    public function test_dso_alert_counts_follow_each_shipments_current_position(): void
+    {
+        Carbon::setTestNow('2025-05-20 12:00:00');
+
+        $base = [
+            'kota' => 'Balikpapan',
+            'terima_do' => '2025-05-01',
+            'keluar_dari_pdc' => null,
+            'at_storage_port' => null,
+            'atd_kapal_loading' => null,
+            'ata_kapal' => null,
+            'ata_storage_port_destination' => null,
+            'at_ptd_dooring' => null,
+        ];
+        $positions = [
+            'not_departed_pdc' => [],
+            'departed_pdc' => ['keluar_dari_pdc' => '2025-05-02'],
+            'storage_port' => ['keluar_dari_pdc' => '2025-05-02', 'at_storage_port' => '2025-05-03'],
+            'vessel_loading' => ['keluar_dari_pdc' => '2025-05-02', 'at_storage_port' => '2025-05-03', 'atd_kapal_loading' => '2025-05-04'],
+            'vessel_arrived' => ['keluar_dari_pdc' => '2025-05-02', 'at_storage_port' => '2025-05-03', 'atd_kapal_loading' => '2025-05-04', 'ata_kapal' => '2025-05-05'],
+            'destination_storage' => ['keluar_dari_pdc' => '2025-05-02', 'at_storage_port' => '2025-05-03', 'atd_kapal_loading' => '2025-05-04', 'ata_kapal' => '2025-05-05', 'ata_storage_port_destination' => '2025-05-06'],
+        ];
+
+        foreach (array_values($positions) as $index => $milestones) {
+            Shipment::factory()->create(array_merge($base, $milestones, [
+                'no_rangka' => 'DSOALERTSTAGE'.str_pad((string) ($index + 1), 4, '0', STR_PAD_LEFT),
+            ]));
+        }
+
+        Shipment::factory()->create(array_merge($base, [
+            'no_rangka' => 'DSOALERTNOCITY01',
+            'kota' => '',
+            'tujuan_pengiriman' => 'Balikpapan',
+        ]));
+
+        $alerts = DashboardSlaAlert::dso(5, 2025);
+        $performance = DsoSla::doPerformanceStatistics(5, 2025);
+
+        foreach (array_keys($positions) as $stage) {
+            $alertCount = count($alerts['stages'][$stage]['warning']) + count($alerts['stages'][$stage]['danger']);
+
+            $this->assertSame(1, $performance[$stage]['count']);
+            $this->assertSame(1, $alertCount);
+            $this->assertLessThanOrEqual($performance[$stage]['count'], $alertCount);
+        }
     }
 
     public function test_iso_laut_dashboard_shows_stage_deadline_alerts(): void
@@ -690,11 +749,57 @@ class DashboardPeriodFilterTest extends TestCase
         $this->actingAs($this->admin)
             ->get('/admin/dashboard?type=iso&iso_type=laut&month=5&year=2025')
             ->assertOk()
+            ->assertSee('data-alert-stage="storage_port"', false)
             ->assertSee('data-alert-stage="vessel_loading"', false)
-            ->assertSee('data-alert-stage="destination_storage"', false)
             ->assertDontSee('Shipment Melewati SLA')
             ->assertSee('No. Rangka ISO-LAUT-ALERT-LATE Belum Keluar ATD Kapal lewat 1 hari.')
             ->assertSee('No. Rangka ISO-LAUT-ALERT-DUE Belum Keluar ATA Storage Port — deadline hari ini.');
+    }
+
+    public function test_iso_laut_alert_counts_follow_each_shipments_current_position(): void
+    {
+        Carbon::setTestNow('2025-05-20 12:00:00');
+
+        $base = [
+            'destination' => 'Balikpapan',
+            'terima_do' => '2025-05-01',
+            'keluar_dari_pdc' => null,
+            'at_storage_port' => null,
+            'atd_kapal_loading' => null,
+            'ata_kapal' => null,
+            'ata_storage_port_destination' => null,
+            'at_ptd_dtd' => null,
+        ];
+        $positions = [
+            'not_departed_pdc' => [],
+            'departed_pdc' => ['keluar_dari_pdc' => '2025-05-02'],
+            'storage_port' => ['keluar_dari_pdc' => '2025-05-02', 'at_storage_port' => '2025-05-03'],
+            'vessel_loading' => ['keluar_dari_pdc' => '2025-05-02', 'at_storage_port' => '2025-05-03', 'atd_kapal_loading' => '2025-05-04'],
+            'vessel_arrived' => ['keluar_dari_pdc' => '2025-05-02', 'at_storage_port' => '2025-05-03', 'atd_kapal_loading' => '2025-05-04', 'ata_kapal' => '2025-05-05'],
+            'destination_storage' => ['keluar_dari_pdc' => '2025-05-02', 'at_storage_port' => '2025-05-03', 'atd_kapal_loading' => '2025-05-04', 'ata_kapal' => '2025-05-05', 'ata_storage_port_destination' => '2025-05-06'],
+        ];
+
+        foreach (array_values($positions) as $index => $milestones) {
+            IsoLautShipment::create(array_merge($base, $milestones, [
+                'noka' => 'ISO-LAUT-STAGE-'.($index + 1),
+            ]));
+        }
+
+        IsoLautShipment::create(array_merge($base, [
+            'noka' => 'ISO-LAUT-NO-DEST',
+            'destination' => '',
+        ]));
+
+        $alerts = DashboardSlaAlert::isoLaut(5, 2025);
+        $performance = IsoDashboard::doPerformanceStatistics(5, 2025);
+
+        foreach (array_keys($positions) as $stage) {
+            $alertCount = count($alerts['stages'][$stage]['warning']) + count($alerts['stages'][$stage]['danger']);
+
+            $this->assertSame(1, $performance[$stage]['count']);
+            $this->assertSame(1, $alertCount);
+            $this->assertLessThanOrEqual($performance[$stage]['count'], $alertCount);
+        }
     }
 
     public function test_iso_darat_dashboard_shows_driver_number_in_deadline_alerts(): void
