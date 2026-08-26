@@ -141,8 +141,23 @@
                 @foreach ($slaDestinations as $destination => $target)
                     <tr>
                         <td><strong>{{ ucfirst(strtolower($destination)) }}</strong></td>
-                        @foreach ($target['stages'] as $days)
-                            <td>{{ $days }}</td>
+                        @foreach ($target['stages'] as $stage => $days)
+                            <td>
+                                <input
+                                    type="number"
+                                    name="sla_stages[{{ $destination }}][{{ $stage }}]"
+                                    value="{{ old("sla_stages.{$destination}.{$stage}", $days) }}"
+                                    class="form-control form-control-sm @error("sla_stages.{$destination}.{$stage}") is-invalid @enderror"
+                                    min="0"
+                                    max="365"
+                                    required
+                                    aria-label="Tahapan SLA {{ $destination }}"
+                                    style="min-width:75px;"
+                                >
+                                @error("sla_stages.{$destination}.{$stage}")
+                                    <small class="text-danger">{{ $message }}</small>
+                                @enderror
+                            </td>
                         @endforeach
                         <td>
                             <div class="input-group input-group-sm" style="min-width:145px;">
@@ -168,9 +183,9 @@
             </table>
         </div>
         <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <small class="text-muted">Perubahan berlaku untuk tabel shipment, dashboard, laporan, result OTD/LATE, dan perhitungan keterlambatan DSO.</small>
+            <small class="text-muted">Perubahan tahapan dan SLA Customer berlaku untuk tabel shipment, dashboard, laporan, result OTD/LATE, dan perhitungan keterlambatan DSO.</small>
             <button type="submit" class="btn btn-primary">
-                <i class="fas fa-save"></i> Simpan SLA Customer
+                <i class="fas fa-save"></i> Simpan Referensi SLA
             </button>
         </div>
     </form>

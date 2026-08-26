@@ -49,8 +49,9 @@ class SpecialShipmentCrudTest extends TestCase
                 ->get(route('admin.special-shipments.index', $type))
                 ->assertOk()
                 ->assertSee('Referensi SLA Customer')
-                ->assertSee('Simpan SLA Customer')
-                ->assertSee('name="sla_customer[', false);
+                ->assertSee('Simpan Referensi SLA')
+                ->assertSee('name="sla_customer[', false)
+                ->assertSee('name="sla_stages[', false);
         }
 
         $this->actingAs($this->admin)
@@ -65,10 +66,15 @@ class SpecialShipmentCrudTest extends TestCase
             ->map(fn (array $target) => $target['customer'])
             ->all();
         $customers['PADANG'] = 9;
+        $daratStages = collect(IsoSla::targets()['iso-darat'])
+            ->map(fn (array $target) => ['ptd_dooring' => $target['stages']['ptd_dooring']])
+            ->all();
+        $daratStages['PADANG']['ptd_dooring'] = 7;
 
         $this->actingAs($this->admin)
             ->put(route('admin.special-shipments.sla-customer.update', 'iso-darat'), [
                 'sla_customer' => $customers,
+                'sla_stages' => $daratStages,
             ])
             ->assertRedirect(route('admin.special-shipments.index', 'iso-darat'))
             ->assertSessionHas('success');
@@ -82,21 +88,29 @@ class SpecialShipmentCrudTest extends TestCase
         $metrics = SpecialShipmentPerformance::calculate('iso-darat', $shipment);
 
         $this->assertSame(9, IsoSla::customerFor('iso-darat', 'Padang'));
-        $this->assertSame(9, IsoSla::targetFor('iso-darat', 'Padang')['stages']['ptd_dooring']);
+        $this->assertSame(7, IsoSla::targetFor('iso-darat', 'Padang')['stages']['ptd_dooring']);
         $this->assertSame(9, $metrics['sla_customer']);
         $this->assertSame('OTD', $metrics['sla_result']);
         $this->assertDatabaseHas('system_settings', [
             'setting_key' => 'iso_sla_customer_iso_darat',
+        ]);
+        $this->assertDatabaseHas('system_settings', [
+            'setting_key' => 'iso_sla_stages_iso_darat',
         ]);
 
         $lautCustomers = collect(IsoSla::targets()['iso-laut'])
             ->map(fn (array $target) => $target['customer'])
             ->all();
         $lautCustomers['SAMARINDA'] = 10;
+        $lautStages = collect(IsoSla::targets()['iso-laut'])
+            ->map(fn (array $target) => $target['stages'])
+            ->all();
+        $lautStages['SAMARINDA']['storage_port'] = 8;
 
         $this->actingAs($this->admin)
             ->put(route('admin.special-shipments.sla-customer.update', 'iso-laut'), [
                 'sla_customer' => $lautCustomers,
+                'sla_stages' => $lautStages,
             ])
             ->assertRedirect(route('admin.special-shipments.index', 'iso-laut'));
 
@@ -108,9 +122,13 @@ class SpecialShipmentCrudTest extends TestCase
         $lautMetrics = SpecialShipmentPerformance::calculate('iso-laut', $lautShipment);
 
         $this->assertSame(10, $lautMetrics['sla_customer']);
+        $this->assertSame(8, IsoSla::targetFor('iso-laut', 'Samarinda')['stages']['storage_port']);
         $this->assertSame('OTD', $lautMetrics['sla_result']);
         $this->assertDatabaseHas('system_settings', [
             'setting_key' => 'iso_sla_customer_iso_laut',
+        ]);
+        $this->assertDatabaseHas('system_settings', [
+            'setting_key' => 'iso_sla_stages_iso_laut',
         ]);
     }
 

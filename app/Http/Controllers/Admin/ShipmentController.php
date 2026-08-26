@@ -12,6 +12,7 @@ use App\Services\ShipmentService;
 use App\Support\DsoSla;
 use App\Support\ShipmentDashboard;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 
 class ShipmentController extends Controller
@@ -125,10 +126,17 @@ class ShipmentController extends Controller
     public function updateSlaCustomers(Request $request)
     {
         $destinations = array_keys(DsoSla::destinations());
-        $rules = ['sla_customer' => ['required', 'array']];
+        $rules = [
+            'sla_customer' => ['required', 'array'],
+            'sla_stages' => ['required', 'array'],
+        ];
 
         foreach ($destinations as $destination) {
             $rules["sla_customer.{$destination}"] = ['required', 'integer', 'min:1', 'max:365'];
+
+            foreach (array_keys(DsoSla::destinations()[$destination]['stages']) as $stage) {
+                $rules["sla_stages.{$destination}.{$stage}"] = ['required', 'integer', 'min:0', 'max:365'];
+            }
         }
 
         $validated = $request->validate($rules, [
@@ -137,6 +145,10 @@ class ShipmentController extends Controller
             'sla_customer.*.integer' => 'SLA Customer wajib berupa angka hari.',
             'sla_customer.*.min' => 'SLA Customer minimal 1 hari.',
             'sla_customer.*.max' => 'SLA Customer maksimal 365 hari.',
+            'sla_stages.*.*.required' => 'Semua nilai tahapan SLA wajib diisi.',
+            'sla_stages.*.*.integer' => 'Tahapan SLA wajib berupa angka hari.',
+            'sla_stages.*.*.min' => 'Tahapan SLA minimal 0 hari.',
+            'sla_stages.*.*.max' => 'Tahapan SLA maksimal 365 hari.',
         ]);
         $customers = collect($destinations)
             ->mapWithKeys(fn (string $destination) => [
@@ -144,10 +156,13 @@ class ShipmentController extends Controller
             ])
             ->all();
 
-        DsoSla::setCustomers($customers);
+        DB::transaction(function () use ($customers, $validated) {
+            DsoSla::setCustomers($customers);
+            DsoSla::setStages($validated['sla_stages']);
+        });
 
         return redirect()->route('admin.shipments.index')
-            ->with('success', 'Referensi SLA Customer DSO berhasil diperbarui.');
+            ->with('success', 'Referensi SLA DSO berhasil diperbarui.');
     }
 
     private function displayDoHoldDate(Shipment $shipment, string $field): string

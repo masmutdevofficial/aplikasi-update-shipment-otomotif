@@ -53,8 +53,9 @@ class ShipmentCrudTest extends TestCase
         $response->assertStatus(200);
         $response->assertViewIs('admin.shipments.index');
         $response->assertSee('Referensi SLA Customer DSO');
-        $response->assertSee('Simpan SLA Customer');
+        $response->assertSee('Simpan Referensi SLA');
         $response->assertSee('name="sla_customer[', false);
+        $response->assertSee('name="sla_stages[', false);
     }
 
     public function test_admin_can_update_dso_customer_sla_and_use_it_in_performance(): void
@@ -63,10 +64,15 @@ class ShipmentCrudTest extends TestCase
             ->map(fn (array $target) => $target['total'])
             ->all();
         $customers['PONTIANAK'] = 10;
+        $stages = collect(DsoSla::destinations())
+            ->map(fn (array $target) => $target['stages'])
+            ->all();
+        $stages['PONTIANAK'][1] = 7;
 
         $this->actingAs($this->admin)
             ->put(route('admin.shipments.sla-customer.update'), [
                 'sla_customer' => $customers,
+                'sla_stages' => $stages,
             ])
             ->assertRedirect(route('admin.shipments.index'))
             ->assertSessionHas('success');
@@ -80,11 +86,15 @@ class ShipmentCrudTest extends TestCase
         ]);
 
         $this->assertSame(10, DsoSla::targetFor('Pontianak')['total']);
+        $this->assertSame(7, DsoSla::targetFor('Pontianak')['stages'][1]);
         $this->assertSame(10, $shipment->slaCustomer());
         $this->assertSame('OTD', $shipment->slaResult());
         $this->assertSame(0, $shipment->delayDays());
         $this->assertDatabaseHas('system_settings', [
             'setting_key' => 'dso_sla_customers',
+        ]);
+        $this->assertDatabaseHas('system_settings', [
+            'setting_key' => 'dso_sla_stages',
         ]);
     }
 

@@ -10,6 +10,9 @@ class IsoSla
     /** @var array<int, array<string, array<string, int>>> */
     private static array $customerOverrides = [];
 
+    /** @var array<int, array<string, array<string, array<string, int|null>>>> */
+    private static array $stageOverrides = [];
+
     /**
      * Tahap keluar_dari_pdc pada ISO Laut merupakan target saat shipment
      * masih berstatus Belum Keluar PDC dan bernilai 0 hari untuk semua tujuan.
@@ -32,6 +35,12 @@ class IsoSla
 
                 if ($type === 'iso-darat') {
                     $typeTargets[$destination]['stages']['ptd_dooring'] = $customer;
+                }
+            }
+
+            foreach (self::stageOverrides($type) as $destination => $stages) {
+                if (isset($typeTargets[$destination])) {
+                    $typeTargets[$destination]['stages'] = $stages;
                 }
             }
         }
@@ -99,6 +108,45 @@ class IsoSla
         );
 
         unset(self::$customerOverrides[self::applicationKey()][$type]);
+    }
+
+    /** @param array<string, array<string, int|null>> $stages */
+    public static function setStages(string $type, array $stages): void
+    {
+        if (! in_array($type, ['iso-darat', 'iso-laut'], true)) {
+            throw new InvalidArgumentException('Tipe SLA ISO tidak valid.');
+        }
+
+        $defaults = self::baseTargets()[$type];
+        $values = [];
+
+        foreach ($defaults as $destination => $target) {
+            $destinationStages = $stages[$destination] ?? [];
+
+            foreach ($target['stages'] as $stage => $default) {
+                $days = $destinationStages[$stage] ?? null;
+
+                if ($default === null && $days === null) {
+                    $values[$destination][$stage] = null;
+                    continue;
+                }
+
+                $days = filter_var($days, FILTER_VALIDATE_INT);
+
+                if ($days === false || $days < 0 || $days > 365) {
+                    throw new InvalidArgumentException("Tahapan SLA {$destination} tidak valid.");
+                }
+
+                $values[$destination][$stage] = $days;
+            }
+        }
+
+        SystemSetting::query()->updateOrCreate(
+            ['setting_key' => self::stageSettingKey($type)],
+            ['setting_value' => json_encode($values, JSON_THROW_ON_ERROR)],
+        );
+
+        unset(self::$stageOverrides[self::applicationKey()][$type]);
     }
 
     /** @return array{stages: array<string, int|null>, customer: int}|null */
@@ -195,9 +243,58 @@ class IsoSla
             ->all();
     }
 
+    /** @return array<string, array<string, int|null>> */
+    private static function stageOverrides(string $type): array
+    {
+        $applicationKey = self::applicationKey();
+
+        if (isset(self::$stageOverrides[$applicationKey][$type])) {
+            return self::$stageOverrides[$applicationKey][$type];
+        }
+
+        $stored = SystemSetting::query()
+            ->where('setting_key', self::stageSettingKey($type))
+            ->value('setting_value');
+
+        try {
+            $decoded = is_string($stored) ? json_decode($stored, true, flags: JSON_THROW_ON_ERROR) : [];
+        } catch (\JsonException) {
+            $decoded = [];
+        }
+
+        $defaults = self::baseTargets()[$type] ?? [];
+        $overrides = [];
+
+        foreach (is_array($decoded) ? $decoded : [] as $destination => $stages) {
+            if (! isset($defaults[$destination]) || ! is_array($stages)) {
+                continue;
+            }
+
+            foreach ($defaults[$destination]['stages'] as $stage => $default) {
+                $days = $stages[$stage] ?? null;
+
+                if ($default === null && $days === null) {
+                    $overrides[$destination][$stage] = null;
+                } elseif (is_numeric($days) && (int) $days >= 0 && (int) $days <= 365) {
+                    $overrides[$destination][$stage] = (int) $days;
+                } else {
+                    unset($overrides[$destination]);
+                    continue 2;
+                }
+            }
+        }
+
+        return self::$stageOverrides[$applicationKey][$type] = $overrides;
+    }
+
     private static function settingKey(string $type): string
     {
         return 'iso_sla_customer_' . str_replace('-', '_', $type);
+    }
+
+    private static function stageSettingKey(string $type): string
+    {
+        return 'iso_sla_stages_' . str_replace('-', '_', $type);
     }
 
     private static function applicationKey(): int

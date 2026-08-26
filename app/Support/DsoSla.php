@@ -12,8 +12,13 @@ class DsoSla
 {
     private const SETTING_KEY = 'dso_sla_customers';
 
+    private const STAGE_SETTING_KEY = 'dso_sla_stages';
+
     /** @var array<int, array<string, int>> */
     private static array $customerOverrides = [];
+
+    /** @var array<int, array<string, array<int, int>>> */
+    private static array $stageOverrides = [];
 
     /** @return array<int, string> */
     public static function positions(): array
@@ -46,6 +51,12 @@ class DsoSla
         foreach (self::customerOverrides() as $destination => $customer) {
             if (isset($destinations[$destination])) {
                 $destinations[$destination]['total'] = $customer;
+            }
+        }
+
+        foreach (self::stageOverrides() as $destination => $stages) {
+            if (isset($destinations[$destination])) {
+                $destinations[$destination]['stages'] = $stages;
             }
         }
 
@@ -88,6 +99,37 @@ class DsoSla
         );
 
         unset(self::$customerOverrides[self::applicationKey()]);
+    }
+
+    /** @param array<string, array<int, int>> $stages */
+    public static function setStages(array $stages): void
+    {
+        $values = [];
+
+        foreach (self::baseDestinations() as $destination => $target) {
+            $destinationStages = array_values($stages[$destination] ?? []);
+
+            if (count($destinationStages) !== count($target['stages'])) {
+                throw new InvalidArgumentException("Tahapan SLA {$destination} tidak lengkap.");
+            }
+
+            foreach ($destinationStages as $days) {
+                $days = filter_var($days, FILTER_VALIDATE_INT);
+
+                if ($days === false || $days < 0 || $days > 365) {
+                    throw new InvalidArgumentException("Tahapan SLA {$destination} tidak valid.");
+                }
+
+                $values[$destination][] = $days;
+            }
+        }
+
+        SystemSetting::query()->updateOrCreate(
+            ['setting_key' => self::STAGE_SETTING_KEY],
+            ['setting_value' => json_encode($values, JSON_THROW_ON_ERROR)],
+        );
+
+        unset(self::$stageOverrides[self::applicationKey()]);
     }
 
     public static function targetFor(?string $kota, ?string $tujuan = null): ?array
@@ -320,6 +362,50 @@ class DsoSla
             ->all();
 
         return self::$customerOverrides[$applicationKey] = $overrides;
+    }
+
+    /** @return array<string, array<int, int>> */
+    private static function stageOverrides(): array
+    {
+        $applicationKey = self::applicationKey();
+
+        if (isset(self::$stageOverrides[$applicationKey])) {
+            return self::$stageOverrides[$applicationKey];
+        }
+
+        $stored = SystemSetting::query()
+            ->where('setting_key', self::STAGE_SETTING_KEY)
+            ->value('setting_value');
+
+        try {
+            $decoded = is_string($stored) ? json_decode($stored, true, flags: JSON_THROW_ON_ERROR) : [];
+        } catch (\JsonException) {
+            $decoded = [];
+        }
+
+        $defaults = self::baseDestinations();
+        $overrides = [];
+
+        foreach (is_array($decoded) ? $decoded : [] as $destination => $stages) {
+            if (! isset($defaults[$destination]) || ! is_array($stages)
+                || count($stages) !== count($defaults[$destination]['stages'])) {
+                continue;
+            }
+
+            if (collect($stages)->contains(fn (mixed $days) => ! is_numeric($days))) {
+                continue;
+            }
+
+            $normalized = array_map(fn (mixed $days) => (int) $days, array_values($stages));
+
+            if (collect($normalized)->contains(fn (int $days) => $days < 0 || $days > 365)) {
+                continue;
+            }
+
+            $overrides[$destination] = $normalized;
+        }
+
+        return self::$stageOverrides[$applicationKey] = $overrides;
     }
 
     private static function applicationKey(): int

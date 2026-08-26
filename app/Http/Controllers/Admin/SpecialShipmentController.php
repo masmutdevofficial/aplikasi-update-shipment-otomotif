@@ -10,6 +10,7 @@ use App\Support\SpecialShipmentPerformance;
 use App\Support\SpecialShipmentType;
 use App\Support\ShipmentDashboard;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 
 class SpecialShipmentController extends Controller
@@ -175,10 +176,20 @@ class SpecialShipmentController extends Controller
     {
         abort_unless(in_array($type, ['iso-darat', 'iso-laut'], true), 404);
         $destinations = array_keys(IsoSla::targets()[$type]);
-        $rules = ['sla_customer' => ['required', 'array']];
+        $stageKeys = $type === 'iso-laut'
+            ? array_keys(IsoSla::targets()[$type][array_key_first(IsoSla::targets()[$type])]['stages'])
+            : ['ptd_dooring'];
+        $rules = [
+            'sla_customer' => ['required', 'array'],
+            'sla_stages' => ['required', 'array'],
+        ];
 
         foreach ($destinations as $destination) {
             $rules["sla_customer.{$destination}"] = ['required', 'integer', 'min:1', 'max:365'];
+
+            foreach ($stageKeys as $stage) {
+                $rules["sla_stages.{$destination}.{$stage}"] = ['required', 'integer', 'min:0', 'max:365'];
+            }
         }
 
         $validated = $request->validate($rules, [
@@ -187,6 +198,10 @@ class SpecialShipmentController extends Controller
             'sla_customer.*.integer' => 'SLA Customer wajib berupa angka hari.',
             'sla_customer.*.min' => 'SLA Customer minimal 1 hari.',
             'sla_customer.*.max' => 'SLA Customer maksimal 365 hari.',
+            'sla_stages.*.*.required' => 'Semua nilai tahapan SLA wajib diisi.',
+            'sla_stages.*.*.integer' => 'Tahapan SLA wajib berupa angka hari.',
+            'sla_stages.*.*.min' => 'Tahapan SLA minimal 0 hari.',
+            'sla_stages.*.*.max' => 'Tahapan SLA maksimal 365 hari.',
         ]);
         $customers = collect($destinations)
             ->mapWithKeys(fn (string $destination) => [
@@ -194,10 +209,23 @@ class SpecialShipmentController extends Controller
             ])
             ->all();
 
-        IsoSla::setCustomers($type, $customers);
+        $stages = collect($destinations)->mapWithKeys(function (string $destination) use ($type, $stageKeys, $validated) {
+            $current = IsoSla::targets()[$type][$destination]['stages'];
+
+            foreach ($stageKeys as $stage) {
+                $current[$stage] = (int) $validated['sla_stages'][$destination][$stage];
+            }
+
+            return [$destination => $current];
+        })->all();
+
+        DB::transaction(function () use ($type, $customers, $stages) {
+            IsoSla::setCustomers($type, $customers);
+            IsoSla::setStages($type, $stages);
+        });
 
         return redirect()->route('admin.special-shipments.index', $type)
-            ->with('success', "Referensi SLA Customer {$type} berhasil diperbarui.");
+            ->with('success', "Referensi SLA {$type} berhasil diperbarui.");
     }
 
     public function showImport(string $type)
