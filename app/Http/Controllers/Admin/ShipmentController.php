@@ -122,6 +122,34 @@ class ShipmentController extends Controller
         ]);
     }
 
+    public function updateSlaCustomers(Request $request)
+    {
+        $destinations = array_keys(DsoSla::destinations());
+        $rules = ['sla_customer' => ['required', 'array']];
+
+        foreach ($destinations as $destination) {
+            $rules["sla_customer.{$destination}"] = ['required', 'integer', 'min:1', 'max:365'];
+        }
+
+        $validated = $request->validate($rules, [
+            'sla_customer.required' => 'Nilai SLA Customer wajib diisi.',
+            'sla_customer.*.required' => 'Semua nilai SLA Customer wajib diisi.',
+            'sla_customer.*.integer' => 'SLA Customer wajib berupa angka hari.',
+            'sla_customer.*.min' => 'SLA Customer minimal 1 hari.',
+            'sla_customer.*.max' => 'SLA Customer maksimal 365 hari.',
+        ]);
+        $customers = collect($destinations)
+            ->mapWithKeys(fn (string $destination) => [
+                $destination => (int) $validated['sla_customer'][$destination],
+            ])
+            ->all();
+
+        DsoSla::setCustomers($customers);
+
+        return redirect()->route('admin.shipments.index')
+            ->with('success', 'Referensi SLA Customer DSO berhasil diperbarui.');
+    }
+
     private function displayDoHoldDate(Shipment $shipment, string $field): string
     {
         if ($shipment->isDoHold()) {

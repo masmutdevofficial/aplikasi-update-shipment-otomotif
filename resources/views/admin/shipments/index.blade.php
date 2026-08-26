@@ -120,8 +120,11 @@
     <div class="card-header">
         <h3 class="card-title"><i class="fas fa-stopwatch"></i> Referensi SLA Customer DSO</h3>
     </div>
-    <div class="card-body p-0 table-responsive">
-        <table class="table table-sm table-striped mb-0">
+    <form method="POST" action="{{ route('admin.shipments.sla-customer.update') }}">
+        @csrf
+        @method('PUT')
+        <div class="card-body p-0 table-responsive">
+            <table class="table table-sm table-striped mb-0">
             <thead>
                 <tr>
                     <th>Destination</th>
@@ -141,12 +144,36 @@
                         @foreach ($target['stages'] as $days)
                             <td>{{ $days }}</td>
                         @endforeach
-                        <td><strong>{{ $target['total'] }}</strong></td>
+                        <td>
+                            <div class="input-group input-group-sm" style="min-width:145px;">
+                                <input
+                                    type="number"
+                                    name="sla_customer[{{ $destination }}]"
+                                    value="{{ old("sla_customer.{$destination}", $target['total']) }}"
+                                    class="form-control @error("sla_customer.{$destination}") is-invalid @enderror"
+                                    min="1"
+                                    max="365"
+                                    required
+                                    aria-label="SLA Customer {{ $destination }}"
+                                >
+                                <div class="input-group-append"><span class="input-group-text">hari</span></div>
+                            </div>
+                            @error("sla_customer.{$destination}")
+                                <small class="text-danger">{{ $message }}</small>
+                            @enderror
+                        </td>
                     </tr>
                 @endforeach
             </tbody>
-        </table>
-    </div>
+            </table>
+        </div>
+        <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <small class="text-muted">Perubahan berlaku untuk tabel shipment, dashboard, laporan, result OTD/LATE, dan perhitungan keterlambatan DSO.</small>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Simpan SLA Customer
+            </button>
+        </div>
+    </form>
 </div>
 @endsection
 

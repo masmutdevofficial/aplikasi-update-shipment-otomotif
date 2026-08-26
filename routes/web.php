@@ -78,6 +78,7 @@ Route::middleware(['auth', CheckVendorStatus::class])->group(function () {
 
             // Shipment Management
             Route::match(['get', 'post'], '/shipments/data', [ShipmentController::class, 'data'])->name('shipments.data');
+            Route::put('/shipments/sla-customer', [ShipmentController::class, 'updateSlaCustomers'])->name('shipments.sla-customer.update');
             Route::delete('/shipments/bulk-delete', [ShipmentController::class, 'bulkDestroy'])->name('shipments.bulk-destroy');
             Route::resource('shipments', ShipmentController::class)->except(['show']);
             Route::get('/shipments/import', [ShipmentController::class, 'showImport'])->name('shipments.import.form');

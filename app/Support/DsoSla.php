@@ -3,11 +3,18 @@
 namespace App\Support;
 
 use App\Models\Shipment;
+use App\Models\SystemSetting;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use InvalidArgumentException;
 
 class DsoSla
 {
+    private const SETTING_KEY = 'dso_sla_customers';
+
+    /** @var array<int, array<string, int>> */
+    private static array $customerOverrides = [];
+
     /** @return array<int, string> */
     public static function positions(): array
     {
@@ -34,6 +41,20 @@ class DsoSla
      */
     public static function destinations(): array
     {
+        $destinations = self::baseDestinations();
+
+        foreach (self::customerOverrides() as $destination => $customer) {
+            if (isset($destinations[$destination])) {
+                $destinations[$destination]['total'] = $customer;
+            }
+        }
+
+        return $destinations;
+    }
+
+    /** @return array<string, array{stages: array<int, int>, total: int}> */
+    private static function baseDestinations(): array
+    {
         return [
             'BALIKPAPAN' => ['stages' => [0, 3, 1, 3, 1, 0], 'total' => 8],
             'SAMARINDA' => ['stages' => [0, 3, 1, 3, 2, 0], 'total' => 9],
@@ -44,6 +65,29 @@ class DsoSla
             'GORONTALO' => ['stages' => [0, 2, 1, 4, 5, 0], 'total' => 12],
             'MANADO' => ['stages' => [0, 3, 1, 11, 3, 0], 'total' => 18],
         ];
+    }
+
+    /** @param array<string, int> $customers */
+    public static function setCustomers(array $customers): void
+    {
+        $values = [];
+
+        foreach (self::baseDestinations() as $destination => $_target) {
+            $customer = filter_var($customers[$destination] ?? null, FILTER_VALIDATE_INT);
+
+            if ($customer === false || $customer < 1 || $customer > 365) {
+                throw new InvalidArgumentException("SLA Customer {$destination} tidak valid.");
+            }
+
+            $values[$destination] = $customer;
+        }
+
+        SystemSetting::query()->updateOrCreate(
+            ['setting_key' => self::SETTING_KEY],
+            ['setting_value' => json_encode($values, JSON_THROW_ON_ERROR)],
+        );
+
+        unset(self::$customerOverrides[self::applicationKey()]);
     }
 
     public static function targetFor(?string $kota, ?string $tujuan = null): ?array
@@ -245,5 +289,41 @@ class DsoSla
     private static function normalizedCity(?string $city): string
     {
         return strtoupper(trim((string) $city));
+    }
+
+    /** @return array<string, int> */
+    private static function customerOverrides(): array
+    {
+        $applicationKey = self::applicationKey();
+
+        if (isset(self::$customerOverrides[$applicationKey])) {
+            return self::$customerOverrides[$applicationKey];
+        }
+
+        $stored = SystemSetting::query()
+            ->where('setting_key', self::SETTING_KEY)
+            ->value('setting_value');
+
+        try {
+            $decoded = is_string($stored) ? json_decode($stored, true, flags: JSON_THROW_ON_ERROR) : [];
+        } catch (\JsonException) {
+            $decoded = [];
+        }
+
+        $defaults = self::baseDestinations();
+        $overrides = collect(is_array($decoded) ? $decoded : [])
+            ->filter(fn (mixed $value, mixed $destination) => isset($defaults[$destination])
+                && is_numeric($value)
+                && (int) $value >= 1
+                && (int) $value <= 365)
+            ->map(fn (mixed $value) => (int) $value)
+            ->all();
+
+        return self::$customerOverrides[$applicationKey] = $overrides;
+    }
+
+    private static function applicationKey(): int
+    {
+        return function_exists('app') ? spl_object_id(app()) : 0;
     }
 }
