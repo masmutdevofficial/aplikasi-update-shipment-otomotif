@@ -279,6 +279,61 @@ class SpecialShipmentCrudTest extends TestCase
         ]);
     }
 
+    public function test_iso_laut_import_normalizes_excel_serial_at_ptd_dtd(): void
+    {
+        $config = SpecialShipmentType::get('iso-laut');
+        $headers = ShipmentUploadTemplate::specialHeadings($config);
+        $row = array_fill(0, count($headers), null);
+        $row[array_search('NOKA', $headers, true)] = 'TEST-NOKA-EXCEL-DATE-001';
+        $row[array_search('Terima DO', $headers, true)] = 46175;
+        $row[array_search('AT PTD/DTD', $headers, true)] = 46182;
+
+        (new SpecialShipmentImport($config))->collection(collect([$headers, $row]));
+
+        $this->assertDatabaseHas('iso_laut_shipments', [
+            'noka' => 'TEST-NOKA-EXCEL-DATE-001',
+            'at_ptd_dtd' => '2026-06-09',
+        ]);
+        $this->assertSame(
+            '2026-06-02',
+            IsoLautShipment::query()
+                ->where('noka', 'TEST-NOKA-EXCEL-DATE-001')
+                ->firstOrFail()
+                ->terima_do
+                ->format('Y-m-d'),
+        );
+    }
+
+    public function test_iso_laut_existing_excel_serial_is_read_as_a_date(): void
+    {
+        $shipment = IsoLautShipment::create([
+            'noka' => 'TEST-NOKA-LEGACY-SERIAL-001',
+            'terima_do' => '2026-06-02',
+            'at_ptd_dtd' => '46182',
+            'sla_customer' => 7,
+        ]);
+
+        $this->assertSame('2026-06-09', $shipment->fresh()->at_ptd_dtd);
+
+        $metrics = SpecialShipmentPerformance::calculate('iso-laut', $shipment->fresh());
+        $this->assertSame(7, $metrics['sla_actual']);
+        $this->assertSame('OTD', $metrics['sla_result']);
+
+        $this->actingAs($this->admin)
+            ->getJson(route('admin.special-shipments.data', [
+                'type' => 'iso-laut',
+                'search' => ['value' => 'TEST-NOKA-LEGACY-SERIAL-001'],
+                'length' => 10,
+            ]))
+            ->assertOk()
+            ->assertJsonFragment([
+                'noka' => 'TEST-NOKA-LEGACY-SERIAL-001',
+                'at_ptd_dtd' => '2026-06-09',
+                'sla_actual' => 7,
+                'sla_result' => 'OTD',
+            ]);
+    }
+
     public function test_template_can_be_downloaded_for_each_special_type(): void
     {
         foreach (['tso', 'iso-darat', 'iso-laut'] as $type) {

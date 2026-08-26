@@ -83,6 +83,18 @@ class SpecialShipmentImport implements ToCollection
 
                 $data[$field] = $parsed;
                 $fallbackYear ??= (int) substr($parsed, 0, 4);
+            } elseif (($fieldConfig['input_type'] ?? null) === 'date') {
+                // ISO Laut stores AT PTD/DTD as text so legacy values such as
+                // #VALUE! remain readable. Valid dates and Excel serial dates
+                // should still be normalized before they are persisted.
+                $parsed = $this->parseDate($data[$field], $fallbackYear);
+
+                if ($parsed !== null) {
+                    $data[$field] = $parsed;
+                    $fallbackYear ??= (int) substr($parsed, 0, 4);
+                } else {
+                    $data[$field] = trim((string) $data[$field]);
+                }
             } elseif ($fieldConfig['type'] === 'integer') {
                 $data[$field] = is_numeric($data[$field]) ? (int) $data[$field] : null;
 

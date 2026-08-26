@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 
 class IsoLautShipment extends Model
 {
@@ -48,5 +50,20 @@ class IsoLautShipment extends Model
             'ata_storage_port_destination' => 'date',
             'sla_customer' => 'integer',
         ];
+    }
+
+    protected function atPtdDtd(): Attribute
+    {
+        return Attribute::get(function (mixed $value): mixed {
+            if (!is_numeric($value) || (float) $value <= 1000) {
+                return $value;
+            }
+
+            try {
+                return ExcelDate::excelToDateTimeObject((float) $value)->format('Y-m-d');
+            } catch (\Throwable) {
+                return $value;
+            }
+        });
     }
 }
