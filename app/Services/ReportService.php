@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\PendingVin;
 use App\Models\Shipment;
+use App\Models\ShipmentDocument;
 use App\Models\ShipmentUpdate;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -91,7 +92,7 @@ class ReportService
         int $perPage = 20,
     ): LengthAwarePaginator {
         return Shipment::query()
-            ->with(['shipmentUpdates.vendor'])
+            ->with(['shipmentUpdates.vendor', 'uploadedDocument'])
             ->when($search, function ($query, $search) {
                 $query->where('no_rangka', 'like', "%{$search}%");
             })
@@ -112,7 +113,7 @@ class ReportService
         ?int $year = null,
     ): Collection {
         return Shipment::query()
-            ->with(['shipmentUpdates.vendor'])
+            ->with(['shipmentUpdates.vendor', 'uploadedDocument'])
             ->when($search, function ($query, $search) {
                 $query->where('no_rangka', 'like', "%{$search}%");
             })
@@ -174,9 +175,10 @@ class ReportService
             'progress' => $shipment->shipmentProgress(),
         ];
 
-        $documentPath = $shipment->shipmentUpdates->first(fn ($update) => $update->document_path);
+        $legacyDocument = $shipment->shipmentUpdates->first(fn ($update) => $update->document_path);
+        $documentPath = $shipment->uploadedDocument?->document_path ?? $legacyDocument?->document_path;
         $row['document_url'] = $documentPath
-            ? Storage::disk(config('filesystems.document_disk'))->url($documentPath->document_path)
+            ? Storage::disk(config('filesystems.document_disk'))->url($documentPath)
             : '-';
 
         return $row;
@@ -220,8 +222,24 @@ class ReportService
             ->mapWithKeys(fn (ShipmentUpdate $update) => [
                 strtoupper(trim($update->shipment->no_rangka)) => Storage::disk(config('filesystems.document_disk'))->url($update->document_path),
             ]);
+        $modelClass = $shipments->first()::class;
+        $shipmentsById = $shipments->keyBy('id');
+        $uploadedDocuments = ShipmentDocument::query()
+            ->where('documentable_type', $modelClass)
+            ->whereIn('documentable_id', $shipments->pluck('id'))
+            ->get()
+            ->mapWithKeys(function (ShipmentDocument $document) use ($shipmentsById, $identityField) {
+                $identity = $shipmentsById->get($document->documentable_id)?->{$identityField}
+                    ?? $document->identifier;
 
-        return $pendingDocuments->merge($shipmentDocuments);
+                return [
+                    strtoupper(trim((string) $identity)) => Storage::disk(config('filesystems.document_disk'))->url($document->document_path),
+                ];
+            });
+
+        return collect($pendingDocuments->all())
+            ->merge($shipmentDocuments->all())
+            ->merge($uploadedDocuments->all());
     }
 
     public static function specialDocumentUrl(SupportCollection $documentUrls, mixed $identity): ?string

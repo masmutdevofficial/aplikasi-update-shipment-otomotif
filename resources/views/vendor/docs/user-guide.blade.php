@@ -40,10 +40,11 @@
         <li><a href="#guide-3">3. Login & Logout</a></li>
         <li><a href="#guide-4">4. Dashboard</a></li>
         <li><a href="#guide-5">5. Scan Kendaraan (Scan VIN)</a></li>
-        <li><a href="#guide-6">6. Riwayat Scan</a></li>
-        <li><a href="#guide-7">7. Pengaturan Akun</a></li>
-        <li><a href="#guide-8">8. FAQ</a></li>
-        <li><a href="#guide-9">9. Bantuan & Kontak</a></li>
+        <li><a href="#guide-documents">6. Upload Dokumen</a></li>
+        <li><a href="#guide-6">7. Riwayat Scan</a></li>
+        <li><a href="#guide-7">8. Pengaturan Akun</a></li>
+        <li><a href="#guide-8">9. FAQ</a></li>
+        <li><a href="#guide-9">10. Bantuan & Kontak</a></li>
     </ul>
 </div>
 
@@ -60,6 +61,7 @@
                 <tr><td>Dashboard</td><td>Informasi status akun dan posisi Anda dalam rantai pengiriman</td></tr>
                 <tr><td>Scan VIN</td><td>Scan nomor rangka kendaraan (VIN) menggunakan kamera atau input manual</td></tr>
                 <tr><td>Riwayat Scan</td><td>Daftar semua kendaraan yang pernah Anda scan</td></tr>
+                <tr><td>Upload Dokumen</td><td>Unggah dokumen shipment untuk vendor pada posisi akhir</td></tr>
                 <tr><td>Ubah Password</td><td>Ganti password akun Anda secara mandiri</td></tr>
                 <tr><td>Panduan Penggunaan</td><td>Halaman ini — panduan lengkap penggunaan aplikasi</td></tr>
             </tbody>
@@ -203,24 +205,36 @@
     </div>
 </div>
 
-{{-- 6. Riwayat Scan --}}
+{{-- 6. Upload Dokumen --}}
+<div class="card mb-4 guide-section" id="guide-documents">
+    <div class="card-header"><i class="fas fa-file-upload me-2"></i> 6. Upload Dokumen</div>
+    <div class="card-body">
+        <p>Menu ini khusus vendor pada posisi akhir: AT PtD (Dooring) DSO, AT PTD/DTD ISO, dan Port to Door TSO.</p>
+
+        <div class="step-item"><span class="step-number">1</span><span>Dari menu navigasi, klik <strong>Upload Dokumen</strong>.</span></div>
+        <div class="step-item"><span class="step-number">2</span><span>Cari No. Rangka, No. SPB, atau NOKA shipment.</span></div>
+        <div class="step-item"><span class="step-number">3</span><span>Pilih foto PNG/JPEG maksimal 5 MB, lalu klik <strong>Upload</strong>.</span></div>
+        <div class="step-item"><span class="step-number">4</span><span>Gunakan tombol <strong>Lihat</strong> untuk membuka dokumen atau <strong>Ganti</strong> untuk memperbaruinya.</span></div>
+    </div>
+</div>
+
+{{-- 7. Riwayat Scan --}}
 <div class="card mb-4 guide-section" id="guide-6">
-    <div class="card-header"><i class="fas fa-history me-2"></i> 6. Riwayat Scan</div>
+    <div class="card-header"><i class="fas fa-history me-2"></i> 7. Riwayat Scan</div>
     <div class="card-body">
         <p>Lihat daftar seluruh kendaraan yang pernah Anda scan.</p>
 
         <div class="step-item"><span class="step-number">1</span><span>Dari menu navigasi, klik <strong>Riwayat Scan</strong>.</span></div>
-        <div class="step-item"><span class="step-number">2</span><span>Tabel menampilkan No. Rangka dan Tanggal Scan. Untuk vendor PTD Dooring, tersedia kolom Dokumen.</span></div>
+        <div class="step-item"><span class="step-number">2</span><span>Tabel menampilkan No. Rangka dan Tanggal Scan.</span></div>
         <div class="step-item"><span class="step-number">3</span><span>Gunakan fitur pencarian untuk menemukan kendaraan tertentu.</span></div>
-        <div class="step-item"><span class="step-number">4</span><span>Untuk PTD Dooring, pilih foto PNG/JPEG maksimal 5 MB pada baris VIN yang diinginkan, lalu klik <strong>Upload</strong>.</span></div>
 
-        <div class="info-box-doc">Data riwayat scan hanya dapat dilihat. Khusus PTD Dooring, foto dokumen dapat diunggah atau diganti dari baris VIN milik akun Anda sendiri.</div>
+        <div class="info-box-doc">Data riwayat scan hanya dapat dilihat. Pengunggahan dokumen dilakukan melalui menu Upload Dokumen.</div>
     </div>
 </div>
 
-{{-- 7. Pengaturan Akun --}}
+{{-- 8. Pengaturan Akun --}}
 <div class="card mb-4 guide-section" id="guide-7">
-    <div class="card-header"><i class="fas fa-key me-2"></i> 7. Pengaturan Akun</div>
+    <div class="card-header"><i class="fas fa-key me-2"></i> 8. Pengaturan Akun</div>
     <div class="card-body">
         <h3>Ubah Password</h3>
         <div class="step-item"><span class="step-number">1</span><span>Klik nama akun di pojok kanan atas.</span></div>
@@ -243,9 +257,9 @@
     </div>
 </div>
 
-{{-- 8. FAQ --}}
+{{-- 9. FAQ --}}
 <div class="card mb-4 guide-section" id="guide-8">
-    <div class="card-header"><i class="fas fa-question-circle me-2"></i> 8. Pertanyaan yang Sering Diajukan (FAQ)</div>
+    <div class="card-header"><i class="fas fa-question-circle me-2"></i> 9. Pertanyaan yang Sering Diajukan (FAQ)</div>
     <div class="card-body">
         <table class="table table-bordered guide-table">
             <thead><tr><th>Pertanyaan</th><th>Jawaban</th></tr></thead>
@@ -283,9 +297,9 @@
     </div>
 </div>
 
-{{-- 9. Bantuan --}}
+{{-- 10. Bantuan --}}
 <div class="card mb-4 guide-section" id="guide-9">
-    <div class="card-header"><i class="fas fa-headset me-2"></i> 9. Bantuan & Kontak</div>
+    <div class="card-header"><i class="fas fa-headset me-2"></i> 10. Bantuan & Kontak</div>
     <div class="card-body">
         <p>Jika mengalami kendala yang tidak tercakup dalam panduan ini, segera hubungi Admin melalui saluran resmi yang disediakan perusahaan.</p>
         <div class="info-box-doc"><strong>Catatan:</strong> Simpan nomor kontak Admin Anda agar mudah dihubungi saat mengalami kendala, terutama saat proses pengiriman aktif di lapangan.</div>

@@ -415,6 +415,14 @@
                                 <p>Riwayat Scan</p>
                             </a>
                         </li>
+                        @if(in_array(auth()->user()->vendor->position, ['AT PtD (Dooring)', 'AT PTD/DTD', 'Port to Door (PTD)'], true))
+                        <li class="nav-item">
+                            <a href="{{ route('vendor.documents.index') }}" class="nav-link @if(request()->routeIs('vendor.documents.*')) active @endif">
+                                <i class="nav-icon fas fa-file-upload"></i>
+                                <p>Upload Dokumen</p>
+                            </a>
+                        </li>
+                        @endif
                         @endif
                         <div class="nav-header">Bantuan</div>
                         <li class="nav-item">

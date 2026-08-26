@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\PendingVinController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Vendor\DashboardController as VendorDashboardController;
+use App\Http\Controllers\Vendor\DocumentController;
 use App\Http\Controllers\Vendor\HistoryController;
 use App\Http\Controllers\Vendor\ScannerController;
 use App\Http\Middleware\CheckLevel;
@@ -131,7 +132,11 @@ Route::middleware(['auth', CheckVendorStatus::class])->group(function () {
             Route::post('/scanner/scan', [ScannerController::class, 'scan'])->name('scanner.scan');
             Route::post('/scanner/confirm', [ScannerController::class, 'confirm'])->name('scanner.confirm');
             Route::get('/history', HistoryController::class)->name('history');
-            Route::post('/history/{history}/document', [HistoryController::class, 'uploadDocument'])->name('history.document.upload');
+            Route::get('/documents', [DocumentController::class, 'index'])->name('documents.index');
+            Route::match(['get', 'post'], '/documents/data', [DocumentController::class, 'data'])->name('documents.data');
+            Route::post('/documents/{shipmentType}/{shipment}', [DocumentController::class, 'upload'])
+                ->where('shipmentType', 'dso|tso|iso-darat|iso-laut')
+                ->name('documents.upload');
 
             // Documentation
             Route::get('/docs/user-guide', fn () => view('vendor.docs.user-guide'))->name('docs.user-guide');

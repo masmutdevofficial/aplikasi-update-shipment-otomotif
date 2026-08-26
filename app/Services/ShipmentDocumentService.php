@@ -9,10 +9,11 @@ use RuntimeException;
 
 class ShipmentDocumentService
 {
-    public function store(UploadedFile $document, string $noRangka): string
+    public function store(UploadedFile $document, string $storageKey): string
     {
         $extension = $document->extension() === 'png' ? 'png' : 'jpg';
-        $path = "shipment-documents/{$noRangka}/".Str::uuid().".{$extension}";
+        $storageKey = trim((string) preg_replace('/[^A-Za-z0-9\/_-]+/', '-', $storageKey), '-/');
+        $path = "shipment-documents/{$storageKey}/".Str::uuid().".{$extension}";
 
         if (! Storage::disk(config('filesystems.document_disk'))->put($path, $document->get())) {
             throw new RuntimeException('Penyimpanan dokumen menolak file yang diunggah.');

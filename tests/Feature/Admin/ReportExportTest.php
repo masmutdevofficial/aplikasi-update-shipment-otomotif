@@ -8,6 +8,7 @@ use App\Models\IsoDaratShipment;
 use App\Models\IsoLautShipment;
 use App\Models\PendingVin;
 use App\Models\Shipment;
+use App\Models\ShipmentDocument;
 use App\Models\TsoShipment;
 use App\Models\User;
 use App\Models\Vendor;
@@ -176,6 +177,50 @@ class ReportExportTest extends TestCase
 
         $this->assertIsInt($documentColumn);
         $this->assertSame($documentUrl, $export->array()[0][$documentColumn]);
+    }
+
+    public function test_reports_resolve_documents_uploaded_from_the_vendor_document_page(): void
+    {
+        Storage::fake('r2');
+        config(['filesystems.document_disk' => 'r2']);
+        $vendorUser = User::factory()->vendor()->create();
+        $vendor = Vendor::create([
+            'user_id' => $vendorUser->id,
+            'vendor_name' => 'Vendor Upload Dokumen',
+            'position' => 'AT PtD (Dooring)',
+        ]);
+        $dso = Shipment::factory()->create(['no_rangka' => 'REPORTDOCUPLOAD01']);
+        $tso = TsoShipment::create(['no_rangka' => 'REPORT-TSO-DOC-01']);
+
+        foreach ([[$dso, 'dso.jpg'], [$tso, 'tso.jpg']] as [$shipment, $filename]) {
+            $path = 'shipment-documents/test/'.$filename;
+            Storage::disk('r2')->put($path, 'document-content');
+            ShipmentDocument::create([
+                'documentable_type' => $shipment::class,
+                'documentable_id' => $shipment->id,
+                'vendor_id' => $vendor->id,
+                'identifier' => $shipment->no_rangka,
+                'document_path' => $path,
+            ]);
+        }
+
+        $this->actingAs($this->admin)
+            ->postJson(route('admin.reports.data'), [
+                'type' => 'dso', 'draw' => 1, 'start' => 0, 'length' => 25,
+            ])
+            ->assertOk()
+            ->assertJsonFragment([
+                'document_url' => Storage::disk('r2')->url('shipment-documents/test/dso.jpg'),
+            ]);
+
+        $this->actingAs($this->admin)
+            ->postJson(route('admin.reports.data'), [
+                'type' => 'tso', 'draw' => 1, 'start' => 0, 'length' => 25,
+            ])
+            ->assertOk()
+            ->assertJsonFragment([
+                'document_url' => Storage::disk('r2')->url('shipment-documents/test/tso.jpg'),
+            ]);
     }
 
     public function test_reports_are_separated_by_type_and_period(): void

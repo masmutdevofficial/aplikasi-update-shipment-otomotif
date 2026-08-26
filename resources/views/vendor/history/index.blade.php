@@ -36,9 +36,6 @@
                         <th>No</th>
                         <th>No. Rangka (VIN)</th>
                         <th>Tanggal Scan</th>
-                        @if($canUploadDocuments)
-                            <th>Dokumen</th>
-                        @endif
                     </tr>
                 </thead>
                 <tbody>
@@ -47,22 +44,6 @@
                             <td>{{ $loop->iteration }}</td>
                             <td><code>{{ $history->no_rangka }}</code></td>
                             <td>{{ $history->scan_date->format('d-M-y') }}</td>
-                            @if($canUploadDocuments)
-                                <td style="min-width: 270px;">
-                                    @if($history->document_path)
-                                        <a href="{{ \Illuminate\Support\Facades\Storage::disk(config('filesystems.document_disk'))->url($history->document_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary mb-1">
-                                            <i class="fas fa-image"></i> Lihat
-                                        </a>
-                                    @endif
-                                    <form method="POST" action="{{ route('vendor.history.document.upload', $history) }}" enctype="multipart/form-data" class="d-flex flex-wrap gap-1 align-items-center">
-                                        @csrf
-                                        <input type="file" name="document" class="form-control form-control-sm" accept="image/png,image/jpeg" capture="environment" required style="max-width: 170px;">
-                                        <button type="submit" class="btn btn-sm btn-primary">
-                                            <i class="fas fa-upload"></i> {{ $history->document_path ? 'Ganti' : 'Upload' }}
-                                        </button>
-                                    </form>
-                                </td>
-                            @endif
                         </tr>
                     @endforeach
                 </tbody>
@@ -88,7 +69,7 @@ document.addEventListener('DOMContentLoaded', function () {
             zeroRecords: 'Tidak ada data yang cocok',
             paginate: { first: '«', last: '»', next: '›', previous: '‹' }
         },
-        columnDefs: [{ orderable: false, targets: {{ $canUploadDocuments ? '[0, 3]' : '[0]' }} }],
+        columnDefs: [{ orderable: false, targets: [0] }],
         order: [[2, 'desc']]
     });
 });

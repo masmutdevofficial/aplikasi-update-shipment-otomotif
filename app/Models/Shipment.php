@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 class Shipment extends Model
 {
@@ -260,5 +261,10 @@ class Shipment extends Model
     public function shipmentUpdates(): HasMany
     {
         return $this->hasMany(ShipmentUpdate::class);
+    }
+
+    public function uploadedDocument(): MorphOne
+    {
+        return $this->morphOne(ShipmentDocument::class, 'documentable');
     }
 }

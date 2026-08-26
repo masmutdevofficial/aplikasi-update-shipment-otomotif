@@ -2,8 +2,11 @@
 
 namespace Tests\Feature\Vendor;
 
-use App\Models\ScanHistory;
+use App\Models\IsoDaratShipment;
+use App\Models\IsoLautShipment;
 use App\Models\Shipment;
+use App\Models\ShipmentDocument;
+use App\Models\TsoShipment;
 use App\Models\User;
 use App\Models\Vendor;
 use Illuminate\Support\Facades\Storage;
@@ -126,7 +129,7 @@ class ScanVinTest extends TestCase
         ]);
     }
 
-    public function test_dooring_vendor_can_upload_document_from_scan_history(): void
+    public function test_dooring_vendor_can_upload_document_for_any_dso_shipment(): void
     {
         Storage::fake('r2');
         $admin = User::factory()->admin()->create();
@@ -145,43 +148,49 @@ class ScanVinTest extends TestCase
         ]);
 
         $this->actingAs($dooringUser)
-            ->postJson(route('vendor.scanner.confirm'), [
-                'no_rangka' => $shipment->no_rangka,
-            ])
+            ->get(route('vendor.documents.index'))
             ->assertOk()
-            ->assertJsonPath('success', true);
-
-        $history = ScanHistory::where('user_id', $dooringUser->id)->firstOrFail();
-        $this->assertNull($shipment->shipmentUpdates()->first()->document_path);
+            ->assertSee('Upload Dokumen')
+            ->assertSee('No. Rangka');
 
         $this->actingAs($dooringUser)
-            ->post(route('vendor.history.document.upload', $history), [
+            ->postJson(route('vendor.documents.data'), [
+                'draw' => 1,
+                'start' => 0,
+                'length' => 10,
+            ])
+            ->assertOk()
+            ->assertJsonPath('recordsTotal', 1)
+            ->assertJsonPath('data.0.identifier', $shipment->no_rangka);
+
+        $this->actingAs($dooringUser)
+            ->post(route('vendor.documents.upload', ['dso', $shipment->id]), [
                 'document' => UploadedFile::fake()->image('surat-jalan.png')->size(5120),
             ])
-            ->assertRedirect(route('vendor.history'));
+            ->assertRedirect(route('vendor.documents.index'));
 
-        $update = $shipment->shipmentUpdates()->first();
-        $this->assertSame($dooringVendor->id, $update->vendor_id);
-        $this->assertNotNull($update->document_path);
-        Storage::disk('r2')->assertExists($update->document_path);
+        $document = ShipmentDocument::query()->firstOrFail();
+        $this->assertSame($dooringVendor->id, $document->vendor_id);
+        $this->assertSame($shipment->id, $document->documentable_id);
+        Storage::disk('r2')->assertExists($document->document_path);
     }
 
-    public function test_non_dooring_vendor_cannot_upload_document_from_scan_history(): void
+    public function test_non_final_position_vendor_cannot_access_document_upload(): void
     {
-        $history = ScanHistory::create([
-            'user_id' => $this->vendorUser->id,
-            'no_rangka' => 'MHFAA8GS4N0000001',
-            'scan_date' => today(),
-        ]);
+        $shipment = Shipment::factory()->create();
 
         $this->actingAs($this->vendorUser)
-            ->post(route('vendor.history.document.upload', $history), [
+            ->get(route('vendor.documents.index'))
+            ->assertForbidden();
+
+        $this->actingAs($this->vendorUser)
+            ->post(route('vendor.documents.upload', ['dso', $shipment->id]), [
                 'document' => UploadedFile::fake()->image('surat-jalan.png'),
             ])
             ->assertForbidden();
     }
 
-    public function test_dooring_vendor_sees_a_clear_message_when_no_document_is_selected(): void
+    public function test_final_position_vendor_sees_a_clear_message_when_no_document_is_selected(): void
     {
         $admin = User::factory()->admin()->create();
         $dooringUser = User::factory()->vendor()->create();
@@ -192,18 +201,70 @@ class ScanVinTest extends TestCase
             'created_by' => $admin->id,
             'updated_by' => $admin->id,
         ]);
-        $history = ScanHistory::create([
-            'user_id' => $dooringUser->id,
-            'no_rangka' => 'MHFAA8GS4N0000001',
-            'scan_date' => today(),
-        ]);
+        $shipment = Shipment::factory()->create();
 
         $this->actingAs($dooringUser)
-            ->post(route('vendor.history.document.upload', $history))
-            ->assertRedirect(route('vendor.history'))
-            ->assertSessionHasErrors([
-                'document' => 'Pilih foto dokumen terlebih dahulu.',
-            ]);
+            ->postJson(route('vendor.documents.upload', ['dso', $shipment->id]))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('document')
+            ->assertJsonPath('errors.document.0', 'Pilih foto dokumen terlebih dahulu.');
+    }
+
+    public function test_iso_final_vendor_sees_iso_darat_and_iso_laut_identities(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $isoUser = User::factory()->vendor()->create();
+        Vendor::create([
+            'user_id' => $isoUser->id,
+            'vendor_name' => 'ISO PTD DTD Test',
+            'position' => 'AT PTD/DTD',
+            'created_by' => $admin->id,
+            'updated_by' => $admin->id,
+        ]);
+        IsoDaratShipment::create(['no_spb' => 'SPB-DOCUMENT-001']);
+        IsoLautShipment::create(['noka' => 'NOKA-DOCUMENT-001']);
+
+        $this->actingAs($isoUser)
+            ->get(route('vendor.documents.index'))
+            ->assertOk()
+            ->assertSee('No. SPB / NOKA');
+
+        $this->actingAs($isoUser)
+            ->postJson(route('vendor.documents.data'), [
+                'draw' => 1,
+                'start' => 0,
+                'length' => 10,
+            ])
+            ->assertOk()
+            ->assertJsonPath('recordsTotal', 2)
+            ->assertJsonFragment(['identifier' => 'SPB-DOCUMENT-001'])
+            ->assertJsonFragment(['identifier' => 'NOKA-DOCUMENT-001']);
+    }
+
+    public function test_tso_final_vendor_only_sees_tso_shipments(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $tsoUser = User::factory()->vendor()->create();
+        Vendor::create([
+            'user_id' => $tsoUser->id,
+            'vendor_name' => 'TSO Port to Door Test',
+            'position' => 'Port to Door (PTD)',
+            'created_by' => $admin->id,
+            'updated_by' => $admin->id,
+        ]);
+        TsoShipment::create(['no_rangka' => 'TSO-DOCUMENT-001']);
+        Shipment::factory()->create(['no_rangka' => 'DSO-NOT-VISIBLE01']);
+
+        $this->actingAs($tsoUser)
+            ->postJson(route('vendor.documents.data'), [
+                'draw' => 1,
+                'start' => 0,
+                'length' => 10,
+            ])
+            ->assertOk()
+            ->assertJsonPath('recordsTotal', 1)
+            ->assertJsonPath('data.0.identifier', 'TSO-DOCUMENT-001')
+            ->assertJsonMissing(['identifier' => 'DSO-NOT-VISIBLE01']);
     }
 
     public function test_confirm_fails_for_duplicate_position_scan(): void
@@ -238,6 +299,8 @@ class ScanVinTest extends TestCase
     public function test_vendor_can_view_scan_history(): void
     {
         $response = $this->actingAs($this->vendorUser)->get(route('vendor.history'));
-        $response->assertStatus(200);
+        $response->assertOk()
+            ->assertSee('Riwayat Scan')
+            ->assertDontSee('<th>Dokumen</th>', false);
     }
 }

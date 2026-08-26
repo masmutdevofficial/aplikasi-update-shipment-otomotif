@@ -77,7 +77,7 @@ class ReportController extends Controller
         $start = max(0, (int) $request->input('start', 0));
         $length = min(100, max(10, (int) $request->input('length', 25)));
         $shipments = $query
-            ->when($type === 'dso', fn (Builder $builder) => $builder->with('shipmentUpdates'))
+            ->when($type === 'dso', fn (Builder $builder) => $builder->with(['shipmentUpdates', 'uploadedDocument']))
             ->orderBy($orderColumn, $orderDirection)
             ->skip($start)
             ->take($length)
