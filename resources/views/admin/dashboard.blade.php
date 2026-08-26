@@ -165,7 +165,7 @@
         ['label' => 'Persentase Keterlambatan', 'value' => number_format($delayStats['percentage'], 2, ',', '.') . '%', 'icon' => 'fa-percent', 'theme' => 'purple'],
         ['label' => 'OTD Performance', 'value' => number_format($delayStats['otd_percentage'], 2, ',', '.') . '%', 'icon' => 'fa-check-double', 'theme' => 'green'],
         ['label' => 'Total DO Hold', 'value' => number_format($dsoDoHoldStats['total']), 'icon' => 'fa-pause-circle', 'theme' => 'orange'],
-        ['label' => 'DO Hold Keterlambatan', 'value' => number_format($dsoDoHoldStats['percentage'], 2, ',', '.') . '%', 'icon' => 'fa-exclamation-triangle', 'theme' => 'red'],
+        ['label' => 'DO Hold', 'value' => number_format($dsoDoHoldStats['percentage'], 2, ',', '.') . '%', 'icon' => 'fa-percentage', 'theme' => 'orange'],
     ];
     $dsoDoPerformanceCards = [
         'total_received' => ['label' => 'Total Terima DO', 'icon' => 'fa-file-alt', 'theme' => 'blue'],

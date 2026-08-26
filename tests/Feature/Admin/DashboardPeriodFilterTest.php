@@ -97,7 +97,8 @@ class DashboardPeriodFilterTest extends TestCase
             ->get('/admin/dashboard?type=dso&month=5&year=2025')
             ->assertOk()
             ->assertSee('Total DO Hold')
-            ->assertSee('DO Hold Keterlambatan')
+            ->assertSee('DO Hold')
+            ->assertDontSee('DO Hold Keterlambatan')
             ->assertViewHas('dsoDoHoldStats', fn (array $stats) => $stats['total'] === 1 && $stats['percentage'] === 50.0
             )
             ->assertViewHas('delayStats', fn (array $stats) => $stats['evaluated'] === 1 && $stats['late'] === 0
