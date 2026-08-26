@@ -102,12 +102,12 @@ class DashboardPeriodFilterTest extends TestCase
             )
             ->assertViewHas('delayStats', fn (array $stats) => $stats['evaluated'] === 1 && $stats['late'] === 0
             )
-            ->assertViewHas('dsoDoPerformance', fn (array $stats) => $stats['total_received']['count'] === 2
-                && $stats['departed_pdc']['count'] === 1
-                && $stats['storage_port']['count'] === 1
-                && $stats['vessel_loading']['count'] === 1
-                && $stats['vessel_arrived']['count'] === 1
-                && $stats['destination_storage']['count'] === 1
+            ->assertViewHas('dsoDoPerformance', fn (array $stats) => $stats['total_received']['count'] === 1
+                && $stats['departed_pdc']['count'] === 0
+                && $stats['storage_port']['count'] === 0
+                && $stats['vessel_loading']['count'] === 0
+                && $stats['vessel_arrived']['count'] === 0
+                && $stats['destination_storage']['count'] === 0
                 && $stats['ptd_dooring']['count'] === 1
             );
 
@@ -377,10 +377,11 @@ class DashboardPeriodFilterTest extends TestCase
             );
     }
 
-    public function test_dso_dashboard_shows_cumulative_do_performance_counts_and_percentages(): void
+    public function test_dso_dashboard_sums_current_positions_for_do_performance_cards(): void
     {
-        Shipment::create([
+        Shipment::factory()->create([
             'no_rangka' => 'DSO-FUNNEL-0001',
+            'kota' => 'MAKASSAR',
             'terima_do' => '2025-05-01',
             'keluar_dari_pdc' => '2025-05-02',
             'at_storage_port' => '2025-05-03',
@@ -389,18 +390,22 @@ class DashboardPeriodFilterTest extends TestCase
             'ata_storage_port_destination' => '2025-05-06',
             'at_ptd_dooring' => '2025-05-07',
         ]);
-        Shipment::create([
+        Shipment::factory()->create([
             'no_rangka' => 'DSO-FUNNEL-0002',
+            'kota' => 'MAKASSAR',
             'terima_do' => '2025-05-10',
             'keluar_dari_pdc' => '2025-05-11',
             'at_storage_port' => '2025-05-12',
         ]);
-        Shipment::create([
+        Shipment::factory()->create([
             'no_rangka' => 'DSO-FUNNEL-0003',
+            'kota' => 'MAKASSAR',
             'terima_do' => '2025-05-15',
+            'keluar_dari_pdc' => null,
         ]);
-        Shipment::create([
+        Shipment::factory()->create([
             'no_rangka' => 'DSO-FUNNEL-OUTSIDE',
+            'kota' => 'MAKASSAR',
             'terima_do' => '2025-06-01',
             'keluar_dari_pdc' => '2025-06-02',
         ]);
@@ -415,11 +420,11 @@ class DashboardPeriodFilterTest extends TestCase
             ->assertSee('33,33% dari Total Terima DO')
             ->assertViewHas('dsoDoPerformance', fn (array $stats) => $stats['total_received'] === ['count' => 3, 'percentage' => 100.0]
                 && $stats['not_departed_pdc'] === ['count' => 1, 'percentage' => 33.33]
-                && $stats['departed_pdc'] === ['count' => 2, 'percentage' => 66.67]
-                && $stats['storage_port'] === ['count' => 2, 'percentage' => 66.67]
-                && $stats['vessel_loading'] === ['count' => 1, 'percentage' => 33.33]
-                && $stats['vessel_arrived'] === ['count' => 1, 'percentage' => 33.33]
-                && $stats['destination_storage'] === ['count' => 1, 'percentage' => 33.33]
+                && $stats['departed_pdc'] === ['count' => 0, 'percentage' => 0.0]
+                && $stats['storage_port'] === ['count' => 1, 'percentage' => 33.33]
+                && $stats['vessel_loading'] === ['count' => 0, 'percentage' => 0.0]
+                && $stats['vessel_arrived'] === ['count' => 0, 'percentage' => 0.0]
+                && $stats['destination_storage'] === ['count' => 0, 'percentage' => 0.0]
                 && $stats['ptd_dooring'] === ['count' => 1, 'percentage' => 33.33]
             );
     }

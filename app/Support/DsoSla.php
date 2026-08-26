@@ -190,27 +190,28 @@ class DsoSla
     }
 
     /**
-     * Funnel akumulatif DO Performance. Setiap milestone menghitung seluruh
-     * shipment yang sudah mencapai tahap tersebut dalam periode dashboard.
+     * DO Performance berasal dari penjumlahan vertikal setiap posisi pada
+     * Dashboard 2 — Posisi Barang per Kota. Setiap shipment hanya dihitung
+     * sekali pada posisi terakhirnya dan shipment DO HOLD tetap terpisah.
      *
      * @return array<string, array{count: int, percentage: float|int}>
      */
     public static function doPerformanceStatistics(?int $month = null, ?int $year = null): array
     {
-        $shipments = self::periodQuery($month, $year)
-            ->whereNotNull('terima_do')
-            ->get();
-        $total = $shipments->count();
-        $activeShipments = $shipments->reject(fn (Shipment $shipment) => $shipment->isDoHold());
+        $citySummaries = collect(self::positionSummary($month, $year));
+        $total = (int) $citySummaries->sum('total');
+        $positionCount = fn (string $position): int => (int) $citySummaries->sum(
+            fn (array $summary) => $summary['positions'][$position]['count'] ?? 0
+        );
         $counts = [
             'total_received' => $total,
-            'not_departed_pdc' => $activeShipments->whereNull('keluar_dari_pdc')->count(),
-            'departed_pdc' => $activeShipments->whereNotNull('keluar_dari_pdc')->count(),
-            'storage_port' => $activeShipments->whereNotNull('at_storage_port')->count(),
-            'vessel_loading' => $activeShipments->whereNotNull('atd_kapal_loading')->count(),
-            'vessel_arrived' => $activeShipments->whereNotNull('ata_kapal')->count(),
-            'destination_storage' => $activeShipments->whereNotNull('ata_storage_port_destination')->count(),
-            'ptd_dooring' => $activeShipments->whereNotNull('at_ptd_dooring')->count(),
+            'not_departed_pdc' => $positionCount('Belum Keluar PDC'),
+            'departed_pdc' => $positionCount('Keluar dari PDC'),
+            'storage_port' => $positionCount('AT Storage Port'),
+            'vessel_loading' => $positionCount('ATD Kapal (Loading)'),
+            'vessel_arrived' => $positionCount('ATA Kapal'),
+            'destination_storage' => $positionCount('ATA Storage Port (Destination)'),
+            'ptd_dooring' => $positionCount('AT PtD (Dooring)'),
         ];
 
         return collect($counts)
