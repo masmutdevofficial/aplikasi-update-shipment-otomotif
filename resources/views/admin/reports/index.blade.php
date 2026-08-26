@@ -14,12 +14,6 @@
     ];
     $reportLabel = $reportOptions[$selectedReport]['label'];
     $selectedQuery = $reportOptions[$selectedReport]['query'];
-    $performanceColumns = $reportConfig
-        ? collect($reportConfig['performance']['stages'])->map(fn ($stage, $key) => [
-            'key' => $key,
-            'label' => $stage['label'],
-        ])
-        : collect();
 @endphp
 
 @section('title', 'Laporan '.$reportLabel.' — Shipment Otomotif')
@@ -81,97 +75,12 @@
     <div class="card-body p-0">
         <div class="report-table-scroll">
             <table id="table-reports" class="table table-hover table-striped mb-0" style="font-size:.85rem;">
-                @if ($selectedReport === 'dso')
-                    <thead><tr>
-                        <th>No</th><th>Lokasi</th><th>No. DO</th><th>Type</th><th>No. Rangka</th>
-                        <th>No. Engine</th><th>Warna</th><th>Asal PDC</th><th>Kota</th><th>Tujuan</th>
-                        <th>Terima DO</th><th>Keluar PDC</th><th>Kapal</th><th>Keberangkatan</th>
-                        <th>AT Storage Port</th><th>ATD Kapal (Loading)</th><th>ATA Kapal</th><th>ATA Storage Port (Destination)</th>
-                        <th>DO Release to Pickup</th><th>Storage Port</th><th>Dwelling Origin</th>
-                        <th>Kapal (Aboard)</th><th>Storage Port (Destination)</th><th>Dwelling Destination</th>
-                        <th>SLA Actual</th><th>SLA Customer</th><th>Result</th><th>Keterlambatan (Hari)</th>
-                        <th>Max Arrival</th><th>Progress</th>
-                        <th>Dokumen</th>
-                    </tr></thead>
-                    <tbody>
-                        @foreach ($shipments as $shipment)
-                            @php $reportRow = \App\Services\ReportService::flattenShipment($shipment); @endphp
-                            <tr>
-                                <td>{{ $loop->iteration }}</td>
-                                <td>{{ $shipment->lokasi }}</td><td>{{ $shipment->no_do }}</td><td>{{ $shipment->type_kendaraan }}</td>
-                                <td><code>{{ $shipment->no_rangka }}</code></td><td>{{ $shipment->no_engine }}</td>
-                                <td>{{ $shipment->warna }}</td><td>{{ $shipment->asal_pdc }}</td><td>{{ $shipment->kota }}</td>
-                                <td>{{ $shipment->tujuan_pengiriman }}</td><td>{{ $shipment->terima_do?->format('d-M-y') ?? '-' }}</td>
-                                <td>{{ $shipment->keluar_dari_pdc?->format('d-M-y') ?? '-' }}</td>
-                                <td>{{ $shipment->nama_kapal ?? '-' }}</td><td>{{ $shipment->keberangkatan_kapal?->format('d-M-y') ?? '-' }}</td>
-                                <td>{{ $reportRow['at_storage_port'] ?? '-' }}</td>
-                                <td>{{ $reportRow['atd_kapal_loading'] ?? '-' }}</td>
-                                <td>{{ $reportRow['ata_kapal'] ?? '-' }}</td>
-                                <td>{{ $reportRow['ata_storage_port_destination'] ?? '-' }}</td>
-                                <td>{{ $reportRow['lead_time_do_release_pickup'] ?? '-' }}</td>
-                                <td>{{ $reportRow['lead_time_storage_port'] ?? '-' }}</td>
-                                <td>{{ $reportRow['dwelling_origin'] ?? '-' }}</td>
-                                <td>{{ $reportRow['lead_time_kapal_aboard'] ?? '-' }}</td>
-                                <td>{{ $reportRow['lead_time_storage_destination'] ?? '-' }}</td>
-                                <td>{{ $reportRow['dwelling_destination'] ?? '-' }}</td>
-                                <td>{{ $reportRow['sla_actual'] ?? '-' }}</td>
-                                <td>{{ $reportRow['sla_customer'] ?? '-' }}</td>
-                                <td><span class="badge {{ $reportRow['sla_result'] === 'OTD' ? 'badge-success' : ($reportRow['sla_result'] === 'LATE' ? 'badge-danger' : 'badge-secondary') }}">{{ $reportRow['sla_result'] }}</span></td>
-                                <td class="{{ ($reportRow['delay_days'] ?? 0) > 0 ? 'text-danger font-weight-bold' : '' }}">{{ $reportRow['delay_days'] ?? '-' }}</td>
-                                <td>{{ $reportRow['max_arrival'] ?? '-' }}</td>
-                                <td>{{ $reportRow['progress'] }}</td>
-                                <td>
-                                    @php $document = $shipment->shipmentUpdates->first(fn ($update) => $update->document_path); @endphp
-                                    @if ($document)
-                                        <a href="{{ \Illuminate\Support\Facades\Storage::disk(config('filesystems.document_disk'))->url($document->document_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary"><i class="fas fa-image"></i></a>
-                                    @else
-                                        <span class="text-muted">-</span>
-                                    @endif
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                @else
-                    <thead><tr>
-                        <th>No</th>
-                        @foreach ($reportConfig['fields'] as $fieldConfig)<th>{{ $fieldConfig['label'] }}</th>@endforeach
-                        @foreach ($performanceColumns as $column)<th>{{ $column['label'] }}</th>@endforeach
-                        <th>SLA Actual</th><th>Result</th><th>Keterlambatan (Hari)</th><th>Max Arrival</th><th>Progress</th><th>Dokumen</th>
-                    </tr></thead>
-                    <tbody>
-                        @foreach ($shipments as $shipment)
-                            @php $metrics = \App\Support\SpecialShipmentPerformance::calculate($selectedReport, $shipment); @endphp
-                            <tr>
-                                <td>{{ $loop->iteration }}</td>
-                                @foreach ($reportConfig['fields'] as $field => $fieldConfig)
-                                    @php $value = $field === 'sla_customer' ? $metrics['sla_customer'] : $shipment->{$field}; @endphp
-                                    <td>
-                                        @if ($fieldConfig['type'] === 'date')
-                                            {{ $value?->format('d-M-y') ?? '-' }}
-                                        @elseif (in_array($field, ['no_rangka', 'noka', 'no_spb'], true))
-                                            <code>{{ $value ?? '-' }}</code>
-                                        @else
-                                            {{ $value ?? '-' }}
-                                        @endif
-                                    </td>
-                                @endforeach
-                                @foreach ($performanceColumns as $column)<td>{{ $metrics[$column['key']] ?? '-' }}</td>@endforeach
-                                <td>{{ $metrics['sla_actual'] ?? '-' }}</td>
-                                <td><span class="badge {{ $metrics['sla_result'] === 'OTD' ? 'badge-success' : ($metrics['sla_result'] === 'LATE' ? 'badge-danger' : 'badge-secondary') }}">{{ $metrics['sla_result'] }}</span></td>
-                                <td class="{{ ($metrics['delay_days'] ?? 0) > 0 ? 'text-danger font-weight-bold' : '' }}">{{ $metrics['delay_days'] ?? '-' }}</td>
-                                <td>{{ $metrics['max_arrival']?->format('d-M-y') ?? '-' }}</td><td>{{ $metrics['progress'] }}</td>
-                                <td>
-                                    @php $documentUrl = \App\Services\ReportService::specialDocumentUrl($specialDocumentUrls, $shipment->{$reportConfig['identity']}); @endphp
-                                    @if ($documentUrl)
-                                        <a href="{{ $documentUrl }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary"><i class="fas fa-image"></i></a>
-                                    @else
-                                        <span class="text-muted">-</span>
-                                    @endif
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                @endif
+                <thead><tr>
+                    @foreach ($reportColumns as $column)
+                        <th>{{ $column['label'] }}</th>
+                    @endforeach
+                </tr></thead>
+                <tbody></tbody>
             </table>
         </div>
     </div>
@@ -200,10 +109,50 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const reportColumns = @json($reportColumns);
+    const escapeHtml = value => $('<div>').text(value ?? '-').html();
+    const renderers = {
+        code: value => `<code>${escapeHtml(value)}</code>`,
+        result: value => {
+            const badge = value === 'OTD' ? 'badge-success' : (value === 'LATE' ? 'badge-danger' : 'badge-secondary');
+            return `<span class="badge ${badge}">${escapeHtml(value)}</span>`;
+        },
+        delay: value => {
+            const cssClass = Number(value) > 0 ? 'text-danger font-weight-bold' : '';
+            return `<span class="${cssClass}">${escapeHtml(value)}</span>`;
+        },
+        document: value => value && value !== '-'
+            ? `<a href="${escapeHtml(value)}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary" aria-label="Buka dokumen"><i class="fas fa-image"></i></a>`
+            : '<span class="text-muted">-</span>',
+        text: value => escapeHtml(value),
+    };
+
     $('#table-reports').DataTable({
-        pageLength:25, lengthMenu:[[10,25,50,100,-1],['10','25','50','100','Semua']], scrollX:true,
+        processing:true,
+        serverSide:true,
+        ajax:{
+            url:@json(route('admin.reports.data')),
+            type:'POST',
+            headers:{'X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content},
+            data:function (payload) {
+                payload.type = @json(str_starts_with($selectedReport, 'iso-') ? 'iso' : $selectedReport);
+                payload.iso_type = @json(str_starts_with($selectedReport, 'iso-') ? ($selectedReport === 'iso-laut' ? 'laut' : 'darat') : null);
+                payload.month = @json($selectedMonth);
+                payload.year = @json($selectedYear);
+            },
+        },
+        columns:reportColumns.map(column => ({
+            data:column.data,
+            name:column.data,
+            orderable:column.orderable,
+            searchable:column.orderable,
+            render:(value, type) => type === 'display'
+                ? (renderers[column.kind] ?? renderers.text)(value)
+                : value,
+        })),
+        pageLength:25, lengthMenu:[[10,25,50,100],['10','25','50','100']], scrollX:true,
         language:{ search:'Cari:', lengthMenu:'Tampilkan _MENU_ data per halaman', info:'Menampilkan _START_ - _END_ dari _TOTAL_ data', infoEmpty:'Tidak ada data', emptyTable:'Belum ada data laporan {{ $reportLabel }}', infoFiltered:'(difilter dari _MAX_ total data)', zeroRecords:'Tidak ada data yang cocok', paginate:{first:'«',last:'»',next:'›',previous:'‹'} },
-        columnDefs:[{orderable:false,targets:[0]}], order:[[1,'asc']]
+        order:[[1,'asc']]
     });
 });
 </script>

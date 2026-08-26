@@ -2,8 +2,14 @@
 
 namespace App\Support;
 
+use App\Models\SystemSetting;
+use InvalidArgumentException;
+
 class IsoSla
 {
+    /** @var array<int, array<string, array<string, int>>> */
+    private static array $customerOverrides = [];
+
     /**
      * Tahap keluar_dari_pdc pada ISO Laut merupakan target saat shipment
      * masih berstatus Belum Keluar PDC dan bernilai 0 hari untuk semua tujuan.
@@ -13,6 +19,28 @@ class IsoSla
      * @return array<string, array<string, array{stages: array<string, int|null>, customer: int}>>
      */
     public static function targets(): array
+    {
+        $targets = self::baseTargets();
+
+        foreach ($targets as $type => &$typeTargets) {
+            foreach (self::customerOverrides($type) as $destination => $customer) {
+                if (! isset($typeTargets[$destination])) {
+                    continue;
+                }
+
+                $typeTargets[$destination]['customer'] = $customer;
+
+                if ($type === 'iso-darat') {
+                    $typeTargets[$destination]['stages']['ptd_dooring'] = $customer;
+                }
+            }
+        }
+
+        return $targets;
+    }
+
+    /** @return array<string, array<string, array{stages: array<string, int|null>, customer: int}>> */
+    private static function baseTargets(): array
     {
         return [
             'iso-laut' => [
@@ -43,6 +71,34 @@ class IsoSla
                 'YOGYAKARTA' => self::daratTarget(2),
             ],
         ];
+    }
+
+    /** @param array<string, int> $customers */
+    public static function setCustomers(string $type, array $customers): void
+    {
+        if (! in_array($type, ['iso-darat', 'iso-laut'], true)) {
+            throw new InvalidArgumentException('Tipe SLA ISO tidak valid.');
+        }
+
+        $defaults = self::defaultCustomers($type);
+        $values = [];
+
+        foreach ($defaults as $destination => $_default) {
+            $customer = filter_var($customers[$destination] ?? null, FILTER_VALIDATE_INT);
+
+            if ($customer === false || $customer < 1 || $customer > 365) {
+                throw new InvalidArgumentException("SLA Customer {$destination} tidak valid.");
+            }
+
+            $values[$destination] = $customer;
+        }
+
+        SystemSetting::query()->updateOrCreate(
+            ['setting_key' => self::settingKey($type)],
+            ['setting_value' => json_encode($values, JSON_THROW_ON_ERROR)],
+        );
+
+        unset(self::$customerOverrides[self::applicationKey()][$type]);
     }
 
     /** @return array{stages: array<string, int|null>, customer: int}|null */
@@ -98,5 +154,54 @@ class IsoSla
     private static function normalize(?string $value): string
     {
         return trim((string) preg_replace('/[^A-Z0-9]+/', ' ', strtoupper(trim((string) $value))));
+    }
+
+    /** @return array<string, int> */
+    private static function customerOverrides(string $type): array
+    {
+        $applicationKey = self::applicationKey();
+
+        if (isset(self::$customerOverrides[$applicationKey][$type])) {
+            return self::$customerOverrides[$applicationKey][$type];
+        }
+
+        $stored = SystemSetting::query()
+            ->where('setting_key', self::settingKey($type))
+            ->value('setting_value');
+
+        try {
+            $decoded = is_string($stored) ? json_decode($stored, true, flags: JSON_THROW_ON_ERROR) : [];
+        } catch (\JsonException) {
+            $decoded = [];
+        }
+
+        $defaults = self::defaultCustomers($type);
+        $overrides = collect(is_array($decoded) ? $decoded : [])
+            ->filter(fn (mixed $value, mixed $destination) => isset($defaults[$destination])
+                && is_numeric($value)
+                && (int) $value >= 1
+                && (int) $value <= 365)
+            ->map(fn (mixed $value) => (int) $value)
+            ->all();
+
+        return self::$customerOverrides[$applicationKey][$type] = $overrides;
+    }
+
+    /** @return array<string, int> */
+    private static function defaultCustomers(string $type): array
+    {
+        return collect(self::baseTargets()[$type] ?? [])
+            ->map(fn (array $target) => $target['customer'])
+            ->all();
+    }
+
+    private static function settingKey(string $type): string
+    {
+        return 'iso_sla_customer_' . str_replace('-', '_', $type);
+    }
+
+    private static function applicationKey(): int
+    {
+        return function_exists('app') ? spl_object_id(app()) : 0;
     }
 }

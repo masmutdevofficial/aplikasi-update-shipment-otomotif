@@ -94,6 +94,7 @@ Route::middleware(['auth', CheckVendorStatus::class])->group(function () {
                     Route::match(['get', 'post'], '/data', [SpecialShipmentController::class, 'data'])->name('data');
                     Route::get('/create', [SpecialShipmentController::class, 'create'])->name('create');
                     Route::post('/', [SpecialShipmentController::class, 'store'])->name('store');
+                    Route::put('/sla-customer', [SpecialShipmentController::class, 'updateSlaCustomers'])->name('sla-customer.update');
                     Route::delete('/bulk-delete', [SpecialShipmentController::class, 'bulkDestroy'])->name('bulk-destroy');
                     Route::get('/import', [SpecialShipmentController::class, 'showImport'])->name('import.form');
                     Route::post('/import', [SpecialShipmentController::class, 'import'])->name('import');
@@ -107,6 +108,7 @@ Route::middleware(['auth', CheckVendorStatus::class])->group(function () {
 
             // Reports
             Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+            Route::match(['get', 'post'], '/reports/data', [ReportController::class, 'data'])->name('reports.data');
             Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
 
             // Documentation

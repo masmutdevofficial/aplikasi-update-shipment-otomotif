@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Exports\SpecialShipmentTemplateExport;
 use App\Http\Controllers\Controller;
 use App\Imports\SpecialShipmentImport;
+use App\Support\IsoSla;
 use App\Support\SpecialShipmentPerformance;
 use App\Support\SpecialShipmentType;
 use App\Support\ShipmentDashboard;
@@ -17,8 +18,9 @@ class SpecialShipmentController extends Controller
     {
         $config = SpecialShipmentType::get($type);
         $delayStats = SpecialShipmentPerformance::statistics($type);
+        $slaTargets = str_starts_with($type, 'iso-') ? IsoSla::targets()[$type] : [];
 
-        return view('admin.special-shipments.index', compact('type', 'config', 'delayStats'));
+        return view('admin.special-shipments.index', compact('type', 'config', 'delayStats', 'slaTargets'));
     }
 
     public function data(Request $request, string $type)
@@ -167,6 +169,35 @@ class SpecialShipmentController extends Controller
 
         return redirect()->route('admin.special-shipments.index', $type)
             ->with('success', "{$deleted} data {$config['short_label']} berhasil dihapus.");
+    }
+
+    public function updateSlaCustomers(Request $request, string $type)
+    {
+        abort_unless(in_array($type, ['iso-darat', 'iso-laut'], true), 404);
+        $destinations = array_keys(IsoSla::targets()[$type]);
+        $rules = ['sla_customer' => ['required', 'array']];
+
+        foreach ($destinations as $destination) {
+            $rules["sla_customer.{$destination}"] = ['required', 'integer', 'min:1', 'max:365'];
+        }
+
+        $validated = $request->validate($rules, [
+            'sla_customer.required' => 'Nilai SLA Customer wajib diisi.',
+            'sla_customer.*.required' => 'Semua nilai SLA Customer wajib diisi.',
+            'sla_customer.*.integer' => 'SLA Customer wajib berupa angka hari.',
+            'sla_customer.*.min' => 'SLA Customer minimal 1 hari.',
+            'sla_customer.*.max' => 'SLA Customer maksimal 365 hari.',
+        ]);
+        $customers = collect($destinations)
+            ->mapWithKeys(fn (string $destination) => [
+                $destination => (int) $validated['sla_customer'][$destination],
+            ])
+            ->all();
+
+        IsoSla::setCustomers($type, $customers);
+
+        return redirect()->route('admin.special-shipments.index', $type)
+            ->with('success', "Referensi SLA Customer {$type} berhasil diperbarui.");
     }
 
     public function showImport(string $type)

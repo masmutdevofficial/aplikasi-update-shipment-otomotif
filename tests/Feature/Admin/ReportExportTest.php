@@ -85,11 +85,17 @@ class ReportExportTest extends TestCase
             'updated_by' => $this->admin->id,
         ]);
 
-        $response = $this->actingAs($this->admin)->get(route('admin.reports.index', [
-            'search' => 'MHFAA8GS4N0000001',
-        ]));
+        $response = $this->actingAs($this->admin)->postJson(route('admin.reports.data'), [
+            'type' => 'dso',
+            'draw' => 1,
+            'start' => 0,
+            'length' => 25,
+            'search' => ['value' => 'MHFAA8GS4N0000001'],
+        ]);
 
-        $response->assertStatus(200);
+        $response->assertOk()
+            ->assertJsonPath('recordsFiltered', 1)
+            ->assertJsonPath('data.0.no_rangka', 'MHFAA8GS4N0000001');
     }
 
     public function test_admin_can_export_excel(): void
@@ -156,9 +162,14 @@ class ReportExportTest extends TestCase
         $documentUrl = Storage::disk('r2')->url($documentPath);
 
         $this->actingAs($this->admin)
-            ->get(route('admin.reports.index', ['type' => 'tso']))
+            ->postJson(route('admin.reports.data'), [
+                'type' => 'tso',
+                'draw' => 1,
+                'start' => 0,
+                'length' => 25,
+            ])
             ->assertOk()
-            ->assertSee($documentUrl, false);
+            ->assertJsonPath('data.0.document_url', $documentUrl);
 
         $export = new SpecialShipmentReportExport('tso');
         $documentColumn = array_search('Dokumen', $export->headings(), true);
@@ -169,7 +180,7 @@ class ReportExportTest extends TestCase
 
     public function test_reports_are_separated_by_type_and_period(): void
     {
-        Shipment::create(['no_rangka' => 'REPORT-DSO-001', 'terima_do' => '2025-05-01']);
+        Shipment::factory()->create(['no_rangka' => 'REPORT-DSO-001', 'terima_do' => '2025-05-01']);
         TsoShipment::create(['no_rangka' => 'REPORT-TSO-MAY', 'do_date' => '2025-05-01']);
         TsoShipment::create(['no_rangka' => 'REPORT-TSO-JUNE', 'do_date' => '2025-06-01']);
         IsoDaratShipment::create(['no_spb' => 'REPORT-ISO-DARAT', 'terima_do' => '2025-05-01']);
@@ -179,24 +190,71 @@ class ReportExportTest extends TestCase
             ->get(route('admin.reports.index', ['type' => 'tso', 'month' => 5, 'year' => 2025]))
             ->assertOk()
             ->assertSee('Laporan Shipment TSO')
-            ->assertSee('REPORT-TSO-MAY')
-            ->assertDontSee('REPORT-TSO-JUNE')
-            ->assertDontSee('REPORT-DSO-001')
             ->assertViewHas('selectedReport', 'tso')
             ->assertViewHas('selectedMonth', 5)
             ->assertViewHas('selectedYear', 2025);
 
         $this->actingAs($this->admin)
-            ->get(route('admin.reports.index', ['type' => 'iso', 'iso_type' => 'darat']))
+            ->postJson(route('admin.reports.data'), [
+                'type' => 'tso',
+                'month' => 5,
+                'year' => 2025,
+                'draw' => 1,
+                'start' => 0,
+                'length' => 25,
+            ])
             ->assertOk()
-            ->assertSee('REPORT-ISO-DARAT')
-            ->assertDontSee('REPORT-ISO-LAUT');
+            ->assertJsonPath('recordsFiltered', 1)
+            ->assertJsonPath('data.0.no_rangka', 'REPORT-TSO-MAY')
+            ->assertJsonMissing(['no_rangka' => 'REPORT-TSO-JUNE'])
+            ->assertJsonMissing(['no_rangka' => 'REPORT-DSO-001']);
+
+        $this->actingAs($this->admin)
+            ->postJson(route('admin.reports.data'), [
+                'type' => 'iso',
+                'iso_type' => 'darat',
+                'draw' => 1,
+                'start' => 0,
+                'length' => 25,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.0.no_spb', 'REPORT-ISO-DARAT')
+            ->assertJsonMissing(['noka' => 'REPORT-ISO-LAUT']);
+    }
+
+    public function test_report_datatable_only_fetches_the_requested_page(): void
+    {
+        foreach (range(1, 30) as $number) {
+            TsoShipment::create([
+                'no_rangka' => sprintf('REPORT-PAGE-%05d', $number),
+                'do_date' => '2025-05-01',
+            ]);
+        }
+
+        $response = $this->actingAs($this->admin)->postJson(route('admin.reports.data'), [
+            'type' => 'tso',
+            'draw' => 7,
+            'start' => 10,
+            'length' => 10,
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('draw', 7)
+            ->assertJsonPath('recordsTotal', 30)
+            ->assertJsonPath('recordsFiltered', 30)
+            ->assertJsonCount(10, 'data')
+            ->assertJsonPath('data.0.row_number', 11);
     }
 
     public function test_vendor_cannot_access_reports(): void
     {
         $vendor = User::factory()->vendor()->create();
-        $response = $this->actingAs($vendor)->get(route('admin.reports.index'));
-        $response->assertStatus(403);
+        $this->actingAs($vendor)
+            ->get(route('admin.reports.index'))
+            ->assertForbidden();
+
+        $this->actingAs($vendor)
+            ->postJson(route('admin.reports.data'), ['type' => 'dso'])
+            ->assertForbidden();
     }
 }

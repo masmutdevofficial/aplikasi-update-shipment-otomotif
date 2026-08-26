@@ -12,6 +12,78 @@ use Illuminate\Support\Facades\Storage;
 
 class ReportService
 {
+    /** @return array<int, array{data: string, label: string, kind: string, orderable: bool}> */
+    public static function dsoColumns(): array
+    {
+        return [
+            ['data' => 'row_number', 'label' => 'No', 'kind' => 'number', 'orderable' => false],
+            ['data' => 'lokasi', 'label' => 'Lokasi', 'kind' => 'text', 'orderable' => true],
+            ['data' => 'no_do', 'label' => 'No. DO', 'kind' => 'text', 'orderable' => true],
+            ['data' => 'type_kendaraan', 'label' => 'Type Kendaraan', 'kind' => 'text', 'orderable' => true],
+            ['data' => 'no_rangka', 'label' => 'No. Rangka', 'kind' => 'code', 'orderable' => true],
+            ['data' => 'no_engine', 'label' => 'No. Engine', 'kind' => 'text', 'orderable' => true],
+            ['data' => 'warna', 'label' => 'Warna', 'kind' => 'text', 'orderable' => true],
+            ['data' => 'asal_pdc', 'label' => 'Asal PDC', 'kind' => 'text', 'orderable' => true],
+            ['data' => 'kota', 'label' => 'Kota', 'kind' => 'text', 'orderable' => true],
+            ['data' => 'tujuan_pengiriman', 'label' => 'Tujuan Pengiriman', 'kind' => 'text', 'orderable' => true],
+            ['data' => 'terima_do', 'label' => 'Terima DO', 'kind' => 'text', 'orderable' => true],
+            ['data' => 'keluar_dari_pdc', 'label' => 'Keluar dari PDC', 'kind' => 'text', 'orderable' => true],
+            ['data' => 'nama_kapal', 'label' => 'Nama Kapal', 'kind' => 'text', 'orderable' => true],
+            ['data' => 'keberangkatan_kapal', 'label' => 'Keberangkatan Kapal', 'kind' => 'text', 'orderable' => true],
+            ['data' => 'at_storage_port', 'label' => 'AT Storage Port', 'kind' => 'text', 'orderable' => true],
+            ['data' => 'atd_kapal_loading', 'label' => 'ATD Kapal (Loading)', 'kind' => 'text', 'orderable' => true],
+            ['data' => 'ata_kapal', 'label' => 'ATA Kapal', 'kind' => 'text', 'orderable' => true],
+            ['data' => 'ata_storage_port_destination', 'label' => 'ATA Storage Port (Destination)', 'kind' => 'text', 'orderable' => true],
+            ['data' => 'lead_time_do_release_pickup', 'label' => 'DO Release to Pickup', 'kind' => 'number', 'orderable' => false],
+            ['data' => 'lead_time_storage_port', 'label' => 'Storage Port', 'kind' => 'number', 'orderable' => false],
+            ['data' => 'dwelling_origin', 'label' => 'Dwelling Origin', 'kind' => 'number', 'orderable' => false],
+            ['data' => 'lead_time_kapal_aboard', 'label' => 'Kapal (Aboard)', 'kind' => 'number', 'orderable' => false],
+            ['data' => 'lead_time_storage_destination', 'label' => 'Storage Port (Destination)', 'kind' => 'number', 'orderable' => false],
+            ['data' => 'dwelling_destination', 'label' => 'Dwelling Destination', 'kind' => 'number', 'orderable' => false],
+            ['data' => 'sla_actual', 'label' => 'SLA Actual', 'kind' => 'number', 'orderable' => false],
+            ['data' => 'sla_customer', 'label' => 'SLA Customer', 'kind' => 'number', 'orderable' => false],
+            ['data' => 'sla_result', 'label' => 'Result', 'kind' => 'result', 'orderable' => false],
+            ['data' => 'delay_days', 'label' => 'Keterlambatan (Hari)', 'kind' => 'delay', 'orderable' => false],
+            ['data' => 'max_arrival', 'label' => 'Max Arrival', 'kind' => 'text', 'orderable' => false],
+            ['data' => 'progress', 'label' => 'Progress', 'kind' => 'text', 'orderable' => false],
+            ['data' => 'document_url', 'label' => 'Dokumen', 'kind' => 'document', 'orderable' => false],
+        ];
+    }
+
+    /** @return array<int, array{data: string, label: string, kind: string, orderable: bool}> */
+    public static function specialColumns(array $config): array
+    {
+        $columns = [[
+            'data' => 'row_number',
+            'label' => 'No',
+            'kind' => 'number',
+            'orderable' => false,
+        ]];
+
+        foreach ($config['fields'] as $field => $fieldConfig) {
+            $columns[] = [
+                'data' => $field,
+                'label' => $fieldConfig['label'],
+                'kind' => in_array($field, ['no_rangka', 'noka', 'no_spb'], true) ? 'code' : 'text',
+                'orderable' => true,
+            ];
+        }
+
+        foreach ($config['performance']['stages'] as $key => $stage) {
+            $columns[] = ['data' => $key, 'label' => $stage['label'], 'kind' => 'number', 'orderable' => false];
+        }
+
+        return [
+            ...$columns,
+            ['data' => 'sla_actual', 'label' => 'SLA Actual', 'kind' => 'number', 'orderable' => false],
+            ['data' => 'sla_result', 'label' => 'Result', 'kind' => 'result', 'orderable' => false],
+            ['data' => 'delay_days', 'label' => 'Keterlambatan (Hari)', 'kind' => 'delay', 'orderable' => false],
+            ['data' => 'max_arrival', 'label' => 'Max Arrival', 'kind' => 'text', 'orderable' => false],
+            ['data' => 'progress', 'label' => 'Progress', 'kind' => 'text', 'orderable' => false],
+            ['data' => 'document_url', 'label' => 'Dokumen', 'kind' => 'document', 'orderable' => false],
+        ];
+    }
+
     public function getReport(
         ?string $search = null,
         ?string $dateFrom = null,
@@ -59,38 +131,10 @@ class ReportService
      */
     public static function dsoHeadings(): array
     {
-        return [
-            'Lokasi',
-            'No. DO',
-            'Type Kendaraan',
-            'No. Rangka',
-            'No. Engine',
-            'Warna',
-            'Asal PDC',
-            'Kota',
-            'Tujuan Pengiriman',
-            'Terima DO',
-            'Keluar dari PDC',
-            'Nama Kapal',
-            'Keberangkatan Kapal',
-            'AT Storage Port',
-            'ATD Kapal (Loading)',
-            'ATA Kapal',
-            'ATA Storage Port (Destination)',
-            'DO Release to Pickup',
-            'Storage Port',
-            'Dwelling Origin',
-            'Kapal (Aboard)',
-            'Storage Port (Destination)',
-            'Dwelling Destination',
-            'SLA Actual',
-            'SLA Customer',
-            'Result',
-            'Keterlambatan (Hari)',
-            'Max Arrival',
-            'Progress',
-            'Dokumen Scan',
-        ];
+        return collect(self::dsoColumns())
+            ->reject(fn (array $column) => $column['data'] === 'row_number')
+            ->pluck('label')
+            ->all();
     }
 
     /**
@@ -131,7 +175,7 @@ class ReportService
         ];
 
         $documentPath = $shipment->shipmentUpdates->first(fn ($update) => $update->document_path);
-        $row['document_scan'] = $documentPath
+        $row['document_url'] = $documentPath
             ? Storage::disk(config('filesystems.document_disk'))->url($documentPath->document_path)
             : '-';
 

@@ -42,6 +42,78 @@ class SpecialShipmentCrudTest extends TestCase
         }
     }
 
+    public function test_iso_pages_show_editable_customer_sla_reference_cards(): void
+    {
+        foreach (['iso-darat', 'iso-laut'] as $type) {
+            $this->actingAs($this->admin)
+                ->get(route('admin.special-shipments.index', $type))
+                ->assertOk()
+                ->assertSee('Referensi SLA Customer')
+                ->assertSee('Simpan SLA Customer')
+                ->assertSee('name="sla_customer[', false);
+        }
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.special-shipments.index', 'tso'))
+            ->assertOk()
+            ->assertDontSee('Referensi SLA Customer');
+    }
+
+    public function test_admin_can_update_iso_customer_sla_and_use_it_in_performance(): void
+    {
+        $customers = collect(IsoSla::targets()['iso-darat'])
+            ->map(fn (array $target) => $target['customer'])
+            ->all();
+        $customers['PADANG'] = 9;
+
+        $this->actingAs($this->admin)
+            ->put(route('admin.special-shipments.sla-customer.update', 'iso-darat'), [
+                'sla_customer' => $customers,
+            ])
+            ->assertRedirect(route('admin.special-shipments.index', 'iso-darat'))
+            ->assertSessionHas('success');
+
+        $shipment = IsoDaratShipment::create([
+            'destination' => 'Padang',
+            'terima_do' => '2026-07-01',
+            'at_ptd_dtd' => '2026-07-10',
+            'sla_customer' => 99,
+        ]);
+        $metrics = SpecialShipmentPerformance::calculate('iso-darat', $shipment);
+
+        $this->assertSame(9, IsoSla::customerFor('iso-darat', 'Padang'));
+        $this->assertSame(9, IsoSla::targetFor('iso-darat', 'Padang')['stages']['ptd_dooring']);
+        $this->assertSame(9, $metrics['sla_customer']);
+        $this->assertSame('OTD', $metrics['sla_result']);
+        $this->assertDatabaseHas('system_settings', [
+            'setting_key' => 'iso_sla_customer_iso_darat',
+        ]);
+
+        $lautCustomers = collect(IsoSla::targets()['iso-laut'])
+            ->map(fn (array $target) => $target['customer'])
+            ->all();
+        $lautCustomers['SAMARINDA'] = 10;
+
+        $this->actingAs($this->admin)
+            ->put(route('admin.special-shipments.sla-customer.update', 'iso-laut'), [
+                'sla_customer' => $lautCustomers,
+            ])
+            ->assertRedirect(route('admin.special-shipments.index', 'iso-laut'));
+
+        $lautShipment = IsoLautShipment::create([
+            'destination' => 'Samarinda',
+            'terima_do' => '2026-07-01',
+            'at_ptd_dtd' => '2026-07-11',
+        ]);
+        $lautMetrics = SpecialShipmentPerformance::calculate('iso-laut', $lautShipment);
+
+        $this->assertSame(10, $lautMetrics['sla_customer']);
+        $this->assertSame('OTD', $lautMetrics['sla_result']);
+        $this->assertDatabaseHas('system_settings', [
+            'setting_key' => 'iso_sla_customer_iso_laut',
+        ]);
+    }
+
     public function test_special_shipment_datatable_only_returns_requested_page(): void
     {
         for ($index = 1; $index <= 15; $index++) {
