@@ -5,6 +5,9 @@ namespace App\Support;
 class IsoSla
 {
     /**
+     * Tahap keluar_dari_pdc pada ISO Laut merupakan target saat shipment
+     * masih berstatus Belum Keluar PDC dan bernilai 0 hari untuk semua tujuan.
+     *
      * @return array<string, array<string, array{stages: array<string, int|null>, customer: int}>>
      */
     public static function targets(): array

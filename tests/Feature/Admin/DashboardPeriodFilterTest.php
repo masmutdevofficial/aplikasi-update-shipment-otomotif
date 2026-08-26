@@ -670,7 +670,7 @@ class DashboardPeriodFilterTest extends TestCase
             ->assertSee('data-alert-stage="not_departed_pdc"', false)
             ->assertSee('data-alert-stage="departed_pdc"', false)
             ->assertSee('No. Rangka DSO-ALERT-WARNING Belum Keluar AT Storage Port — deadline 1 hari lagi.')
-            ->assertSee('No. Rangka DSO-ALERT-OVERDUE Belum Keluar PDC lewat 1 hari.');
+            ->assertSee('No. Rangka DSO-ALERT-OVERDUE Belum Keluar PDC lewat 3 hari.');
 
         $alerts = DashboardSlaAlert::dso(5, 2025);
         $this->assertCount(1, $alerts['warning']);
@@ -844,10 +844,11 @@ class DashboardPeriodFilterTest extends TestCase
         Carbon::setTestNow('2025-05-10 12:00:00');
 
         foreach (range(1, 11) as $number) {
-            Shipment::create([
+            Shipment::factory()->create([
                 'no_rangka' => 'DSO-ALERT-LIMIT-'.str_pad((string) $number, 2, '0', STR_PAD_LEFT),
                 'kota' => 'Balikpapan',
-                'terima_do' => '2025-05-08',
+                'terima_do' => '2025-05-10',
+                'keluar_dari_pdc' => null,
             ]);
         }
 

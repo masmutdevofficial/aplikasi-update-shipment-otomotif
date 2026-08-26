@@ -441,6 +441,10 @@ class SpecialShipmentCrudTest extends TestCase
 
     public function test_iso_sla_matrix_contains_the_provided_stage_and_customer_targets(): void
     {
+        foreach (IsoSla::targets()['iso-laut'] as $target) {
+            $this->assertSame(0, $target['stages']['keluar_dari_pdc']);
+        }
+
         $lautCustomers = collect(IsoSla::targets()['iso-laut'])
             ->map(fn (array $target) => $target['customer'])
             ->all();

@@ -24,7 +24,7 @@ class DsoSla
 
     /**
      * SLA per tahapan sesuai matriks dari klien.
-     * Urutan target per kota: Keluar PDC, Storage Port, Kapal Loading,
+     * Urutan target per kota: Belum Keluar PDC, Storage Port, Kapal Loading,
      * ATA Kapal, Storage Port Destination, dan PtD/Dooring.
      *
      * Dwelling aktual tidak berasal dari matriks ini. Nilainya dihitung
@@ -35,14 +35,14 @@ class DsoSla
     public static function destinations(): array
     {
         return [
-            'BALIKPAPAN' => ['stages' => [2, 3, 1, 3, 0, 1], 'total' => 10],
-            'SAMARINDA' => ['stages' => [2, 3, 1, 3, 0, 2], 'total' => 11],
-            'BANJARMASIN' => ['stages' => [2, 2, 1, 3, 0, 1], 'total' => 9],
-            'MEDAN' => ['stages' => [2, 2, 1, 4, 0, 1], 'total' => 10],
-            'MAKASSAR' => ['stages' => [2, 3, 1, 2, 0, 2], 'total' => 10],
-            'PONTIANAK' => ['stages' => [2, 2, 1, 2, 0, 1], 'total' => 8],
-            'GORONTALO' => ['stages' => [2, 2, 1, 4, 0, 5], 'total' => 14],
-            'MANADO' => ['stages' => [2, 3, 1, 11, 0, 3], 'total' => 20],
+            'BALIKPAPAN' => ['stages' => [0, 3, 1, 3, 0, 1], 'total' => 8],
+            'SAMARINDA' => ['stages' => [0, 3, 1, 3, 0, 2], 'total' => 9],
+            'BANJARMASIN' => ['stages' => [0, 2, 1, 3, 0, 1], 'total' => 7],
+            'MEDAN' => ['stages' => [0, 2, 1, 4, 0, 1], 'total' => 8],
+            'MAKASSAR' => ['stages' => [0, 3, 1, 2, 0, 2], 'total' => 8],
+            'PONTIANAK' => ['stages' => [0, 2, 1, 2, 0, 1], 'total' => 6],
+            'GORONTALO' => ['stages' => [0, 2, 1, 4, 0, 5], 'total' => 12],
+            'MANADO' => ['stages' => [0, 3, 1, 11, 0, 3], 'total' => 18],
         ];
     }
 

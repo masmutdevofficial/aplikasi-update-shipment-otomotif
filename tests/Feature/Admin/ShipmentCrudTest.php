@@ -262,6 +262,14 @@ class ShipmentCrudTest extends TestCase
         ]);
     }
 
+    public function test_dso_first_stage_sla_is_zero_for_every_destination(): void
+    {
+        foreach (DsoSla::destinations() as $target) {
+            $this->assertSame(0, $target['stages'][0]);
+            $this->assertSame(array_sum($target['stages']), $target['total']);
+        }
+    }
+
     public function test_dso_lead_time_and_sla_are_calculated_automatically(): void
     {
         $shipment = Shipment::factory()->create([
@@ -285,10 +293,10 @@ class ShipmentCrudTest extends TestCase
         $this->assertSame(0, $shipment->leadTimePtdDooring());
         $this->assertSame(0, $shipment->dwellingDestination());
         $this->assertSame(5, $shipment->slaActual());
-        $this->assertSame(8, $shipment->slaCustomer());
+        $this->assertSame(6, $shipment->slaCustomer());
         $this->assertSame('OTD', $shipment->slaResult());
         $this->assertSame(0, $shipment->delayDays());
-        $this->assertSame('2026-07-09', $shipment->maxArrival()?->format('Y-m-d'));
+        $this->assertSame('2026-07-07', $shipment->maxArrival()?->format('Y-m-d'));
         $this->assertSame('OTD', $shipment->shipmentProgress());
     }
 
@@ -302,9 +310,9 @@ class ShipmentCrudTest extends TestCase
         ]);
 
         $this->assertSame(11, $shipment->slaActual());
-        $this->assertSame(8, $shipment->slaCustomer());
+        $this->assertSame(6, $shipment->slaCustomer());
         $this->assertSame('LATE', $shipment->slaResult());
-        $this->assertSame(3, $shipment->delayDays());
+        $this->assertSame(5, $shipment->delayDays());
 
         $this->actingAs($this->admin)
             ->getJson(route('admin.shipments.data', [
@@ -314,7 +322,7 @@ class ShipmentCrudTest extends TestCase
             ->assertOk()
             ->assertJsonFragment([
                 'no_rangka' => $shipment->no_rangka,
-                'delay_days' => 3,
+                'delay_days' => 5,
             ]);
     }
 
@@ -334,9 +342,9 @@ class ShipmentCrudTest extends TestCase
         ]);
 
         $this->assertSame(14, $shipment->slaActual());
-        $this->assertSame(8, $shipment->slaCustomer());
+        $this->assertSame(6, $shipment->slaCustomer());
         $this->assertSame('LATE', $shipment->slaResult());
-        $this->assertSame(6, $shipment->delayDays());
+        $this->assertSame(8, $shipment->delayDays());
         $this->assertSame(1, $shipment->dwellingOrigin());
         $this->assertSame(4, $shipment->dwellingDestination());
     }

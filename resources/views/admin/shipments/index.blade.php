@@ -125,7 +125,7 @@
             <thead>
                 <tr>
                     <th>Destination</th>
-                    <th>Keluar dari PDC</th>
+                    <th>Belum Keluar PDC</th>
                     <th>Storage Port</th>
                     <th>Kapal (Loading)</th>
                     <th>ATA Kapal</th>
