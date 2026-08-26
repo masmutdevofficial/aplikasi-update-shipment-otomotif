@@ -86,14 +86,16 @@
                         <th>No</th><th>Lokasi</th><th>No. DO</th><th>Type</th><th>No. Rangka</th>
                         <th>No. Engine</th><th>Warna</th><th>Asal PDC</th><th>Kota</th><th>Tujuan</th>
                         <th>Terima DO</th><th>Keluar PDC</th><th>Kapal</th><th>Keberangkatan</th>
-                        @foreach (\App\Models\Vendor::positions() as $position)
-                            <th class="text-center" title="{{ $position }}"><small>{{ \Illuminate\Support\Str::limit($position, 15) }}</small></th>
-                        @endforeach
+                        <th>AT Storage Port</th><th>ATD Kapal (Loading)</th><th>ATA Kapal</th><th>ATA Storage Port (Destination)</th>
+                        <th>DO Release to Pickup</th><th>Storage Port</th><th>Dwelling Origin</th>
+                        <th>Kapal (Aboard)</th><th>Storage Port (Destination)</th><th>Dwelling Destination</th>
+                        <th>SLA Actual</th><th>SLA Customer</th><th>Result</th><th>Keterlambatan (Hari)</th>
+                        <th>Max Arrival</th><th>Progress</th>
                         <th>Dokumen</th>
                     </tr></thead>
                     <tbody>
                         @foreach ($shipments as $shipment)
-                            @php $updates = $shipment->shipmentUpdates->keyBy('position'); @endphp
+                            @php $reportRow = \App\Services\ReportService::flattenShipment($shipment); @endphp
                             <tr>
                                 <td>{{ $loop->iteration }}</td>
                                 <td>{{ $shipment->lokasi }}</td><td>{{ $shipment->no_do }}</td><td>{{ $shipment->type_kendaraan }}</td>
@@ -102,15 +104,22 @@
                                 <td>{{ $shipment->tujuan_pengiriman }}</td><td>{{ $shipment->terima_do?->format('d-M-y') ?? '-' }}</td>
                                 <td>{{ $shipment->keluar_dari_pdc?->format('d-M-y') ?? '-' }}</td>
                                 <td>{{ $shipment->nama_kapal ?? '-' }}</td><td>{{ $shipment->keberangkatan_kapal?->format('d-M-y') ?? '-' }}</td>
-                                @foreach (\App\Models\Vendor::positions() as $position)
-                                    <td class="text-center">
-                                        @if ($update = $updates->get($position))
-                                            <span class="badge badge-success">{{ $update->scan_date->format('d-M-y') }}</span>
-                                        @else
-                                            <span class="text-muted">-</span>
-                                        @endif
-                                    </td>
-                                @endforeach
+                                <td>{{ $reportRow['at_storage_port'] ?? '-' }}</td>
+                                <td>{{ $reportRow['atd_kapal_loading'] ?? '-' }}</td>
+                                <td>{{ $reportRow['ata_kapal'] ?? '-' }}</td>
+                                <td>{{ $reportRow['ata_storage_port_destination'] ?? '-' }}</td>
+                                <td>{{ $reportRow['lead_time_do_release_pickup'] ?? '-' }}</td>
+                                <td>{{ $reportRow['lead_time_storage_port'] ?? '-' }}</td>
+                                <td>{{ $reportRow['dwelling_origin'] ?? '-' }}</td>
+                                <td>{{ $reportRow['lead_time_kapal_aboard'] ?? '-' }}</td>
+                                <td>{{ $reportRow['lead_time_storage_destination'] ?? '-' }}</td>
+                                <td>{{ $reportRow['dwelling_destination'] ?? '-' }}</td>
+                                <td>{{ $reportRow['sla_actual'] ?? '-' }}</td>
+                                <td>{{ $reportRow['sla_customer'] ?? '-' }}</td>
+                                <td><span class="badge {{ $reportRow['sla_result'] === 'OTD' ? 'badge-success' : ($reportRow['sla_result'] === 'LATE' ? 'badge-danger' : 'badge-secondary') }}">{{ $reportRow['sla_result'] }}</span></td>
+                                <td class="{{ ($reportRow['delay_days'] ?? 0) > 0 ? 'text-danger font-weight-bold' : '' }}">{{ $reportRow['delay_days'] ?? '-' }}</td>
+                                <td>{{ $reportRow['max_arrival'] ?? '-' }}</td>
+                                <td>{{ $reportRow['progress'] }}</td>
                                 <td>
                                     @php $document = $shipment->shipmentUpdates->first(fn ($update) => $update->document_path); @endphp
                                     @if ($document)
@@ -127,7 +136,7 @@
                         <th>No</th>
                         @foreach ($reportConfig['fields'] as $fieldConfig)<th>{{ $fieldConfig['label'] }}</th>@endforeach
                         @foreach ($performanceColumns as $column)<th>{{ $column['label'] }}</th>@endforeach
-                        <th>SLA Actual</th><th>Result</th><th>Keterlambatan (Hari)</th><th>Max Arrival</th><th>Progress</th>
+                        <th>SLA Actual</th><th>Result</th><th>Keterlambatan (Hari)</th><th>Max Arrival</th><th>Progress</th><th>Dokumen</th>
                     </tr></thead>
                     <tbody>
                         @foreach ($shipments as $shipment)
@@ -151,6 +160,14 @@
                                 <td><span class="badge {{ $metrics['sla_result'] === 'OTD' ? 'badge-success' : ($metrics['sla_result'] === 'LATE' ? 'badge-danger' : 'badge-secondary') }}">{{ $metrics['sla_result'] }}</span></td>
                                 <td class="{{ ($metrics['delay_days'] ?? 0) > 0 ? 'text-danger font-weight-bold' : '' }}">{{ $metrics['delay_days'] ?? '-' }}</td>
                                 <td>{{ $metrics['max_arrival']?->format('d-M-y') ?? '-' }}</td><td>{{ $metrics['progress'] }}</td>
+                                <td>
+                                    @php $documentUrl = \App\Services\ReportService::specialDocumentUrl($specialDocumentUrls, $shipment->{$reportConfig['identity']}); @endphp
+                                    @if ($documentUrl)
+                                        <a href="{{ $documentUrl }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary"><i class="fas fa-image"></i></a>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>

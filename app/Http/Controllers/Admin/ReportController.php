@@ -41,6 +41,9 @@ class ReportController extends Controller
                 ->when($selectedYear !== null, fn (Builder $query) => $query->whereYear($dateField, $selectedYear))
                 ->latest()
                 ->get();
+        $specialDocumentUrls = $selectedReport === 'dso'
+            ? collect()
+            : ReportService::specialDocumentUrls($shipments, $config['identity']);
 
         return view('admin.reports.index', [
             'shipments' => $shipments,
@@ -49,6 +52,7 @@ class ReportController extends Controller
             'selectedYear' => $selectedYear,
             'availableYears' => $this->availableYears($model, $dateField, $selectedYear),
             'reportConfig' => $config,
+            'specialDocumentUrls' => $specialDocumentUrls,
         ]);
     }
 

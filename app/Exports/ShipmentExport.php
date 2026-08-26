@@ -2,7 +2,6 @@
 
 namespace App\Exports;
 
-use App\Models\Vendor;
 use App\Services\ReportService;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -19,30 +18,7 @@ class ShipmentExport implements FromArray, WithHeadings, WithStyles
 
     public function headings(): array
     {
-        $headings = [
-            'Lokasi',
-            'No. DO',
-            'Type Kendaraan',
-            'No. Rangka',
-            'No. Engine',
-            'Warna',
-            'Asal PDC',
-            'Kota',
-            'Tujuan Pengiriman',
-            'Terima DO',
-            'Keluar dari PDC',
-            'Nama Kapal',
-            'Keberangkatan Kapal',
-        ];
-
-        // Add vendor position columns
-        foreach (Vendor::positions() as $position) {
-            $headings[] = $position;
-        }
-
-        $headings[] = 'Dokumen Scan';
-
-        return $headings;
+        return ReportService::dsoHeadings();
     }
 
     public function array(): array

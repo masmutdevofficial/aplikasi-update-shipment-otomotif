@@ -2,6 +2,7 @@
 
 namespace App\Exports;
 
+use App\Services\ReportService;
 use App\Support\SpecialShipmentPerformance;
 use App\Support\SpecialShipmentType;
 use Illuminate\Database\Eloquent\Builder;
@@ -32,6 +33,7 @@ class SpecialShipmentReportExport implements FromArray, WithHeadings, WithStyles
             'Keterlambatan (Hari)',
             'Max Arrival',
             'Progress',
+            'Dokumen',
         ];
     }
 
@@ -44,8 +46,9 @@ class SpecialShipmentReportExport implements FromArray, WithHeadings, WithStyles
             ->when($this->year !== null, fn (Builder $query) => $query->whereYear($dateField, $this->year))
             ->latest()
             ->get();
+        $documentUrls = ReportService::specialDocumentUrls($shipments, $this->config['identity']);
 
-        return $shipments->map(function ($shipment) {
+        return $shipments->map(function ($shipment) use ($documentUrls) {
             $metrics = SpecialShipmentPerformance::calculate($this->type, $shipment);
             $row = [];
 
@@ -69,6 +72,7 @@ class SpecialShipmentReportExport implements FromArray, WithHeadings, WithStyles
                 $metrics['delay_days'] ?? '-',
                 $metrics['max_arrival']?->format('d-M-y') ?? '-',
                 $metrics['progress'],
+                ReportService::specialDocumentUrl($documentUrls, $shipment->{$this->config['identity']}) ?? '-',
             ];
         })->all();
     }
