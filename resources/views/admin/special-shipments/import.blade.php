@@ -10,7 +10,7 @@
 @endsection
 
 @section('content')
-@include('admin.shipments._type-selector')
+@include('admin.shipments._type-selector', ['shipmentSelectorMode' => 'import'])
 
 <div class="row">
     <div class="col-12 col-lg-9">

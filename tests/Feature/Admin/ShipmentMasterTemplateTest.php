@@ -37,6 +37,33 @@ class ShipmentMasterTemplateTest extends TestCase
         }
     }
 
+    public function test_upload_page_shipment_selector_links_to_each_upload_page(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $uploadRoutes = [
+            route('admin.shipments.import.form'),
+            route('admin.special-shipments.import.form', 'tso'),
+            route('admin.special-shipments.import.form', 'iso-darat'),
+            route('admin.special-shipments.import.form', 'iso-laut'),
+        ];
+
+        foreach ($uploadRoutes as $currentUploadRoute) {
+            $response = $this->actingAs($admin)->get($currentUploadRoute)->assertOk();
+
+            foreach ($uploadRoutes as $uploadRoute) {
+                $response->assertSee('href="' . $uploadRoute . '"', false);
+            }
+        }
+
+        $this->actingAs($admin)
+            ->get(route('admin.shipments.index'))
+            ->assertOk()
+            ->assertSee('href="' . route('admin.shipments.index') . '"', false)
+            ->assertSee('href="' . route('admin.special-shipments.index', 'tso') . '"', false)
+            ->assertSee('href="' . route('admin.special-shipments.index', 'iso-darat') . '"', false)
+            ->assertSee('href="' . route('admin.special-shipments.index', 'iso-laut') . '"', false);
+    }
+
     public function test_downloaded_dso_master_template_example_can_be_uploaded_without_errors(): void
     {
         $admin = User::factory()->admin()->create();

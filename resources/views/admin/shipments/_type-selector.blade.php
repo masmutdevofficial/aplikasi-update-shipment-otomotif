@@ -1,6 +1,13 @@
 @php
     $shipmentSection = $shipmentSection ?? 'dso';
     $currentSpecialType = $type ?? 'iso-darat';
+    $shipmentSelectorMode = $shipmentSelectorMode ?? 'index';
+    $dsoSelectorRoute = $shipmentSelectorMode === 'import'
+        ? route('admin.shipments.import.form')
+        : route('admin.shipments.index');
+    $specialSelectorRoute = static fn (string $shipmentType) => $shipmentSelectorMode === 'import'
+        ? route('admin.special-shipments.import.form', $shipmentType)
+        : route('admin.special-shipments.index', $shipmentType);
 @endphp
 
 <div class="card shipment-selector-card">
@@ -13,22 +20,22 @@
 
             <nav class="shipment-tabs" aria-label="Pilihan data shipment">
                 <a
-                    href="{{ route('admin.shipments.index') }}"
+                    href="{{ $dsoSelectorRoute }}"
                     class="shipment-tab {{ $shipmentSection === 'dso' ? 'active' : '' }}"
                     @if ($shipmentSection === 'dso') aria-current="page" @endif
                 ><i class="fas fa-truck"></i> DSO</a>
                 <a
-                    href="{{ route('admin.special-shipments.index', 'tso') }}"
+                    href="{{ $specialSelectorRoute('tso') }}"
                     class="shipment-tab {{ $shipmentSection === 'tso' ? 'active' : '' }}"
                     @if ($shipmentSection === 'tso') aria-current="page" @endif
                 ><i class="fas fa-truck-loading"></i> TSO</a>
                 <a
-                    href="{{ route('admin.special-shipments.index', 'iso-darat') }}"
+                    href="{{ $specialSelectorRoute('iso-darat') }}"
                     class="shipment-tab {{ $shipmentSection === 'iso' && $currentSpecialType === 'iso-darat' ? 'active' : '' }}"
                     @if ($shipmentSection === 'iso' && $currentSpecialType === 'iso-darat') aria-current="page" @endif
                 ><i class="fas fa-road"></i> ISO Darat</a>
                 <a
-                    href="{{ route('admin.special-shipments.index', 'iso-laut') }}"
+                    href="{{ $specialSelectorRoute('iso-laut') }}"
                     class="shipment-tab {{ $shipmentSection === 'iso' && $currentSpecialType === 'iso-laut' ? 'active' : '' }}"
                     @if ($shipmentSection === 'iso' && $currentSpecialType === 'iso-laut') aria-current="page" @endif
                 ><i class="fas fa-ship"></i> ISO Laut</a>

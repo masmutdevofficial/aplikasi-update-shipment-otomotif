@@ -8,7 +8,7 @@
 @endsection
 
 @section('content')
-@include('admin.shipments._type-selector', ['shipmentSection' => 'dso'])
+@include('admin.shipments._type-selector', ['shipmentSection' => 'dso', 'shipmentSelectorMode' => 'import'])
 
 <div class="row">
     <div class="col-12 col-lg-9">
