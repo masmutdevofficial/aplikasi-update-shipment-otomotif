@@ -14,11 +14,16 @@ class DsoSla
 
     private const STAGE_SETTING_KEY = 'dso_sla_stages';
 
+    private const CUSTOM_SETTING_KEY = 'dso_sla_custom_destinations';
+
     /** @var array<int, array<string, int>> */
     private static array $customerOverrides = [];
 
     /** @var array<int, array<string, array<int, int>>> */
     private static array $stageOverrides = [];
+
+    /** @var array<int, array<string, array{stages: array<int, int>, total: int}>> */
+    private static array $customDestinationCache = [];
 
     /** @return array<int, string> */
     public static function positions(): array
@@ -46,7 +51,7 @@ class DsoSla
      */
     public static function destinations(): array
     {
-        $destinations = self::baseDestinations();
+        $destinations = self::destinationDefinitions();
 
         foreach (self::customerOverrides() as $destination => $customer) {
             if (isset($destinations[$destination])) {
@@ -78,12 +83,53 @@ class DsoSla
         ];
     }
 
+    /** @return array<string, array{stages: array<int, int>, total: int}> */
+    private static function destinationDefinitions(): array
+    {
+        return array_replace(self::baseDestinations(), self::customDestinations());
+    }
+
+    /** @param array<int, int> $stages */
+    public static function addDestination(string $destination, array $stages, int $customer): void
+    {
+        $destination = self::normalizeDestination($destination);
+
+        if ($destination === '' || isset(self::destinationDefinitions()[$destination])) {
+            throw new InvalidArgumentException('Nama destination tidak valid atau sudah tersedia.');
+        }
+
+        $stages = array_values($stages);
+
+        if (count($stages) !== 6
+            || collect($stages)->contains(fn (mixed $days) => filter_var($days, FILTER_VALIDATE_INT) === false
+                || (int) $days < 0
+                || (int) $days > 365)
+            || $customer < 1
+            || $customer > 365) {
+            throw new InvalidArgumentException('Nilai tahapan atau SLA Customer destination tidak valid.');
+        }
+
+        $custom = self::customDestinations();
+        $custom[$destination] = [
+            'stages' => array_map(fn (mixed $days) => (int) $days, $stages),
+            'total' => $customer,
+        ];
+
+        SystemSetting::query()->updateOrCreate(
+            ['setting_key' => self::CUSTOM_SETTING_KEY],
+            ['setting_value' => json_encode($custom, JSON_THROW_ON_ERROR)],
+        );
+
+        $key = self::applicationKey();
+        unset(self::$customDestinationCache[$key], self::$customerOverrides[$key], self::$stageOverrides[$key]);
+    }
+
     /** @param array<string, int> $customers */
     public static function setCustomers(array $customers): void
     {
         $values = [];
 
-        foreach (self::baseDestinations() as $destination => $_target) {
+        foreach (self::destinationDefinitions() as $destination => $_target) {
             $customer = filter_var($customers[$destination] ?? null, FILTER_VALIDATE_INT);
 
             if ($customer === false || $customer < 1 || $customer > 365) {
@@ -106,7 +152,7 @@ class DsoSla
     {
         $values = [];
 
-        foreach (self::baseDestinations() as $destination => $target) {
+        foreach (self::destinationDefinitions() as $destination => $target) {
             $destinationStages = array_values($stages[$destination] ?? []);
 
             if (count($destinationStages) !== count($target['stages'])) {
@@ -353,7 +399,7 @@ class DsoSla
             $decoded = [];
         }
 
-        $defaults = self::baseDestinations();
+        $defaults = self::destinationDefinitions();
         $overrides = collect(is_array($decoded) ? $decoded : [])
             ->filter(fn (mixed $value, mixed $destination) => isset($defaults[$destination])
                 && is_numeric($value)
@@ -384,7 +430,7 @@ class DsoSla
             $decoded = [];
         }
 
-        $defaults = self::baseDestinations();
+        $defaults = self::destinationDefinitions();
         $overrides = [];
 
         foreach (is_array($decoded) ? $decoded : [] as $destination => $stages) {
@@ -412,5 +458,51 @@ class DsoSla
     private static function applicationKey(): int
     {
         return function_exists('app') ? spl_object_id(app()) : 0;
+    }
+
+    /** @return array<string, array{stages: array<int, int>, total: int}> */
+    private static function customDestinations(): array
+    {
+        $key = self::applicationKey();
+
+        if (isset(self::$customDestinationCache[$key])) {
+            return self::$customDestinationCache[$key];
+        }
+
+        $stored = SystemSetting::query()
+            ->where('setting_key', self::CUSTOM_SETTING_KEY)
+            ->value('setting_value');
+
+        try {
+            $decoded = is_string($stored) ? json_decode($stored, true, flags: JSON_THROW_ON_ERROR) : [];
+        } catch (\JsonException) {
+            $decoded = [];
+        }
+
+        $custom = [];
+
+        foreach (is_array($decoded) ? $decoded : [] as $destination => $target) {
+            $name = self::normalizeDestination((string) $destination);
+            $stages = is_array($target) ? array_values($target['stages'] ?? []) : [];
+            $customer = is_array($target) ? filter_var($target['total'] ?? null, FILTER_VALIDATE_INT) : false;
+
+            if ($name === '' || isset(self::baseDestinations()[$name]) || count($stages) !== 6
+                || collect($stages)->contains(fn (mixed $days) => ! is_numeric($days) || (int) $days < 0 || (int) $days > 365)
+                || $customer === false || $customer < 1 || $customer > 365) {
+                continue;
+            }
+
+            $custom[$name] = [
+                'stages' => array_map(fn (mixed $days) => (int) $days, $stages),
+                'total' => (int) $customer,
+            ];
+        }
+
+        return self::$customDestinationCache[$key] = $custom;
+    }
+
+    private static function normalizeDestination(string $destination): string
+    {
+        return trim((string) preg_replace('/[^A-Z0-9]+/', ' ', strtoupper(trim($destination))));
     }
 }

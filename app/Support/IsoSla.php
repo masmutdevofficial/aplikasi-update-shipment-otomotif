@@ -13,6 +13,9 @@ class IsoSla
     /** @var array<int, array<string, array<string, array<string, int|null>>>> */
     private static array $stageOverrides = [];
 
+    /** @var array<int, array<string, array<string, array{stages: array<string, int>, customer: int}>>> */
+    private static array $customTargetCache = [];
+
     /**
      * Tahap keluar_dari_pdc pada ISO Laut merupakan target saat shipment
      * masih berstatus Belum Keluar PDC dan bernilai 0 hari untuk semua tujuan.
@@ -24,6 +27,10 @@ class IsoSla
     public static function targets(): array
     {
         $targets = self::baseTargets();
+
+        foreach (array_keys($targets) as $type) {
+            $targets[$type] = array_replace($targets[$type], self::customTargets($type));
+        }
 
         foreach ($targets as $type => &$typeTargets) {
             foreach (self::customerOverrides($type) as $destination => $customer) {
@@ -82,6 +89,58 @@ class IsoSla
         ];
     }
 
+    /** @return array<string, array{stages: array<string, int|null>, customer: int}> */
+    private static function targetDefinitions(string $type): array
+    {
+        return array_replace(self::baseTargets()[$type] ?? [], self::customTargets($type));
+    }
+
+    /** @param array<string, int> $stages */
+    public static function addDestination(string $type, string $destination, array $stages, int $customer): void
+    {
+        if (! in_array($type, ['iso-darat', 'iso-laut'], true)) {
+            throw new InvalidArgumentException('Tipe SLA ISO tidak valid.');
+        }
+
+        $destination = self::normalize($destination);
+        $stageKeys = ['keluar_dari_pdc', 'storage_port', 'kapal_loading', 'ata_kapal', 'storage_port_destination', 'ptd_dooring'];
+
+        if ($destination === '' || isset(self::targetDefinitions($type)[$destination])) {
+            throw new InvalidArgumentException('Nama destination tidak valid atau sudah tersedia.');
+        }
+
+        $normalizedStages = [];
+
+        foreach ($stageKeys as $stage) {
+            $days = filter_var($stages[$stage] ?? null, FILTER_VALIDATE_INT);
+
+            if ($days === false || $days < 0 || $days > 365) {
+                throw new InvalidArgumentException('Nilai tahapan destination tidak valid.');
+            }
+
+            $normalizedStages[$stage] = $days;
+        }
+
+        if ($customer < 1 || $customer > 365) {
+            throw new InvalidArgumentException('Nilai SLA Customer destination tidak valid.');
+        }
+
+        $custom = self::customTargets($type);
+        $custom[$destination] = ['stages' => $normalizedStages, 'customer' => $customer];
+
+        SystemSetting::query()->updateOrCreate(
+            ['setting_key' => self::customSettingKey($type)],
+            ['setting_value' => json_encode($custom, JSON_THROW_ON_ERROR)],
+        );
+
+        $key = self::applicationKey();
+        unset(
+            self::$customTargetCache[$key][$type],
+            self::$customerOverrides[$key][$type],
+            self::$stageOverrides[$key][$type],
+        );
+    }
+
     /** @param array<string, int> $customers */
     public static function setCustomers(string $type, array $customers): void
     {
@@ -117,7 +176,7 @@ class IsoSla
             throw new InvalidArgumentException('Tipe SLA ISO tidak valid.');
         }
 
-        $defaults = self::baseTargets()[$type];
+        $defaults = self::targetDefinitions($type);
         $values = [];
 
         foreach ($defaults as $destination => $target) {
@@ -238,7 +297,7 @@ class IsoSla
     /** @return array<string, int> */
     private static function defaultCustomers(string $type): array
     {
-        return collect(self::baseTargets()[$type] ?? [])
+        return collect(self::targetDefinitions($type))
             ->map(fn (array $target) => $target['customer'])
             ->all();
     }
@@ -262,7 +321,7 @@ class IsoSla
             $decoded = [];
         }
 
-        $defaults = self::baseTargets()[$type] ?? [];
+        $defaults = self::targetDefinitions($type);
         $overrides = [];
 
         foreach (is_array($decoded) ? $decoded : [] as $destination => $stages) {
@@ -295,6 +354,59 @@ class IsoSla
     private static function stageSettingKey(string $type): string
     {
         return 'iso_sla_stages_' . str_replace('-', '_', $type);
+    }
+
+    private static function customSettingKey(string $type): string
+    {
+        return 'iso_sla_custom_destinations_' . str_replace('-', '_', $type);
+    }
+
+    /** @return array<string, array{stages: array<string, int>, customer: int}> */
+    private static function customTargets(string $type): array
+    {
+        $key = self::applicationKey();
+
+        if (isset(self::$customTargetCache[$key][$type])) {
+            return self::$customTargetCache[$key][$type];
+        }
+
+        $stored = SystemSetting::query()
+            ->where('setting_key', self::customSettingKey($type))
+            ->value('setting_value');
+
+        try {
+            $decoded = is_string($stored) ? json_decode($stored, true, flags: JSON_THROW_ON_ERROR) : [];
+        } catch (\JsonException) {
+            $decoded = [];
+        }
+
+        $stageKeys = ['keluar_dari_pdc', 'storage_port', 'kapal_loading', 'ata_kapal', 'storage_port_destination', 'ptd_dooring'];
+        $custom = [];
+
+        foreach (is_array($decoded) ? $decoded : [] as $destination => $target) {
+            $name = self::normalize((string) $destination);
+            $customer = is_array($target) ? filter_var($target['customer'] ?? null, FILTER_VALIDATE_INT) : false;
+            $stages = [];
+
+            foreach ($stageKeys as $stage) {
+                $days = is_array($target) ? filter_var($target['stages'][$stage] ?? null, FILTER_VALIDATE_INT) : false;
+
+                if ($days === false || $days < 0 || $days > 365) {
+                    continue 2;
+                }
+
+                $stages[$stage] = $days;
+            }
+
+            if ($name === '' || isset(self::baseTargets()[$type][$name])
+                || $customer === false || $customer < 1 || $customer > 365) {
+                continue;
+            }
+
+            $custom[$name] = ['stages' => $stages, 'customer' => $customer];
+        }
+
+        return self::$customTargetCache[$key][$type] = $custom;
     }
 
     private static function applicationKey(): int

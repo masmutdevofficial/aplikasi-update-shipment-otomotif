@@ -78,6 +78,7 @@ Route::middleware(['auth', CheckVendorStatus::class])->group(function () {
 
             // Shipment Management
             Route::match(['get', 'post'], '/shipments/data', [ShipmentController::class, 'data'])->name('shipments.data');
+            Route::post('/shipments/sla-destination', [ShipmentController::class, 'addSlaDestination'])->name('shipments.sla-destination.store');
             Route::put('/shipments/sla-customer', [ShipmentController::class, 'updateSlaCustomers'])->name('shipments.sla-customer.update');
             Route::delete('/shipments/bulk-delete', [ShipmentController::class, 'bulkDestroy'])->name('shipments.bulk-destroy');
             Route::resource('shipments', ShipmentController::class)->except(['show']);
@@ -96,6 +97,7 @@ Route::middleware(['auth', CheckVendorStatus::class])->group(function () {
                     Route::match(['get', 'post'], '/data', [SpecialShipmentController::class, 'data'])->name('data');
                     Route::get('/create', [SpecialShipmentController::class, 'create'])->name('create');
                     Route::post('/', [SpecialShipmentController::class, 'store'])->name('store');
+                    Route::post('/sla-destination', [SpecialShipmentController::class, 'addSlaDestination'])->name('sla-destination.store');
                     Route::put('/sla-customer', [SpecialShipmentController::class, 'updateSlaCustomers'])->name('sla-customer.update');
                     Route::delete('/bulk-delete', [SpecialShipmentController::class, 'bulkDestroy'])->name('bulk-destroy');
                     Route::get('/import', [SpecialShipmentController::class, 'showImport'])->name('import.form');

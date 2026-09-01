@@ -117,16 +117,20 @@
 </div>
 
 <div class="card card-info">
-    <div class="card-header">
+    <div class="card-header d-flex align-items-center justify-content-between">
         <h3 class="card-title"><i class="fas fa-stopwatch"></i> Referensi SLA Customer DSO</h3>
+        <button type="button" class="btn btn-sm btn-light ml-auto" data-toggle="modal" data-target="#addDsoSlaDestinationModal">
+            <i class="fas fa-plus"></i> Tambah Destination
+        </button>
     </div>
     <form method="POST" action="{{ route('admin.shipments.sla-customer.update') }}">
         @csrf
         @method('PUT')
         <div class="card-body p-0 table-responsive">
-            <table class="table table-sm table-striped mb-0">
+            <table class="table table-sm table-striped mb-0 sla-reference-table">
             <thead>
                 <tr>
+                    <th class="sla-lock-column"><i class="fas fa-lock" title="Status kunci baris"></i></th>
                     <th>Destination</th>
                     <th>Belum Keluar PDC</th>
                     <th>Storage Port</th>
@@ -139,7 +143,16 @@
             </thead>
             <tbody>
                 @foreach ($slaDestinations as $destination => $target)
-                    <tr>
+                    <tr class="sla-reference-row" data-locked="true">
+                        <td class="sla-lock-column">
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-warning sla-row-lock-toggle"
+                                title="Buka kunci untuk mengubah data"
+                                aria-label="Buka kunci baris {{ $destination }}"
+                                aria-pressed="false"
+                            ><i class="fas fa-lock"></i></button>
+                        </td>
                         <td><strong>{{ ucfirst(strtolower($destination)) }}</strong></td>
                         @foreach ($target['stages'] as $stage => $days)
                             <td>
@@ -147,10 +160,11 @@
                                     type="number"
                                     name="sla_stages[{{ $destination }}][{{ $stage }}]"
                                     value="{{ old("sla_stages.{$destination}.{$stage}", $days) }}"
-                                    class="form-control form-control-sm @error("sla_stages.{$destination}.{$stage}") is-invalid @enderror"
+                                    class="form-control form-control-sm sla-reference-input @error("sla_stages.{$destination}.{$stage}") is-invalid @enderror"
                                     min="0"
                                     max="365"
                                     required
+                                    readonly
                                     aria-label="Tahapan SLA {{ $destination }}"
                                     style="min-width:75px;"
                                 >
@@ -165,10 +179,11 @@
                                     type="number"
                                     name="sla_customer[{{ $destination }}]"
                                     value="{{ old("sla_customer.{$destination}", $target['total']) }}"
-                                    class="form-control @error("sla_customer.{$destination}") is-invalid @enderror"
+                                    class="form-control sla-reference-input @error("sla_customer.{$destination}") is-invalid @enderror"
                                     min="1"
                                     max="365"
                                     required
+                                    readonly
                                     aria-label="SLA Customer {{ $destination }}"
                                 >
                                 <div class="input-group-append"><span class="input-group-text">hari</span></div>
@@ -190,6 +205,13 @@
         </div>
     </form>
 </div>
+
+@include('admin.partials._add-sla-destination-modal', [
+    'slaAddModalId' => 'addDsoSlaDestinationModal',
+    'slaAddTitle' => 'Tambah Destination SLA DSO',
+    'slaAddAction' => route('admin.shipments.sla-destination.store'),
+])
+@include('admin.partials._sla-reference-lock-controls')
 @endsection
 
 @push('styles')

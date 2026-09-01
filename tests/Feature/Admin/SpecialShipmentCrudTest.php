@@ -49,7 +49,12 @@ class SpecialShipmentCrudTest extends TestCase
                 ->get(route('admin.special-shipments.index', $type))
                 ->assertOk()
                 ->assertSee('Referensi SLA Customer')
+                ->assertSee('Tambah Destination')
+                ->assertSee('Nama Destination')
                 ->assertSee('Simpan Referensi SLA')
+                ->assertSee('sla-row-lock-toggle', false)
+                ->assertSee('fa-lock', false)
+                ->assertSee('readonly', false)
                 ->assertSee('name="sla_customer[', false)
                 ->assertSee('name="sla_stages[', false);
         }
@@ -130,6 +135,36 @@ class SpecialShipmentCrudTest extends TestCase
         $this->assertDatabaseHas('system_settings', [
             'setting_key' => 'iso_sla_stages_iso_laut',
         ]);
+    }
+
+    public function test_admin_can_add_destination_to_iso_darat_and_iso_laut(): void
+    {
+        foreach (['iso-darat' => 'Bogor Baru', 'iso-laut' => 'Kendari Baru'] as $type => $destination) {
+            $this->actingAs($this->admin)
+                ->post(route('admin.special-shipments.sla-destination.store', $type), [
+                    'destination' => $destination,
+                    'sla_stages' => [
+                        'keluar_dari_pdc' => 0,
+                        'storage_port' => 1,
+                        'kapal_loading' => 2,
+                        'ata_kapal' => 3,
+                        'storage_port_destination' => 1,
+                        'ptd_dooring' => 0,
+                    ],
+                    'sla_customer' => 9,
+                ])
+                ->assertRedirect(route('admin.special-shipments.index', $type))
+                ->assertSessionHas('success');
+
+            $target = IsoSla::targetFor($type, $destination);
+
+            $this->assertSame(9, $target['customer']);
+            $this->assertSame(2, $target['stages']['kapal_loading']);
+            $this->actingAs($this->admin)
+                ->get(route('admin.special-shipments.index', $type))
+                ->assertOk()
+                ->assertSee(ucwords(strtolower($destination)));
+        }
     }
 
     public function test_special_shipment_datatable_only_returns_requested_page(): void

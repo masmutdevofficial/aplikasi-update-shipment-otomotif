@@ -14,6 +14,7 @@ use App\Support\ShipmentDashboard;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
+use InvalidArgumentException;
 
 class ShipmentController extends Controller
 {
@@ -165,6 +166,37 @@ class ShipmentController extends Controller
 
         return redirect()->route('admin.shipments.index')
             ->with('success', 'Referensi SLA DSO berhasil diperbarui.');
+    }
+
+    public function addSlaDestination(Request $request)
+    {
+        $validated = $request->validateWithBag('addSlaDestination', [
+            'destination' => ['required', 'string', 'max:100'],
+            'sla_stages' => ['required', 'array', 'size:6'],
+            'sla_stages.*' => ['required', 'integer', 'min:0', 'max:365'],
+            'sla_customer' => ['required', 'integer', 'min:1', 'max:365'],
+        ], [
+            'destination.required' => 'Nama destination wajib diisi.',
+            'sla_stages.size' => 'Semua tahapan SLA wajib diisi.',
+            'sla_stages.*.required' => 'Semua tahapan SLA wajib diisi.',
+            'sla_stages.*.integer' => 'Tahapan SLA wajib berupa angka hari.',
+            'sla_customer.required' => 'SLA Customer wajib diisi.',
+        ]);
+
+        try {
+            DsoSla::addDestination(
+                $validated['destination'],
+                $validated['sla_stages'],
+                (int) $validated['sla_customer'],
+            );
+        } catch (InvalidArgumentException $exception) {
+            return back()
+                ->withInput()
+                ->withErrors(['destination' => $exception->getMessage()], 'addSlaDestination');
+        }
+
+        return redirect()->route('admin.shipments.index')
+            ->with('success', 'Destination SLA DSO berhasil ditambahkan.');
     }
 
     private function displayDoHoldDate(Shipment $shipment, string $field): string

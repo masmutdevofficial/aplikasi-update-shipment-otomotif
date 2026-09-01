@@ -53,7 +53,12 @@ class ShipmentCrudTest extends TestCase
         $response->assertStatus(200);
         $response->assertViewIs('admin.shipments.index');
         $response->assertSee('Referensi SLA Customer DSO');
+        $response->assertSee('Tambah Destination');
+        $response->assertSee('Nama Destination');
         $response->assertSee('Simpan Referensi SLA');
+        $response->assertSee('sla-row-lock-toggle', false);
+        $response->assertSee('fa-lock', false);
+        $response->assertSee('readonly', false);
         $response->assertSee('name="sla_customer[', false);
         $response->assertSee('name="sla_stages[', false);
     }
@@ -96,6 +101,34 @@ class ShipmentCrudTest extends TestCase
         $this->assertDatabaseHas('system_settings', [
             'setting_key' => 'dso_sla_stages',
         ]);
+    }
+
+    public function test_admin_can_add_dso_sla_destination_with_all_stages(): void
+    {
+        $this->actingAs($this->admin)
+            ->post(route('admin.shipments.sla-destination.store'), [
+                'destination' => 'Kendari Baru',
+                'sla_stages' => [
+                    'keluar_dari_pdc' => 0,
+                    'storage_port' => 2,
+                    'kapal_loading' => 1,
+                    'ata_kapal' => 3,
+                    'storage_port_destination' => 1,
+                    'ptd_dooring' => 0,
+                ],
+                'sla_customer' => 8,
+            ])
+            ->assertRedirect(route('admin.shipments.index'))
+            ->assertSessionHas('success');
+
+        $target = DsoSla::targetFor('Kendari Baru');
+
+        $this->assertSame(8, $target['total']);
+        $this->assertSame([0, 2, 1, 3, 1, 0], $target['stages']);
+        $this->actingAs($this->admin)
+            ->get(route('admin.shipments.index'))
+            ->assertOk()
+            ->assertSee('Kendari baru');
     }
 
     public function test_shipment_datatable_only_returns_requested_page(): void

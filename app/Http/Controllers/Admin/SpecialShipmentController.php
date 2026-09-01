@@ -12,6 +12,7 @@ use App\Support\ShipmentDashboard;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
+use InvalidArgumentException;
 
 class SpecialShipmentController extends Controller
 {
@@ -228,6 +229,40 @@ class SpecialShipmentController extends Controller
 
         return redirect()->route('admin.special-shipments.index', $type)
             ->with('success', "Referensi SLA {$type} berhasil diperbarui.");
+    }
+
+    public function addSlaDestination(Request $request, string $type)
+    {
+        abort_unless(in_array($type, ['iso-darat', 'iso-laut'], true), 404);
+
+        $validated = $request->validateWithBag('addSlaDestination', [
+            'destination' => ['required', 'string', 'max:100'],
+            'sla_stages' => ['required', 'array', 'size:6'],
+            'sla_stages.*' => ['required', 'integer', 'min:0', 'max:365'],
+            'sla_customer' => ['required', 'integer', 'min:1', 'max:365'],
+        ], [
+            'destination.required' => 'Nama destination wajib diisi.',
+            'sla_stages.size' => 'Semua tahapan SLA wajib diisi.',
+            'sla_stages.*.required' => 'Semua tahapan SLA wajib diisi.',
+            'sla_stages.*.integer' => 'Tahapan SLA wajib berupa angka hari.',
+            'sla_customer.required' => 'SLA Customer wajib diisi.',
+        ]);
+
+        try {
+            IsoSla::addDestination(
+                $type,
+                $validated['destination'],
+                $validated['sla_stages'],
+                (int) $validated['sla_customer'],
+            );
+        } catch (InvalidArgumentException $exception) {
+            return back()
+                ->withInput()
+                ->withErrors(['destination' => $exception->getMessage()], 'addSlaDestination');
+        }
+
+        return redirect()->route('admin.special-shipments.index', $type)
+            ->with('success', "Destination SLA {$type} berhasil ditambahkan.");
     }
 
     public function showImport(string $type)
