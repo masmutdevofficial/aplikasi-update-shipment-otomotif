@@ -51,6 +51,8 @@ class SpecialShipmentCrudTest extends TestCase
                 ->assertSee('Referensi SLA Customer')
                 ->assertSee('Tambah Destination')
                 ->assertSee('Nama Destination')
+                ->assertSee('sla-destination-modal', false)
+                ->assertSee('aria-hidden="true" hidden', false)
                 ->assertSee('Simpan Referensi SLA')
                 ->assertSee('sla-row-lock-toggle', false)
                 ->assertSee('fa-lock', false)

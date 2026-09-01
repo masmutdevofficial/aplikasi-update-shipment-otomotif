@@ -10,7 +10,7 @@
     ];
 @endphp
 
-<div class="modal fade" id="{{ $slaAddModalId }}" tabindex="-1" role="dialog" aria-labelledby="{{ $slaAddModalId }}Label" aria-hidden="true">
+<div class="modal fade sla-destination-modal" id="{{ $slaAddModalId }}" tabindex="-1" role="dialog" aria-labelledby="{{ $slaAddModalId }}Label" aria-hidden="true" hidden>
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <form method="POST" action="{{ $slaAddAction }}">
@@ -99,6 +99,75 @@
 
 @once
     @push('styles')
+.sla-destination-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1060;
+    display: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 24px 12px;
+    background: rgba(0, 0, 0, .5);
+}
+.sla-destination-modal.show {
+    display: block;
+}
+.sla-destination-modal .modal-dialog {
+    width: 100%;
+    max-width: 800px;
+    margin: 28px auto;
+}
+.sla-destination-modal .modal-content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    color: #212529;
+    background: #fff;
+    border: 1px solid rgba(0, 0, 0, .2);
+    border-radius: 6px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, .28);
+}
+.sla-destination-modal .modal-header,
+.sla-destination-modal .modal-footer {
+    display: flex;
+    align-items: center;
+    padding: 16px;
+}
+.sla-destination-modal .modal-header {
+    justify-content: space-between;
+    border-bottom: 1px solid #dee2e6;
+}
+.sla-destination-modal .modal-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+.sla-destination-modal .modal-body {
+    position: relative;
+    padding: 16px;
+}
+.sla-destination-modal .modal-footer {
+    justify-content: flex-end;
+    gap: 8px;
+    border-top: 1px solid #dee2e6;
+}
+.sla-destination-modal .close {
+    padding: 4px 8px;
+    color: #000;
+    font-size: 24px;
+    line-height: 1;
+    background: transparent;
+    border: 0;
+    opacity: .55;
+    cursor: pointer;
+}
+.sla-destination-modal .close:hover {
+    opacity: .85;
+}
+body.sla-modal-open {
+    overflow: hidden;
+}
 .sla-destination-stage-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -108,9 +177,82 @@
     grid-column: 1 / -1;
 }
 @media (max-width: 576px) {
+    .sla-destination-modal {
+        padding: 8px;
+    }
+    .sla-destination-modal .modal-dialog {
+        margin: 8px auto;
+    }
     .sla-destination-stage-grid { grid-template-columns: 1fr; }
     .sla-customer-modal-field { grid-column: auto; }
 }
+    @endpush
+
+    @push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    let previouslyFocused = null;
+
+    function openModal(modal) {
+        if (!modal) return;
+
+        previouslyFocused = document.activeElement;
+        modal.hidden = false;
+        modal.classList.add('show');
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('sla-modal-open');
+
+        window.requestAnimationFrame(function () {
+            const firstInput = modal.querySelector('input:not([type="hidden"]), button, select, textarea');
+            if (firstInput) firstInput.focus();
+        });
+    }
+
+    function closeModal(modal) {
+        if (!modal) return;
+
+        modal.classList.remove('show');
+        modal.hidden = true;
+        modal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('sla-modal-open');
+
+        if (previouslyFocused) previouslyFocused.focus();
+    }
+
+    document.addEventListener('click', function (event) {
+        const trigger = event.target.closest('[data-toggle="modal"][data-target]');
+
+        if (trigger) {
+            event.preventDefault();
+            openModal(document.querySelector(trigger.getAttribute('data-target')));
+            return;
+        }
+
+        const dismiss = event.target.closest('[data-dismiss="modal"]');
+
+        if (dismiss) {
+            closeModal(dismiss.closest('.sla-destination-modal'));
+            return;
+        }
+
+        if (event.target.classList.contains('sla-destination-modal')) {
+            closeModal(event.target);
+        }
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key !== 'Escape') return;
+
+        closeModal(document.querySelector('.sla-destination-modal.show'));
+    });
+
+    window.SlaDestinationModal = {
+        open: function (id) {
+            openModal(document.getElementById(id));
+        },
+    };
+});
+</script>
     @endpush
 @endonce
 
@@ -118,7 +260,7 @@
     @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    $('#{{ $slaAddModalId }}').modal('show');
+    window.SlaDestinationModal.open('{{ $slaAddModalId }}');
 });
 </script>
     @endpush

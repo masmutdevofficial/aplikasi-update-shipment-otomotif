@@ -55,6 +55,8 @@ class ShipmentCrudTest extends TestCase
         $response->assertSee('Referensi SLA Customer DSO');
         $response->assertSee('Tambah Destination');
         $response->assertSee('Nama Destination');
+        $response->assertSee('sla-destination-modal', false);
+        $response->assertSee('aria-hidden="true" hidden', false);
         $response->assertSee('Simpan Referensi SLA');
         $response->assertSee('sla-row-lock-toggle', false);
         $response->assertSee('fa-lock', false);
