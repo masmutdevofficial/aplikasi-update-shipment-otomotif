@@ -17,6 +17,7 @@ class ShipmentUpdate extends Model
         'scan_date',
         'document_link',
         'document_path',
+        'scan_photo_path',
         'created_by',
         'updated_by',
     ];

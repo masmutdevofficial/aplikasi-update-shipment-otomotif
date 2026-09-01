@@ -18,6 +18,7 @@
                         <th>Posisi</th>
                         <th>Vendor</th>
                         <th>Tanggal Scan</th>
+                        <th>Dokumen Scan</th>
                         <th>Foto Scan</th>
                         <th>Aksi</th>
                     </tr>
@@ -32,9 +33,18 @@
                             <td>{{ $pending->scan_date->format('d-M-y') }}</td>
                             <td>
                                 @if($pending->document_path)
-                                    <a href="{{ \Illuminate\Support\Facades\Storage::disk(config('filesystems.document_disk'))->url($pending->document_path) }}" target="_blank" rel="noopener" title="Buka foto scan ukuran penuh">
+                                    <a href="{{ \Illuminate\Support\Facades\Storage::disk(config('filesystems.document_disk'))->url($pending->document_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-file-image"></i> Lihat
+                                    </a>
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
+                            <td>
+                                @if($pending->scan_photo_path)
+                                    <a href="{{ \Illuminate\Support\Facades\Storage::disk(config('filesystems.document_disk'))->url($pending->scan_photo_path) }}" target="_blank" rel="noopener" title="Buka foto scan ukuran penuh">
                                         <img
-                                            src="{{ \Illuminate\Support\Facades\Storage::disk(config('filesystems.document_disk'))->url($pending->document_path) }}"
+                                            src="{{ \Illuminate\Support\Facades\Storage::disk(config('filesystems.document_disk'))->url($pending->scan_photo_path) }}"
                                             alt="Foto scan VIN {{ $pending->no_rangka }}"
                                             style="width:96px;height:64px;object-fit:cover;border-radius:6px;border:1px solid #dee2e6;"
                                             loading="lazy"
@@ -45,7 +55,7 @@
                                 @endif
                             </td>
                             <td>
-                                <form action="{{ route('admin.pending-vins.destroy', $pending) }}" method="POST" onsubmit="return confirm('Hapus VIN pending {{ $pending->no_rangka }} beserta gambar dokumennya? Data yang dihapus tidak dapat dikembalikan.');">
+                                <form action="{{ route('admin.pending-vins.destroy', $pending) }}" method="POST" onsubmit="return confirm('Hapus VIN pending {{ $pending->no_rangka }} beserta dokumen dan foto scannya? Data yang dihapus tidak dapat dikembalikan.');">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-sm btn-outline-danger" title="Hapus VIN pending">

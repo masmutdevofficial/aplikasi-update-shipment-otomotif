@@ -16,6 +16,7 @@ class PendingVin extends Model
         'position',
         'scan_date',
         'document_path',
+        'scan_photo_path',
         'created_by',
         'updated_by',
     ];

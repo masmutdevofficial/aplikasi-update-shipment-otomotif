@@ -146,8 +146,9 @@ class ScanVinTest extends TestCase
 
         $pending = \App\Models\PendingVin::query()->where('no_rangka', $vin)->firstOrFail();
 
-        $this->assertNotNull($pending->document_path);
-        Storage::disk('r2')->assertExists($pending->document_path);
+        $this->assertNull($pending->document_path);
+        $this->assertNotNull($pending->scan_photo_path);
+        Storage::disk('r2')->assertExists($pending->scan_photo_path);
     }
 
     public function test_dooring_vendor_can_upload_document_for_any_dso_shipment(): void

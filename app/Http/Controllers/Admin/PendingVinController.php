@@ -31,6 +31,7 @@ class PendingVinController extends Controller
             // Hapus objek R2 lebih dulu agar kegagalan storage tidak menyisakan
             // gambar tanpa referensi setelah record database terhapus.
             $this->documentService->delete($pendingVin->document_path);
+            $this->documentService->delete($pendingVin->scan_photo_path);
             $pendingVin->delete();
         } catch (Throwable $exception) {
             report($exception);
@@ -40,6 +41,6 @@ class PendingVinController extends Controller
 
         return redirect()
             ->route('admin.pending-vins.index')
-            ->with('success', 'VIN pending dan gambar dokumennya berhasil dihapus.');
+            ->with('success', 'VIN pending, dokumen scan, dan foto scan berhasil dihapus.');
     }
 }

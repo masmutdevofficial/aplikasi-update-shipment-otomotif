@@ -30,6 +30,7 @@ class PendingVinService
                         'vendor_id' => $pending->vendor_id,
                         'scan_date' => $pending->scan_date,
                         'document_path' => $pending->document_path,
+                        'scan_photo_path' => $pending->scan_photo_path,
                         'created_by' => $pending->created_by,
                         'updated_by' => $pending->updated_by,
                     ],

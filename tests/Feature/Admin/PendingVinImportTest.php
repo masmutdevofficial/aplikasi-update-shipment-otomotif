@@ -19,6 +19,7 @@ class PendingVinImportTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.pending-vins.index'))
             ->assertOk()
+            ->assertSee('Dokumen Scan')
             ->assertSee('Foto Scan')
             ->assertDontSee('colspan="6"', false)
             ->assertSee("emptyTable: 'Tidak ada VIN pending'", false);
@@ -40,7 +41,9 @@ class PendingVinImportTest extends TestCase
         ]);
         $vin = 'MHFAA8GS4N0000002';
         $documentPath = "shipment-documents/{$vin}/proof.png";
+        $scanPhotoPath = "shipment-documents/{$vin}/vin-photo.png";
         Storage::disk('r2')->put($documentPath, 'test-image');
+        Storage::disk('r2')->put($scanPhotoPath, 'vin-photo');
 
         $pendingVin = PendingVin::create([
             'no_rangka' => $vin,
@@ -48,6 +51,7 @@ class PendingVinImportTest extends TestCase
             'position' => $vendor->position,
             'scan_date' => '2026-08-24',
             'document_path' => $documentPath,
+            'scan_photo_path' => $scanPhotoPath,
             'created_by' => $vendorUser->id,
             'updated_by' => $vendorUser->id,
         ]);
@@ -55,7 +59,9 @@ class PendingVinImportTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.pending-vins.index'))
             ->assertOk()
-            ->assertSee('Hapus');
+            ->assertSee('Hapus')
+            ->assertSee(Storage::disk('r2')->url($documentPath), false)
+            ->assertSee(Storage::disk('r2')->url($scanPhotoPath), false);
 
         $this->actingAs($admin)
             ->delete(route('admin.pending-vins.destroy', $pendingVin))
@@ -64,6 +70,7 @@ class PendingVinImportTest extends TestCase
 
         $this->assertDatabaseMissing('pending_vins', ['id' => $pendingVin->id]);
         Storage::disk('r2')->assertMissing($documentPath);
+        Storage::disk('r2')->assertMissing($scanPhotoPath);
     }
 
     public function test_import_matches_pending_vin_to_new_shipment(): void
@@ -80,7 +87,9 @@ class PendingVinImportTest extends TestCase
         ]);
         $vin = 'MHFAA8GS4N0000001';
         $documentPath = 'shipment-documents/'.$vin.'/proof.png';
+        $scanPhotoPath = 'shipment-documents/'.$vin.'/vin-photo.png';
         Storage::disk('r2')->put($documentPath, 'test-image');
+        Storage::disk('r2')->put($scanPhotoPath, 'vin-photo');
 
         PendingVin::create([
             'no_rangka' => $vin,
@@ -88,6 +97,7 @@ class PendingVinImportTest extends TestCase
             'position' => $vendor->position,
             'scan_date' => '2026-07-29',
             'document_path' => $documentPath,
+            'scan_photo_path' => $scanPhotoPath,
             'created_by' => $vendorUser->id,
             'updated_by' => $vendorUser->id,
         ]);
@@ -123,6 +133,7 @@ class PendingVinImportTest extends TestCase
             'position' => 'AT PtD (Dooring)',
             'vendor_id' => $vendor->id,
             'document_path' => $documentPath,
+            'scan_photo_path' => $scanPhotoPath,
         ]);
     }
 }

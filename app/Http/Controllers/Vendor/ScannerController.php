@@ -124,21 +124,21 @@ class ScannerController extends Controller
                 ], 409);
             }
 
-            $documentPath = null;
+            $scanPhotoPath = null;
 
             if ($request->filled('scan_image')) {
                 [$imageBytes, $extension] = $this->decodeScanImage($request->string('scan_image')->toString());
-                $documentPath = $this->documentService->storeBytes($imageBytes, "pending-vins/{$noRangka}", $extension);
+                $scanPhotoPath = $this->documentService->storeBytes($imageBytes, "pending-vins/{$noRangka}", $extension);
             }
 
             try {
-                DB::transaction(function () use ($vendor, $user, $noRangka, $documentPath) {
+                DB::transaction(function () use ($vendor, $user, $noRangka, $scanPhotoPath) {
                     PendingVin::create([
                         'no_rangka' => $noRangka,
                         'vendor_id' => $vendor->id,
                         'position' => $vendor->position,
                         'scan_date' => today(),
-                        'document_path' => $documentPath,
+                        'scan_photo_path' => $scanPhotoPath,
                         'created_by' => $user->id,
                         'updated_by' => $user->id,
                     ]);
@@ -150,7 +150,7 @@ class ScannerController extends Controller
                     ]);
                 });
             } catch (\Throwable $exception) {
-                $this->documentService->delete($documentPath);
+                $this->documentService->delete($scanPhotoPath);
 
                 throw $exception;
             }
