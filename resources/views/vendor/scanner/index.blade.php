@@ -458,6 +458,9 @@
                     body: JSON.stringify({
                         no_rangka: vin,
                         save_as_pending: saveAsPending,
+                        scan_image: canvas.width > 0 && canvas.height > 0
+                            ? canvas.toDataURL('image/jpeg', 0.85)
+                            : null,
                     }),
                 });
             } catch (networkErr) {

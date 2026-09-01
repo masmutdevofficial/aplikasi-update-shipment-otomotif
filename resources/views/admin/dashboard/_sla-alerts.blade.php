@@ -4,6 +4,7 @@
     $dashboardAlertDetailQuery = array_filter([
         'type' => $selectedDashboard,
         'iso_type' => $selectedDashboard === 'iso' ? $selectedIsoType : null,
+        'day' => $selectedDay,
         'month' => $selectedMonth,
         'year' => $selectedYear,
     ], static fn ($value) => $value !== null && $value !== '');

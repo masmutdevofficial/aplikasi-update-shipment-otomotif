@@ -63,7 +63,7 @@ class SpecialShipmentPerformance
     /**
      * @return array{completed: int, evaluated: int, late: int, percentage: float|int, otd: int, otd_percentage: float|int}
      */
-    public static function statistics(string $type, ?int $month = null, ?int $year = null): array
+    public static function statistics(string $type, ?int $month = null, ?int $year = null, ?int $day = null): array
     {
         $config = SpecialShipmentType::get($type);
         $model = $config['model'];
@@ -72,6 +72,7 @@ class SpecialShipmentPerformance
         $late = 0;
 
         $query = $model::query()
+            ->when($day !== null, fn ($builder) => $builder->whereDay($dateField, $day))
             ->when($month !== null, fn ($builder) => $builder->whereMonth($dateField, $month))
             ->when($year !== null, fn ($builder) => $builder->whereYear($dateField, $year));
 

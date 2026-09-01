@@ -129,6 +129,27 @@ class ScanVinTest extends TestCase
         ]);
     }
 
+    public function test_unknown_vin_scan_photo_is_saved_with_pending_record(): void
+    {
+        Storage::fake('r2');
+        config(['filesystems.document_disk' => 'r2']);
+        $vin = 'MHFAA8GS4N9999998';
+
+        $this->actingAs($this->vendorUser)
+            ->postJson(route('vendor.scanner.confirm'), [
+                'no_rangka' => $vin,
+                'save_as_pending' => true,
+                'scan_image' => 'data:image/jpeg;base64,'.base64_encode('scan-photo-content'),
+            ])
+            ->assertCreated()
+            ->assertJsonPath('pending', true);
+
+        $pending = \App\Models\PendingVin::query()->where('no_rangka', $vin)->firstOrFail();
+
+        $this->assertNotNull($pending->document_path);
+        Storage::disk('r2')->assertExists($pending->document_path);
+    }
+
     public function test_dooring_vendor_can_upload_document_for_any_dso_shipment(): void
     {
         Storage::fake('r2');

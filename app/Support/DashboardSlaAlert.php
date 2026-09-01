@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Builder;
 class DashboardSlaAlert
 {
     /** @return array{warning: array<int, string>, danger: array<int, string>, stages: array<string, array{warning: array<int, string>, danger: array<int, string>}>} */
-    public static function dso(?int $month = null, ?int $year = null): array
+    public static function dso(?int $month = null, ?int $year = null, ?int $day = null): array
     {
         $alerts = self::emptyAlerts([
             'not_departed_pdc',
@@ -22,7 +22,7 @@ class DashboardSlaAlert
             'destination_storage',
         ]);
 
-        foreach (self::periodQuery(Shipment::query(), 'terima_do', $month, $year)->get() as $shipment) {
+        foreach (self::periodQuery(Shipment::query(), 'terima_do', $month, $year, $day)->get() as $shipment) {
             if ($shipment->isDoHold() || trim((string) $shipment->kota) === '') {
                 continue;
             }
@@ -74,7 +74,7 @@ class DashboardSlaAlert
     }
 
     /** @return array{warning: array<int, string>, danger: array<int, string>, stages: array<string, array{warning: array<int, string>, danger: array<int, string>}>} */
-    public static function isoLaut(?int $month = null, ?int $year = null): array
+    public static function isoLaut(?int $month = null, ?int $year = null, ?int $day = null): array
     {
         $alerts = self::emptyAlerts([
             'not_departed_pdc',
@@ -85,7 +85,7 @@ class DashboardSlaAlert
             'destination_storage',
         ]);
 
-        foreach (self::periodQuery(IsoLautShipment::query(), 'terima_do', $month, $year)->get() as $shipment) {
+        foreach (self::periodQuery(IsoLautShipment::query(), 'terima_do', $month, $year, $day)->get() as $shipment) {
             $target = IsoSla::targetFor('iso-laut', $shipment->destination);
 
             if ($shipment->terima_do === null || $target === null) {
@@ -139,11 +139,11 @@ class DashboardSlaAlert
     }
 
     /** @return array{warning: array<int, string>, danger: array<int, string>, stages: array<string, array{warning: array<int, string>, danger: array<int, string>}>} */
-    public static function isoDarat(?int $month = null, ?int $year = null): array
+    public static function isoDarat(?int $month = null, ?int $year = null, ?int $day = null): array
     {
         $alerts = self::emptyAlerts(['departed_pdc', 'ptd_dtd']);
 
-        foreach (self::periodQuery(IsoDaratShipment::query(), 'terima_do', $month, $year)->get() as $shipment) {
+        foreach (self::periodQuery(IsoDaratShipment::query(), 'terima_do', $month, $year, $day)->get() as $shipment) {
             $target = IsoSla::targetFor('iso-darat', $shipment->destination);
 
             if ($shipment->terima_do === null || $target === null) {
@@ -209,9 +209,11 @@ class DashboardSlaAlert
         string $dateField,
         ?int $month,
         ?int $year,
+        ?int $day = null,
     ): Builder {
         return $query
             ->whereNotNull($dateField)
+            ->when($day !== null, fn (Builder $builder) => $builder->whereDay($dateField, $day))
             ->when($month !== null, fn (Builder $builder) => $builder->whereMonth($dateField, $month))
             ->when($year !== null, fn (Builder $builder) => $builder->whereYear($dateField, $year));
     }

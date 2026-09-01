@@ -13,6 +13,15 @@ use Illuminate\Support\Facades\Storage;
 
 class ReportService
 {
+    /** @var array<string, string> */
+    private const DSO_SCAN_POSITION_FIELDS = [
+        'AT Storage Port' => 'at_storage_port',
+        'ATD Kapal (Loading)' => 'atd_kapal_loading',
+        'ATA Kapal' => 'ata_kapal',
+        'ATA Storage Port (Destination)' => 'ata_storage_port_destination',
+        'AT PtD (Dooring)' => 'at_ptd_dooring',
+    ];
+
     /** @return array<int, array{data: string, label: string, kind: string, orderable: bool}> */
     public static function dsoColumns(): array
     {
@@ -143,6 +152,8 @@ class ReportService
      */
     public static function flattenShipment(Shipment $shipment): array
     {
+        $shipment = self::withVendorScanMilestones($shipment);
+
         $row = [
             'lokasi' => $shipment->lokasi,
             'no_do' => $shipment->no_do,
@@ -182,6 +193,28 @@ class ReportService
             : '-';
 
         return $row;
+    }
+
+    /**
+     * Terapkan tanggal scan vendor pada salinan model untuk kebutuhan laporan.
+     * Data master tidak diubah, tetapi seluruh perhitungan SLA/progress memakai
+     * milestone operasional terbaru dari shipment_updates.
+     */
+    private static function withVendorScanMilestones(Shipment $shipment): Shipment
+    {
+        $shipment->loadMissing('shipmentUpdates');
+        $reportShipment = clone $shipment;
+        $updatesByPosition = $shipment->shipmentUpdates->keyBy('position');
+
+        foreach (self::DSO_SCAN_POSITION_FIELDS as $position => $field) {
+            $scanDate = $updatesByPosition->get($position)?->scan_date;
+
+            if ($scanDate !== null) {
+                $reportShipment->setAttribute($field, $scanDate);
+            }
+        }
+
+        return $reportShipment;
     }
 
     /**

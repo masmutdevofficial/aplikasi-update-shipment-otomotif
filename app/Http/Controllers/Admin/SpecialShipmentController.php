@@ -29,10 +29,12 @@ class SpecialShipmentController extends Controller
         $config = SpecialShipmentType::get($type);
         $model = $config['model'];
         $columns = array_keys($config['fields']);
+        $day = $this->validDay($request->input('day'));
         $month = $this->validMonth($request->input('month'));
         $year = $this->validYear($request->input('year'));
         $dateField = $config['performance']['start'];
         $query = $model::query()
+            ->when($day !== null, fn ($builder) => $builder->whereDay($dateField, $day))
             ->when($month !== null, fn ($builder) => $builder->whereMonth($dateField, $month))
             ->when($year !== null, fn ($builder) => $builder->whereYear($dateField, $year));
         $recordsTotal = (clone $query)->count();
@@ -304,6 +306,13 @@ class SpecialShipmentController extends Controller
         $month = filter_var($value, FILTER_VALIDATE_INT);
 
         return $month !== false && $month >= 1 && $month <= 12 ? $month : null;
+    }
+
+    private function validDay(mixed $value): ?int
+    {
+        $day = filter_var($value, FILTER_VALIDATE_INT);
+
+        return $day !== false && $day >= 1 && $day <= 31 ? $day : null;
     }
 
     private function validYear(mixed $value): ?int

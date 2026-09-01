@@ -21,9 +21,9 @@ class IsoDashboard
     /**
      * @return array<int, array{destination: string, total: int, positions: array<string, array{count: int, percentage: float|int}>}>
      */
-    public static function positionSummary(string $type, ?int $month = null, ?int $year = null): array
+    public static function positionSummary(string $type, ?int $month = null, ?int $year = null, ?int $day = null): array
     {
-        return self::periodQuery($type, $month, $year)
+        return self::periodQuery($type, $month, $year, $day)
             ->whereNotNull('terima_do')
             ->get()
             ->groupBy(fn (Model $shipment) => self::normalizedDestination($shipment->destination))
@@ -49,9 +49,9 @@ class IsoDashboard
     }
 
     /** @return array<int, array{city: string, total: int, otd: int, late: int, percentage: float|int}> */
-    public static function lateByDestination(?int $month = null, ?int $year = null): array
+    public static function lateByDestination(?int $month = null, ?int $year = null, ?int $day = null): array
     {
-        return self::periodQuery('iso-laut', $month, $year)
+        return self::periodQuery('iso-laut', $month, $year, $day)
             ->whereNotNull('terima_do')
             ->get()
             ->groupBy(fn (IsoLautShipment $shipment) => self::normalizedDestination($shipment->destination))
@@ -78,9 +78,9 @@ class IsoDashboard
     }
 
     /** @return array<string, array{count: int, percentage: float|int}> */
-    public static function doPerformanceStatistics(?int $month = null, ?int $year = null): array
+    public static function doPerformanceStatistics(?int $month = null, ?int $year = null, ?int $day = null): array
     {
-        $destinationSummaries = collect(self::positionSummary('iso-laut', $month, $year));
+        $destinationSummaries = collect(self::positionSummary('iso-laut', $month, $year, $day));
         $total = (int) $destinationSummaries->sum('total');
         $positionCount = fn (string $position): int => (int) $destinationSummaries->sum(
             fn (array $summary) => $summary['positions'][$position]['count'] ?? 0
@@ -105,9 +105,9 @@ class IsoDashboard
     }
 
     /** @return array<string, array{count: int, percentage: float|int}> */
-    public static function daratMilestoneStatistics(?int $month = null, ?int $year = null): array
+    public static function daratMilestoneStatistics(?int $month = null, ?int $year = null, ?int $day = null): array
     {
-        $shipments = self::periodQuery('iso-darat', $month, $year)
+        $shipments = self::periodQuery('iso-darat', $month, $year, $day)
             ->whereNotNull('terima_do')
             ->get();
         $total = $shipments->count();
@@ -130,9 +130,9 @@ class IsoDashboard
      *     destination: array<int, array{city: string, average: float|int, minimum: int, maximum: int}>
      * }
      */
-    public static function dwellingDetails(?int $month = null, ?int $year = null): array
+    public static function dwellingDetails(?int $month = null, ?int $year = null, ?int $day = null): array
     {
-        $shipments = self::periodQuery('iso-laut', $month, $year)->get();
+        $shipments = self::periodQuery('iso-laut', $month, $year, $day)->get();
 
         return [
             'origin' => self::dwellingRows($shipments, 'lead_time_loading'),
@@ -185,11 +185,12 @@ class IsoDashboard
         };
     }
 
-    private static function periodQuery(string $type, ?int $month, ?int $year): Builder
+    private static function periodQuery(string $type, ?int $month, ?int $year, ?int $day = null): Builder
     {
         $model = $type === 'iso-laut' ? IsoLautShipment::class : IsoDaratShipment::class;
 
         return $model::query()
+            ->when($day !== null, fn (Builder $query) => $query->whereDay('terima_do', $day))
             ->when($month !== null, fn (Builder $query) => $query->whereMonth('terima_do', $month))
             ->when($year !== null, fn (Builder $query) => $query->whereYear('terima_do', $year));
     }

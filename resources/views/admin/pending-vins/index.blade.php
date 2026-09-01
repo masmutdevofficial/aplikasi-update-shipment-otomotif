@@ -18,7 +18,7 @@
                         <th>Posisi</th>
                         <th>Vendor</th>
                         <th>Tanggal Scan</th>
-                        <th>Dokumen Scan</th>
+                        <th>Foto Scan</th>
                         <th>Aksi</th>
                     </tr>
                 </thead>
@@ -32,8 +32,13 @@
                             <td>{{ $pending->scan_date->format('d-M-y') }}</td>
                             <td>
                                 @if($pending->document_path)
-                                    <a href="{{ \Illuminate\Support\Facades\Storage::disk(config('filesystems.document_disk'))->url($pending->document_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">
-                                        <i class="fas fa-image"></i> Lihat
+                                    <a href="{{ \Illuminate\Support\Facades\Storage::disk(config('filesystems.document_disk'))->url($pending->document_path) }}" target="_blank" rel="noopener" title="Buka foto scan ukuran penuh">
+                                        <img
+                                            src="{{ \Illuminate\Support\Facades\Storage::disk(config('filesystems.document_disk'))->url($pending->document_path) }}"
+                                            alt="Foto scan VIN {{ $pending->no_rangka }}"
+                                            style="width:96px;height:64px;object-fit:cover;border-radius:6px;border:1px solid #dee2e6;"
+                                            loading="lazy"
+                                        >
                                     </a>
                                 @else
                                     <span class="text-muted">-</span>

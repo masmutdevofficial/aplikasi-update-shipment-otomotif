@@ -8,13 +8,16 @@ use App\Models\ScanHistory;
 use App\Models\Shipment;
 use App\Models\ShipmentUpdate;
 use App\Services\OcrService;
+use App\Services\ShipmentDocumentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class ScannerController extends Controller
 {
     public function __construct(
         protected OcrService $ocrService,
+        protected ShipmentDocumentService $documentService,
     ) {}
 
     public function index()
@@ -87,6 +90,7 @@ class ScannerController extends Controller
         $request->validate([
             'no_rangka' => ['required', 'string', 'size:17', 'regex:/^[A-HJ-NPR-Z0-9]{17}$/'],
             'save_as_pending' => ['nullable', 'boolean'],
+            'scan_image' => ['nullable', 'string', 'max:14000000'],
         ]);
 
         $user = auth()->user();
@@ -120,22 +124,36 @@ class ScannerController extends Controller
                 ], 409);
             }
 
-            DB::transaction(function () use ($vendor, $user, $noRangka) {
-                PendingVin::create([
-                    'no_rangka' => $noRangka,
-                    'vendor_id' => $vendor->id,
-                    'position' => $vendor->position,
-                    'scan_date' => today(),
-                    'created_by' => $user->id,
-                    'updated_by' => $user->id,
-                ]);
+            $documentPath = null;
 
-                ScanHistory::create([
-                    'user_id' => $user->id,
-                    'no_rangka' => $noRangka,
-                    'scan_date' => today(),
-                ]);
-            });
+            if ($request->filled('scan_image')) {
+                [$imageBytes, $extension] = $this->decodeScanImage($request->string('scan_image')->toString());
+                $documentPath = $this->documentService->storeBytes($imageBytes, "pending-vins/{$noRangka}", $extension);
+            }
+
+            try {
+                DB::transaction(function () use ($vendor, $user, $noRangka, $documentPath) {
+                    PendingVin::create([
+                        'no_rangka' => $noRangka,
+                        'vendor_id' => $vendor->id,
+                        'position' => $vendor->position,
+                        'scan_date' => today(),
+                        'document_path' => $documentPath,
+                        'created_by' => $user->id,
+                        'updated_by' => $user->id,
+                    ]);
+
+                    ScanHistory::create([
+                        'user_id' => $user->id,
+                        'no_rangka' => $noRangka,
+                        'scan_date' => today(),
+                    ]);
+                });
+            } catch (\Throwable $exception) {
+                $this->documentService->delete($documentPath);
+
+                throw $exception;
+            }
 
             return response()->json([
                 'success' => true,
@@ -186,6 +204,26 @@ class ScannerController extends Controller
                 'scan_date' => today()->format('d-M-y'),
             ],
         ]);
+    }
+
+    /** @return array{0: string, 1: string} */
+    private function decodeScanImage(string $dataUrl): array
+    {
+        if (! preg_match('#^data:image/(jpeg|png|webp);base64,(.+)$#s', $dataUrl, $matches)) {
+            throw ValidationException::withMessages([
+                'scan_image' => 'Format foto scan tidak valid.',
+            ]);
+        }
+
+        $contents = base64_decode($matches[2], true);
+
+        if ($contents === false || $contents === '' || strlen($contents) > 10 * 1024 * 1024) {
+            throw ValidationException::withMessages([
+                'scan_image' => 'Foto scan tidak valid atau melebihi ukuran maksimal 10 MB.',
+            ]);
+        }
+
+        return [$contents, $matches[1] === 'png' ? 'png' : 'jpg'];
     }
 
 }

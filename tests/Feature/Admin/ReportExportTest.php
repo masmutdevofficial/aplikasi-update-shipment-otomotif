@@ -9,6 +9,7 @@ use App\Models\IsoLautShipment;
 use App\Models\PendingVin;
 use App\Models\Shipment;
 use App\Models\ShipmentDocument;
+use App\Models\ShipmentUpdate;
 use App\Models\TsoShipment;
 use App\Models\User;
 use App\Models\Vendor;
@@ -97,6 +98,45 @@ class ReportExportTest extends TestCase
         $response->assertOk()
             ->assertJsonPath('recordsFiltered', 1)
             ->assertJsonPath('data.0.no_rangka', 'MHFAA8GS4N0000001');
+    }
+
+    public function test_dso_report_uses_vendor_scan_dates_for_milestones_and_progress(): void
+    {
+        $vendorUser = User::factory()->vendor()->create();
+        $vendor = Vendor::create([
+            'user_id' => $vendorUser->id,
+            'vendor_name' => 'Vendor Storage Port',
+            'position' => 'AT Storage Port',
+            'created_by' => $this->admin->id,
+            'updated_by' => $this->admin->id,
+        ]);
+        $shipment = Shipment::factory()->create([
+            'no_rangka' => 'MHFAA8GS4N0000007',
+            'terima_do' => '2026-08-01',
+            'at_storage_port' => null,
+        ]);
+        ShipmentUpdate::create([
+            'shipment_id' => $shipment->id,
+            'vendor_id' => $vendor->id,
+            'position' => 'AT Storage Port',
+            'scan_date' => '2026-08-04',
+            'created_by' => $vendorUser->id,
+            'updated_by' => $vendorUser->id,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->postJson(route('admin.reports.data'), [
+                'type' => 'dso',
+                'draw' => 1,
+                'start' => 0,
+                'length' => 25,
+                'search' => ['value' => $shipment->no_rangka],
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.0.at_storage_port', '04-Aug-26')
+            ->assertJsonPath('data.0.progress', 'Storage Port');
+
+        $this->assertNull($shipment->fresh()->at_storage_port);
     }
 
     public function test_admin_can_export_excel(): void

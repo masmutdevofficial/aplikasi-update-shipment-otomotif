@@ -51,9 +51,11 @@ class ShipmentController extends Controller
             'ata_storage_port_destination',
             'at_ptd_dooring',
         ];
+        $day = $this->validDay($request->input('day'));
         $month = $this->validMonth($request->input('month'));
         $year = $this->validYear($request->input('year'));
         $query = Shipment::query()
+            ->when($day !== null, fn ($builder) => $builder->whereDay('terima_do', $day))
             ->when($month !== null, fn ($builder) => $builder->whereMonth('terima_do', $month))
             ->when($year !== null, fn ($builder) => $builder->whereYear('terima_do', $year));
         $recordsTotal = (clone $query)->count();
@@ -179,6 +181,13 @@ class ShipmentController extends Controller
         $month = filter_var($value, FILTER_VALIDATE_INT);
 
         return $month !== false && $month >= 1 && $month <= 12 ? $month : null;
+    }
+
+    private function validDay(mixed $value): ?int
+    {
+        $day = filter_var($value, FILTER_VALIDATE_INT);
+
+        return $day !== false && $day >= 1 && $day <= 31 ? $day : null;
     }
 
     private function validYear(mixed $value): ?int

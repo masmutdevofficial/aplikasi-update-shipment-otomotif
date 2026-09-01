@@ -10,6 +10,7 @@
     $dashboardQuery = array_filter([
         'type' => $selectedDashboard,
         'iso_type' => $selectedDashboard === 'iso' ? $selectedIsoType : null,
+        'day' => $selectedDay,
         'month' => $selectedMonth,
         'year' => $selectedYear,
     ], static fn ($value) => $value !== null && $value !== '');
@@ -18,9 +19,12 @@
         5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
         9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
     ];
-    $periodLabel = $selectedMonth !== null
-        ? $monthNames[$selectedMonth].($selectedYear !== null ? ' '.$selectedYear : '')
-        : ($selectedYear !== null ? (string) $selectedYear : 'Semua Periode');
+    $periodParts = array_filter([
+        $selectedDay !== null ? (string) $selectedDay : null,
+        $selectedMonth !== null ? $monthNames[$selectedMonth] : null,
+        $selectedYear !== null ? (string) $selectedYear : null,
+    ]);
+    $periodLabel = $periodParts !== [] ? implode(' ', $periodParts) : 'Semua Periode';
     $totalAlerts = count($dashboardSlaAlerts['warning']) + count($dashboardSlaAlerts['danger']);
     $warningAlertTotal = count($dashboardSlaAlerts['warning']);
     $dangerAlertTotal = count($dashboardSlaAlerts['danger']);

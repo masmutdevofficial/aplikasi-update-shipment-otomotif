@@ -19,6 +19,7 @@ class PendingVinImportTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.pending-vins.index'))
             ->assertOk()
+            ->assertSee('Foto Scan')
             ->assertDontSee('colspan="6"', false)
             ->assertSee("emptyTable: 'Tidak ada VIN pending'", false);
     }

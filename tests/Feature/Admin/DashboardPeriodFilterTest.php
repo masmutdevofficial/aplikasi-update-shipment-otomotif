@@ -69,6 +69,37 @@ class DashboardPeriodFilterTest extends TestCase
             ->assertJsonMissing(['no_rangka' => 'DSO-JUNE-2025-01']);
     }
 
+    public function test_dashboard_can_filter_by_day_before_month_and_year(): void
+    {
+        Shipment::factory()->create([
+            'no_rangka' => 'DSO-DAY-15-2025-01',
+            'terima_do' => '2025-05-15',
+        ]);
+        Shipment::factory()->create([
+            'no_rangka' => 'DSO-DAY-16-2025-01',
+            'terima_do' => '2025-05-16',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get('/admin/dashboard?type=dso&day=15&month=5&year=2025')
+            ->assertOk()
+            ->assertSeeInOrder(['Tanggal', 'Bulan', 'Tahun'])
+            ->assertViewHas('selectedDay', 15)
+            ->assertViewHas('dashboardShipmentTotal', 1);
+
+        $this->actingAs($this->admin)
+            ->postJson(route('admin.shipments.data'), [
+                'day' => 15,
+                'month' => 5,
+                'year' => 2025,
+                'length' => 10,
+            ])
+            ->assertOk()
+            ->assertJsonPath('recordsTotal', 1)
+            ->assertJsonFragment(['no_rangka' => 'DSO-DAY-15-2025-01'])
+            ->assertJsonMissing(['no_rangka' => 'DSO-DAY-16-2025-01']);
+    }
+
     public function test_dso_dashboard_counts_do_hold_separately_from_milestone_and_late_cards(): void
     {
         Shipment::factory()->create([

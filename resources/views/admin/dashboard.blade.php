@@ -8,6 +8,7 @@
     ];
     $selectedDashboard = $selectedDashboard ?? strtolower(request()->query('type', 'dso'));
     $selectedIsoType = $selectedIsoType ?? strtolower(request()->query('iso_type', 'darat'));
+    $selectedDay = $selectedDay ?? null;
     $selectedMonth = $selectedMonth ?? null;
     $selectedYear = $selectedYear ?? null;
     $availableYears = $availableYears ?? [(int) now()->year];
@@ -85,22 +86,22 @@
 
             <nav class="dashboard-tabs" aria-label="Pilihan dashboard">
                 <a
-                    href="{{ route('admin.dashboard', array_filter(['type' => 'dso', 'month' => $selectedMonth, 'year' => $selectedYear])) }}"
+                    href="{{ route('admin.dashboard', array_filter(['type' => 'dso', 'day' => $selectedDay, 'month' => $selectedMonth, 'year' => $selectedYear])) }}"
                     class="dashboard-tab {{ $selectedDashboard === 'dso' ? 'active' : '' }}"
                     @if ($selectedDashboard === 'dso') aria-current="page" @endif
                 ><i class="fas fa-truck"></i> DSO</a>
                 <a
-                    href="{{ route('admin.dashboard', array_filter(['type' => 'tso', 'month' => $selectedMonth, 'year' => $selectedYear])) }}"
+                    href="{{ route('admin.dashboard', array_filter(['type' => 'tso', 'day' => $selectedDay, 'month' => $selectedMonth, 'year' => $selectedYear])) }}"
                     class="dashboard-tab {{ $selectedDashboard === 'tso' ? 'active' : '' }}"
                     @if ($selectedDashboard === 'tso') aria-current="page" @endif
                 ><i class="fas fa-truck-loading"></i> TSO</a>
                 <a
-                    href="{{ route('admin.dashboard', array_filter(['type' => 'iso', 'iso_type' => 'darat', 'month' => $selectedMonth, 'year' => $selectedYear])) }}"
+                    href="{{ route('admin.dashboard', array_filter(['type' => 'iso', 'iso_type' => 'darat', 'day' => $selectedDay, 'month' => $selectedMonth, 'year' => $selectedYear])) }}"
                     class="dashboard-tab {{ $selectedDashboard === 'iso' && $selectedIsoType === 'darat' ? 'active' : '' }}"
                     @if ($selectedDashboard === 'iso' && $selectedIsoType === 'darat') aria-current="page" @endif
                 ><i class="fas fa-road"></i> ISO Darat</a>
                 <a
-                    href="{{ route('admin.dashboard', array_filter(['type' => 'iso', 'iso_type' => 'laut', 'month' => $selectedMonth, 'year' => $selectedYear])) }}"
+                    href="{{ route('admin.dashboard', array_filter(['type' => 'iso', 'iso_type' => 'laut', 'day' => $selectedDay, 'month' => $selectedMonth, 'year' => $selectedYear])) }}"
                     class="dashboard-tab {{ $selectedDashboard === 'iso' && $selectedIsoType === 'laut' ? 'active' : '' }}"
                     @if ($selectedDashboard === 'iso' && $selectedIsoType === 'laut') aria-current="page" @endif
                 ><i class="fas fa-ship"></i> ISO Laut</a>
@@ -113,6 +114,15 @@
                     @if ($selectedDashboard === 'iso')
                         <input type="hidden" name="iso_type" value="{{ $selectedIsoType }}">
                     @endif
+                    <div class="dashboard-filter-field">
+                        <label for="dashboardDay">Tanggal</label>
+                        <select id="dashboardDay" name="day" class="form-select dashboard-period-input">
+                            <option value="">Semua Tanggal</option>
+                            @foreach (range(1, 31) as $value)
+                                <option value="{{ $value }}" @selected($selectedDay === $value)>{{ $value }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                     <div class="dashboard-filter-field">
                         <label for="dashboardMonth">Bulan</label>
                         <select id="dashboardMonth" name="month" class="form-select dashboard-period-input">
@@ -702,6 +712,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
             },
             data: function (payload) {
+                payload.day = @json($selectedDay);
                 payload.month = @json($selectedMonth);
                 payload.year = @json($selectedYear);
             }

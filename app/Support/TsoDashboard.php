@@ -25,9 +25,9 @@ class TsoDashboard
      *
      * @return array<int, array{destination: string, total: int, positions: array<string, array{count: int, percentage: float|int}>}>
      */
-    public static function positionSummary(?int $month = null, ?int $year = null): array
+    public static function positionSummary(?int $month = null, ?int $year = null, ?int $day = null): array
     {
-        return self::periodQuery($month, $year)
+        return self::periodQuery($month, $year, $day)
             ->whereNotNull('do_date')
             ->get()
             ->groupBy(fn (TsoShipment $shipment) => self::normalizedDestination($shipment->destination))
@@ -57,9 +57,9 @@ class TsoDashboard
     }
 
     /** @return array<string, array{count: int, percentage: float|int}> */
-    public static function doPerformanceStatistics(?int $month = null, ?int $year = null): array
+    public static function doPerformanceStatistics(?int $month = null, ?int $year = null, ?int $day = null): array
     {
-        $shipments = self::periodQuery($month, $year)
+        $shipments = self::periodQuery($month, $year, $day)
             ->whereNotNull('do_date')
             ->get();
         $total = $shipments->count();
@@ -101,9 +101,10 @@ class TsoDashboard
         };
     }
 
-    private static function periodQuery(?int $month, ?int $year): Builder
+    private static function periodQuery(?int $month, ?int $year, ?int $day = null): Builder
     {
         return TsoShipment::query()
+            ->when($day !== null, fn (Builder $query) => $query->whereDay('do_date', $day))
             ->when($month !== null, fn (Builder $query) => $query->whereMonth('do_date', $month))
             ->when($year !== null, fn (Builder $query) => $query->whereYear('do_date', $year));
     }
