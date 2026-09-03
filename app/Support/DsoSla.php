@@ -192,9 +192,9 @@ class DsoSla
     }
 
     /** @return array{completed: int, evaluated: int, late: int, percentage: float|int, otd: int, otd_percentage: float|int} */
-    public static function delayStatistics(?int $month = null, ?int $year = null, ?int $day = null): array
+    public static function delayStatistics(?int $month = null, ?int $year = null, ?int $day = null, ?string $startDate = null, ?string $endDate = null): array
     {
-        $evaluatedShipments = self::periodQuery($month, $year, $day)
+        $evaluatedShipments = self::periodQuery($month, $year, $day, $startDate, $endDate)
             ->where('do_hold', false)
             ->whereNotNull('terima_do')
             ->get()
@@ -217,9 +217,9 @@ class DsoSla
     }
 
     /** @return array<int, array{city: string, total: int, otd: int, late: int, percentage: float|int}> */
-    public static function lateByCity(?int $month = null, ?int $year = null, ?int $day = null): array
+    public static function lateByCity(?int $month = null, ?int $year = null, ?int $day = null, ?string $startDate = null, ?string $endDate = null): array
     {
-        return self::periodQuery($month, $year, $day)
+        return self::periodQuery($month, $year, $day, $startDate, $endDate)
             ->where('do_hold', false)
             ->whereNotNull('terima_do')
             ->get()
@@ -250,9 +250,9 @@ class DsoSla
     /**
      * @return array<int, array{city: string, total: int, positions: array<string, array{count: int, percentage: float|int}>}>
      */
-    public static function positionSummary(?int $month = null, ?int $year = null, ?int $day = null): array
+    public static function positionSummary(?int $month = null, ?int $year = null, ?int $day = null, ?string $startDate = null, ?string $endDate = null): array
     {
-        return self::periodQuery($month, $year, $day)
+        return self::periodQuery($month, $year, $day, $startDate, $endDate)
             ->where('do_hold', false)
             ->whereNotNull('terima_do')
             ->get()
@@ -287,9 +287,9 @@ class DsoSla
      *     destination: array<int, array{city: string, average: float|int, minimum: int, maximum: int}>
      * }
      */
-    public static function dwellingDetails(?int $month = null, ?int $year = null, ?int $day = null): array
+    public static function dwellingDetails(?int $month = null, ?int $year = null, ?int $day = null, ?string $startDate = null, ?string $endDate = null): array
     {
-        $shipments = self::periodQuery($month, $year, $day)->where('do_hold', false)->get();
+        $shipments = self::periodQuery($month, $year, $day, $startDate, $endDate)->where('do_hold', false)->get();
 
         return [
             'origin' => self::dwellingByCity($shipments, fn (Shipment $shipment) => $shipment->dwellingOrigin()),
@@ -328,9 +328,9 @@ class DsoSla
      *
      * @return array<string, array{count: int, percentage: float|int}>
      */
-    public static function doPerformanceStatistics(?int $month = null, ?int $year = null, ?int $day = null): array
+    public static function doPerformanceStatistics(?int $month = null, ?int $year = null, ?int $day = null, ?string $startDate = null, ?string $endDate = null): array
     {
-        $citySummaries = collect(self::positionSummary($month, $year, $day));
+        $citySummaries = collect(self::positionSummary($month, $year, $day, $startDate, $endDate));
         $total = (int) $citySummaries->sum('total');
         $positionCount = fn (string $position): int => (int) $citySummaries->sum(
             fn (array $summary) => $summary['positions'][$position]['count'] ?? 0
@@ -355,9 +355,9 @@ class DsoSla
     }
 
     /** @return array{total: int, percentage: float|int} */
-    public static function doHoldStatistics(?int $month = null, ?int $year = null, ?int $day = null): array
+    public static function doHoldStatistics(?int $month = null, ?int $year = null, ?int $day = null, ?string $startDate = null, ?string $endDate = null): array
     {
-        $shipments = self::periodQuery($month, $year, $day)->get();
+        $shipments = self::periodQuery($month, $year, $day, $startDate, $endDate)->get();
         $totalShipments = $shipments->count();
         $totalDoHold = $shipments->filter(fn (Shipment $shipment) => $shipment->isDoHold())->count();
 
@@ -367,12 +367,20 @@ class DsoSla
         ];
     }
 
-    private static function periodQuery(?int $month, ?int $year, ?int $day = null): Builder
+    private static function periodQuery(
+        ?int $month,
+        ?int $year,
+        ?int $day = null,
+        ?string $startDate = null,
+        ?string $endDate = null,
+    ): Builder
     {
-        return Shipment::query()
+        $query = Shipment::query()
             ->when($day !== null, fn (Builder $query) => $query->whereDay('terima_do', $day))
             ->when($month !== null, fn (Builder $query) => $query->whereMonth('terima_do', $month))
             ->when($year !== null, fn (Builder $query) => $query->whereYear('terima_do', $year));
+
+        return DashboardDateRange::apply($query, 'terima_do', $startDate, $endDate);
     }
 
     private static function normalizedCity(?string $city): string

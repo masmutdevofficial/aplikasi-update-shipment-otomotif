@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Builder;
 class DashboardSlaAlert
 {
     /** @return array{warning: array<int, string>, danger: array<int, string>, stages: array<string, array{warning: array<int, string>, danger: array<int, string>}>} */
-    public static function dso(?int $month = null, ?int $year = null, ?int $day = null): array
+    public static function dso(?int $month = null, ?int $year = null, ?int $day = null, ?string $startDate = null, ?string $endDate = null): array
     {
         $alerts = self::emptyAlerts([
             'not_departed_pdc',
@@ -22,7 +22,7 @@ class DashboardSlaAlert
             'destination_storage',
         ]);
 
-        foreach (self::periodQuery(Shipment::query(), 'terima_do', $month, $year, $day)->get() as $shipment) {
+        foreach (self::periodQuery(Shipment::query(), 'terima_do', $month, $year, $day, $startDate, $endDate)->get() as $shipment) {
             if ($shipment->isDoHold() || trim((string) $shipment->kota) === '') {
                 continue;
             }
@@ -34,7 +34,8 @@ class DashboardSlaAlert
             }
 
             $stages = $target['stages'];
-            $prefix = 'No. Rangka '.($shipment->no_rangka ?: '-');
+            $prefix = 'No. Rangka '.($shipment->no_rangka ?: '-')
+                .' — Kota: '.trim((string) $shipment->kota).' —';
 
             switch ($shipment->currentPosition()) {
                 case 'Belum Keluar PDC':
@@ -74,7 +75,7 @@ class DashboardSlaAlert
     }
 
     /** @return array{warning: array<int, string>, danger: array<int, string>, stages: array<string, array{warning: array<int, string>, danger: array<int, string>}>} */
-    public static function isoLaut(?int $month = null, ?int $year = null, ?int $day = null): array
+    public static function isoLaut(?int $month = null, ?int $year = null, ?int $day = null, ?string $startDate = null, ?string $endDate = null): array
     {
         $alerts = self::emptyAlerts([
             'not_departed_pdc',
@@ -85,7 +86,7 @@ class DashboardSlaAlert
             'destination_storage',
         ]);
 
-        foreach (self::periodQuery(IsoLautShipment::query(), 'terima_do', $month, $year, $day)->get() as $shipment) {
+        foreach (self::periodQuery(IsoLautShipment::query(), 'terima_do', $month, $year, $day, $startDate, $endDate)->get() as $shipment) {
             $target = IsoSla::targetFor('iso-laut', $shipment->destination);
 
             if ($shipment->terima_do === null || $target === null) {
@@ -93,7 +94,8 @@ class DashboardSlaAlert
             }
 
             $stages = $target['stages'];
-            $prefix = 'No. Rangka '.($shipment->noka ?: '-');
+            $prefix = 'No. Rangka '.($shipment->noka ?: '-')
+                .' — Kota: '.trim((string) $shipment->destination).' —';
 
             switch (IsoDashboard::currentPosition('iso-laut', $shipment)) {
                 case 'DO Received':
@@ -139,11 +141,11 @@ class DashboardSlaAlert
     }
 
     /** @return array{warning: array<int, string>, danger: array<int, string>, stages: array<string, array{warning: array<int, string>, danger: array<int, string>}>} */
-    public static function isoDarat(?int $month = null, ?int $year = null, ?int $day = null): array
+    public static function isoDarat(?int $month = null, ?int $year = null, ?int $day = null, ?string $startDate = null, ?string $endDate = null): array
     {
         $alerts = self::emptyAlerts(['departed_pdc', 'ptd_dtd']);
 
-        foreach (self::periodQuery(IsoDaratShipment::query(), 'terima_do', $month, $year, $day)->get() as $shipment) {
+        foreach (self::periodQuery(IsoDaratShipment::query(), 'terima_do', $month, $year, $day, $startDate, $endDate)->get() as $shipment) {
             $target = IsoSla::targetFor('iso-darat', $shipment->destination);
 
             if ($shipment->terima_do === null || $target === null) {
@@ -151,7 +153,8 @@ class DashboardSlaAlert
             }
 
             $prefix = 'No. Rangka '.($shipment->no_spb ?: '-')
-                .' / Nomor Driver '.($shipment->nomor_driver ?: '-');
+                .' / Nomor Driver '.($shipment->nomor_driver ?: '-')
+                .' — Kota: '.trim((string) $shipment->destination).' —';
 
             if ($shipment->keluar_dari_pdc === null) {
                 self::addAlert($alerts, 'departed_pdc', $prefix, 'Keluar PDC', $shipment->terima_do->copy(), true);
@@ -210,12 +213,16 @@ class DashboardSlaAlert
         ?int $month,
         ?int $year,
         ?int $day = null,
+        ?string $startDate = null,
+        ?string $endDate = null,
     ): Builder {
-        return $query
+        $query = $query
             ->whereNotNull($dateField)
             ->when($day !== null, fn (Builder $builder) => $builder->whereDay($dateField, $day))
             ->when($month !== null, fn (Builder $builder) => $builder->whereMonth($dateField, $month))
             ->when($year !== null, fn (Builder $builder) => $builder->whereYear($dateField, $year));
+
+        return DashboardDateRange::apply($query, $dateField, $startDate, $endDate);
     }
 
     /** @param array<int, string> $stageKeys */

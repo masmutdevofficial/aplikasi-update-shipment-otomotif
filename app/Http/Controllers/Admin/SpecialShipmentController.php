@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Exports\SpecialShipmentTemplateExport;
 use App\Http\Controllers\Controller;
 use App\Imports\SpecialShipmentImport;
+use App\Support\DashboardDateRange;
 use App\Support\IsoSla;
 use App\Support\SpecialShipmentPerformance;
 use App\Support\SpecialShipmentType;
@@ -30,14 +31,15 @@ class SpecialShipmentController extends Controller
         $config = SpecialShipmentType::get($type);
         $model = $config['model'];
         $columns = array_keys($config['fields']);
-        $day = $this->validDay($request->input('day'));
-        $month = $this->validMonth($request->input('month'));
-        $year = $this->validYear($request->input('year'));
+        [$startDate, $endDate] = DashboardDateRange::normalize(
+            $request->input('start_date'),
+            $request->input('end_date'),
+            $request->input('day'),
+            $request->input('month'),
+            $request->input('year'),
+        );
         $dateField = $config['performance']['start'];
-        $query = $model::query()
-            ->when($day !== null, fn ($builder) => $builder->whereDay($dateField, $day))
-            ->when($month !== null, fn ($builder) => $builder->whereMonth($dateField, $month))
-            ->when($year !== null, fn ($builder) => $builder->whereYear($dateField, $year));
+        $query = DashboardDateRange::apply($model::query(), $dateField, $startDate, $endDate);
         $recordsTotal = (clone $query)->count();
         $search = trim((string) $request->input('search.value', ''));
 
@@ -336,24 +338,4 @@ class SpecialShipmentController extends Controller
         return $rules;
     }
 
-    private function validMonth(mixed $value): ?int
-    {
-        $month = filter_var($value, FILTER_VALIDATE_INT);
-
-        return $month !== false && $month >= 1 && $month <= 12 ? $month : null;
-    }
-
-    private function validDay(mixed $value): ?int
-    {
-        $day = filter_var($value, FILTER_VALIDATE_INT);
-
-        return $day !== false && $day >= 1 && $day <= 31 ? $day : null;
-    }
-
-    private function validYear(mixed $value): ?int
-    {
-        $year = filter_var($value, FILTER_VALIDATE_INT);
-
-        return $year !== false && $year >= 2000 && $year <= 2100 ? $year : null;
-    }
 }

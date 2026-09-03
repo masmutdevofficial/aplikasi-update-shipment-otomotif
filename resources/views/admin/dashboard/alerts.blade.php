@@ -10,21 +10,15 @@
     $dashboardQuery = array_filter([
         'type' => $selectedDashboard,
         'iso_type' => $selectedDashboard === 'iso' ? $selectedIsoType : null,
-        'day' => $selectedDay,
-        'month' => $selectedMonth,
-        'year' => $selectedYear,
+        'start_date' => $selectedStartDate,
+        'end_date' => $selectedEndDate,
     ], static fn ($value) => $value !== null && $value !== '');
-    $monthNames = [
-        1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
-        5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
-        9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
-    ];
-    $periodParts = array_filter([
-        $selectedDay !== null ? (string) $selectedDay : null,
-        $selectedMonth !== null ? $monthNames[$selectedMonth] : null,
-        $selectedYear !== null ? (string) $selectedYear : null,
-    ]);
-    $periodLabel = $periodParts !== [] ? implode(' ', $periodParts) : 'Semua Periode';
+    $periodLabel = match (true) {
+        $selectedStartDate !== null && $selectedEndDate !== null => \Carbon\Carbon::parse($selectedStartDate)->format('d/m/Y').' – '.\Carbon\Carbon::parse($selectedEndDate)->format('d/m/Y'),
+        $selectedStartDate !== null => 'Mulai '.\Carbon\Carbon::parse($selectedStartDate)->format('d/m/Y'),
+        $selectedEndDate !== null => 'Sampai '.\Carbon\Carbon::parse($selectedEndDate)->format('d/m/Y'),
+        default => 'Semua Periode',
+    };
     $totalAlerts = count($dashboardSlaAlerts['warning']) + count($dashboardSlaAlerts['danger']);
     $warningAlertTotal = count($dashboardSlaAlerts['warning']);
     $dangerAlertTotal = count($dashboardSlaAlerts['danger']);

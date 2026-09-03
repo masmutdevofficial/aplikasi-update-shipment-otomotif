@@ -63,7 +63,7 @@ class SpecialShipmentPerformance
     /**
      * @return array{completed: int, evaluated: int, late: int, percentage: float|int, otd: int, otd_percentage: float|int}
      */
-    public static function statistics(string $type, ?int $month = null, ?int $year = null, ?int $day = null): array
+    public static function statistics(string $type, ?int $month = null, ?int $year = null, ?int $day = null, ?string $startDate = null, ?string $endDate = null): array
     {
         $config = SpecialShipmentType::get($type);
         $model = $config['model'];
@@ -75,6 +75,7 @@ class SpecialShipmentPerformance
             ->when($day !== null, fn ($builder) => $builder->whereDay($dateField, $day))
             ->when($month !== null, fn ($builder) => $builder->whereMonth($dateField, $month))
             ->when($year !== null, fn ($builder) => $builder->whereYear($dateField, $year));
+        $query = DashboardDateRange::apply($query, $dateField, $startDate, $endDate);
 
         foreach ($query->cursor() as $shipment) {
             $metrics = self::calculate($type, $shipment);

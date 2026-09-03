@@ -31,15 +31,15 @@ class DashboardPeriodFilterTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_dso_dashboard_filters_statistics_and_table_by_month_and_year(): void
+    public function test_dso_dashboard_filters_statistics_and_table_by_date_range(): void
     {
-        Shipment::create([
+        Shipment::factory()->create([
             'no_rangka' => 'DSO-MAY-2025-001',
             'kota' => 'BALIKPAPAN',
             'terima_do' => '2025-05-01',
             'at_ptd_dooring' => '2025-05-09',
         ]);
-        Shipment::create([
+        Shipment::factory()->create([
             'no_rangka' => 'DSO-JUNE-2025-01',
             'kota' => 'BALIKPAPAN',
             'terima_do' => '2025-06-01',
@@ -47,29 +47,28 @@ class DashboardPeriodFilterTest extends TestCase
         ]);
 
         $this->actingAs($this->admin)
-            ->get('/admin/dashboard?type=dso&month=5&year=2025')
+            ->get('/admin/dashboard?type=dso&start_date=2025-05-01&end_date=2025-05-31')
             ->assertOk()
-            ->assertSee('Semua Bulan')
-            ->assertSee('Semua Tahun')
+            ->assertSeeInOrder(['Tanggal Mulai', 'Tanggal Akhir'])
             ->assertSee('DSO')
             ->assertSee('TSO')
             ->assertSee('ISO Darat')
             ->assertSee('ISO Laut')
             ->assertDontSee('id="dashboardType"', false)
-            ->assertViewHas('selectedMonth', 5)
-            ->assertViewHas('selectedYear', 2025)
+            ->assertViewHas('selectedStartDate', '2025-05-01')
+            ->assertViewHas('selectedEndDate', '2025-05-31')
             ->assertViewHas('dashboardShipmentTotal', 1)
             ->assertViewHas('delayStats', fn (array $stats) => $stats['completed'] === 1 && $stats['late'] === 0);
 
         $this->actingAs($this->admin)
-            ->postJson(route('admin.shipments.data'), ['month' => 5, 'year' => 2025, 'length' => 10])
+            ->postJson(route('admin.shipments.data'), ['start_date' => '2025-05-01', 'end_date' => '2025-05-31', 'length' => 10])
             ->assertOk()
             ->assertJsonPath('recordsTotal', 1)
             ->assertJsonFragment(['no_rangka' => 'DSO-MAY-2025-001'])
             ->assertJsonMissing(['no_rangka' => 'DSO-JUNE-2025-01']);
     }
 
-    public function test_dashboard_can_filter_by_day_before_month_and_year(): void
+    public function test_dashboard_can_filter_a_single_day_with_the_same_range_dates(): void
     {
         Shipment::factory()->create([
             'no_rangka' => 'DSO-DAY-15-2025-01',
@@ -81,17 +80,17 @@ class DashboardPeriodFilterTest extends TestCase
         ]);
 
         $this->actingAs($this->admin)
-            ->get('/admin/dashboard?type=dso&day=15&month=5&year=2025')
+            ->get('/admin/dashboard?type=dso&start_date=2025-05-15&end_date=2025-05-15')
             ->assertOk()
-            ->assertSeeInOrder(['Tanggal', 'Bulan', 'Tahun'])
-            ->assertViewHas('selectedDay', 15)
+            ->assertSeeInOrder(['Tanggal Mulai', 'Tanggal Akhir'])
+            ->assertViewHas('selectedStartDate', '2025-05-15')
+            ->assertViewHas('selectedEndDate', '2025-05-15')
             ->assertViewHas('dashboardShipmentTotal', 1);
 
         $this->actingAs($this->admin)
             ->postJson(route('admin.shipments.data'), [
-                'day' => 15,
-                'month' => 5,
-                'year' => 2025,
+                'start_date' => '2025-05-15',
+                'end_date' => '2025-05-15',
                 'length' => 10,
             ])
             ->assertOk()
@@ -226,13 +225,17 @@ class DashboardPeriodFilterTest extends TestCase
         ]);
 
         $this->actingAs($this->admin)
-            ->get('/admin/dashboard?type=tso&month=5&year=2025')
+            ->get('/admin/dashboard?type=tso&start_date=2025-05-01&end_date=2025-05-31')
             ->assertOk()
             ->assertViewHas('dashboardShipmentTotal', 1)
             ->assertViewHas('specialDelayStats', fn (array $stats) => $stats['completed'] === 1 && $stats['late'] === 0);
 
         $this->actingAs($this->admin)
-            ->postJson(route('admin.special-shipments.data', 'tso'), ['month' => 5, 'year' => 2025, 'length' => 10])
+            ->postJson(route('admin.special-shipments.data', 'tso'), [
+                'start_date' => '2025-05-01',
+                'end_date' => '2025-05-31',
+                'length' => 10,
+            ])
             ->assertOk()
             ->assertJsonPath('recordsTotal', 1)
             ->assertJsonFragment(['no_rangka' => 'TSO-MAY-2025-001'])
@@ -307,19 +310,20 @@ class DashboardPeriodFilterTest extends TestCase
     {
         Carbon::setTestNow('2025-05-20 12:00:00');
 
-        Shipment::create([
+        Shipment::factory()->create([
             'no_rangka' => 'DSO-POSITION-0001',
             'kota' => 'PONTIANAK',
             'terima_do' => '2025-05-01',
+            'keluar_dari_pdc' => null,
         ]);
-        Shipment::create([
+        Shipment::factory()->create([
             'no_rangka' => 'DSO-POSITION-0002',
             'kota' => 'PONTIANAK',
             'terima_do' => '2025-05-18',
             'keluar_dari_pdc' => '2025-05-19',
             'at_storage_port' => '2025-05-20',
         ]);
-        Shipment::create([
+        Shipment::factory()->create([
             'no_rangka' => 'DSO-OUTSIDE-PERIOD',
             'kota' => 'PONTIANAK',
             'terima_do' => '2025-06-01',
@@ -364,7 +368,7 @@ class DashboardPeriodFilterTest extends TestCase
     {
         Carbon::setTestNow('2025-05-20 12:00:00');
 
-        Shipment::create([
+        Shipment::factory()->create([
             'no_rangka' => 'DSO-DWELLING-0001',
             'kota' => 'Makassar',
             'terima_do' => '2025-05-01',
@@ -373,14 +377,14 @@ class DashboardPeriodFilterTest extends TestCase
             'ata_storage_port_destination' => '2025-05-10',
             'at_ptd_dooring' => '2025-05-14',
         ]);
-        Shipment::create([
+        Shipment::factory()->create([
             'no_rangka' => 'DSO-DWELLING-0002',
             'kota' => ' MAKASSAR ',
             'terima_do' => '2025-05-02',
             'at_storage_port' => '2025-05-18',
             'ata_storage_port_destination' => '2025-05-19',
         ]);
-        Shipment::create([
+        Shipment::factory()->create([
             'no_rangka' => 'DSO-DWELLING-OUTSIDE',
             'kota' => 'Makassar',
             'terima_do' => '2025-06-01',
@@ -662,17 +666,21 @@ class DashboardPeriodFilterTest extends TestCase
             $type = "iso-{$isoType}";
 
             $this->actingAs($this->admin)
-                ->get("/admin/dashboard?type=iso&iso_type={$isoType}&month=5&year=2025")
+                ->get("/admin/dashboard?type=iso&iso_type={$isoType}&start_date=2025-05-01&end_date=2025-05-31")
                 ->assertOk()
                 ->assertViewHas('dashboardShipmentTotal', 1)
                 ->assertViewHas('specialDelayStats', fn (array $stats) => $stats['completed'] === 1 && $stats['late'] === 0);
 
             $this->actingAs($this->admin)
-                ->postJson(route('admin.special-shipments.data', $type), ['month' => 5, 'year' => 2025, 'length' => 10])
+                ->postJson(route('admin.special-shipments.data', $type), [
+                    'start_date' => '2025-05-01',
+                    'end_date' => '2025-05-31',
+                    'length' => 10,
+                ])
                 ->assertOk()
                 ->assertJsonPath('recordsTotal', 1)
-                ->assertJsonFragment(['source_no' => 1])
-                ->assertJsonMissing(['source_no' => 2]);
+                ->assertJsonFragment(['source_no' => '1'])
+                ->assertJsonMissing(['source_no' => '2']);
         }
     }
 
@@ -700,8 +708,8 @@ class DashboardPeriodFilterTest extends TestCase
             ->assertDontSee('Shipment Melewati SLA')
             ->assertSee('data-alert-stage="not_departed_pdc"', false)
             ->assertSee('data-alert-stage="departed_pdc"', false)
-            ->assertSee('No. Rangka DSO-ALERT-WARNING Belum Keluar AT Storage Port — deadline 1 hari lagi.')
-            ->assertSee('No. Rangka DSO-ALERT-OVERDUE Belum Keluar PDC lewat 3 hari.');
+            ->assertSee('No. Rangka DSO-ALERT-WARNING — Kota: Pontianak — Belum Keluar AT Storage Port — deadline 1 hari lagi.')
+            ->assertSee('No. Rangka DSO-ALERT-OVERDUE — Kota: Balikpapan — Belum Keluar PDC lewat 3 hari.');
 
         $alerts = DashboardSlaAlert::dso(5, 2025);
         $this->assertCount(1, $alerts['warning']);
@@ -783,8 +791,8 @@ class DashboardPeriodFilterTest extends TestCase
             ->assertSee('data-alert-stage="storage_port"', false)
             ->assertSee('data-alert-stage="vessel_loading"', false)
             ->assertDontSee('Shipment Melewati SLA')
-            ->assertSee('No. Rangka ISO-LAUT-ALERT-LATE Belum Keluar ATD Kapal lewat 1 hari.')
-            ->assertSee('No. Rangka ISO-LAUT-ALERT-DUE Belum Keluar ATA Storage Port — deadline 1 hari lagi.');
+            ->assertSee('No. Rangka ISO-LAUT-ALERT-LATE — Kota: Makassar — Belum Keluar ATD Kapal lewat 1 hari.')
+            ->assertSee('No. Rangka ISO-LAUT-ALERT-DUE — Kota: Balikpapan — Belum Keluar ATA Storage Port — deadline 1 hari lagi.');
     }
 
     public function test_iso_laut_alert_counts_follow_each_shipments_current_position(): void
@@ -865,9 +873,17 @@ class DashboardPeriodFilterTest extends TestCase
             ->assertSee('data-alert-stage="departed_pdc"', false)
             ->assertSee('data-alert-stage="ptd_dtd"', false)
             ->assertDontSee('Shipment Melewati SLA')
-            ->assertSee('No. Rangka ISO-DARAT-ALERT-DUE / Nomor Driver 081200000002 deadline AT PTD/DTD 1 hari lagi.')
-            ->assertSee('No. Rangka ISO-DARAT-ALERT-LATE / Nomor Driver 081200000001 sudah lewat AT PTD/DTD 1 hari.')
-            ->assertSee('No. Rangka ISO-DARAT-PDC-LATE / Nomor Driver 081200000003 sudah lewat Keluar PDC 1 hari.');
+            ->assertSee('No. Rangka ISO-DARAT-ALERT-DUE / Nomor Driver 081200000002 — Kota: Bekasi — deadline AT PTD/DTD 1 hari lagi.');
+
+        $alerts = DashboardSlaAlert::isoDarat(5, 2025);
+        $this->assertContains(
+            'No. Rangka ISO-DARAT-ALERT-LATE / Nomor Driver 081200000001 — Kota: Bandung — sudah lewat AT PTD/DTD 1 hari.',
+            $alerts['danger'],
+        );
+        $this->assertContains(
+            'No. Rangka ISO-DARAT-PDC-LATE / Nomor Driver 081200000003 — Kota: Surabaya — sudah lewat Keluar PDC 1 hari.',
+            $alerts['danger'],
+        );
     }
 
     public function test_dashboard_limits_alerts_to_ten_and_links_to_the_complete_alert_page(): void
@@ -883,7 +899,7 @@ class DashboardPeriodFilterTest extends TestCase
             ]);
         }
 
-        $lastAlert = 'No. Rangka DSO-ALERT-LIMIT-11 Belum Keluar PDC — deadline hari ini.';
+        $lastAlert = 'No. Rangka DSO-ALERT-LIMIT-11 — Kota: Balikpapan — Belum Keluar PDC — deadline hari ini.';
 
         $response = $this->actingAs($this->admin)
             ->get('/admin/dashboard?type=dso&month=5&year=2025')

@@ -8,15 +8,8 @@
     ];
     $selectedDashboard = $selectedDashboard ?? strtolower(request()->query('type', 'dso'));
     $selectedIsoType = $selectedIsoType ?? strtolower(request()->query('iso_type', 'darat'));
-    $selectedDay = $selectedDay ?? null;
-    $selectedMonth = $selectedMonth ?? null;
-    $selectedYear = $selectedYear ?? null;
-    $availableYears = $availableYears ?? [(int) now()->year];
-    $monthOptions = [
-        1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
-        5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
-        9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
-    ];
+    $selectedStartDate = $selectedStartDate ?? null;
+    $selectedEndDate = $selectedEndDate ?? null;
 
     if (! array_key_exists($selectedDashboard, $dashboardOptions)) {
         $selectedDashboard = 'dso';
@@ -86,22 +79,22 @@
 
             <nav class="dashboard-tabs" aria-label="Pilihan dashboard">
                 <a
-                    href="{{ route('admin.dashboard', array_filter(['type' => 'dso', 'day' => $selectedDay, 'month' => $selectedMonth, 'year' => $selectedYear])) }}"
+                    href="{{ route('admin.dashboard', array_filter(['type' => 'dso', 'start_date' => $selectedStartDate, 'end_date' => $selectedEndDate])) }}"
                     class="dashboard-tab {{ $selectedDashboard === 'dso' ? 'active' : '' }}"
                     @if ($selectedDashboard === 'dso') aria-current="page" @endif
                 ><i class="fas fa-truck"></i> DSO</a>
                 <a
-                    href="{{ route('admin.dashboard', array_filter(['type' => 'tso', 'day' => $selectedDay, 'month' => $selectedMonth, 'year' => $selectedYear])) }}"
+                    href="{{ route('admin.dashboard', array_filter(['type' => 'tso', 'start_date' => $selectedStartDate, 'end_date' => $selectedEndDate])) }}"
                     class="dashboard-tab {{ $selectedDashboard === 'tso' ? 'active' : '' }}"
                     @if ($selectedDashboard === 'tso') aria-current="page" @endif
                 ><i class="fas fa-truck-loading"></i> TSO</a>
                 <a
-                    href="{{ route('admin.dashboard', array_filter(['type' => 'iso', 'iso_type' => 'darat', 'day' => $selectedDay, 'month' => $selectedMonth, 'year' => $selectedYear])) }}"
+                    href="{{ route('admin.dashboard', array_filter(['type' => 'iso', 'iso_type' => 'darat', 'start_date' => $selectedStartDate, 'end_date' => $selectedEndDate])) }}"
                     class="dashboard-tab {{ $selectedDashboard === 'iso' && $selectedIsoType === 'darat' ? 'active' : '' }}"
                     @if ($selectedDashboard === 'iso' && $selectedIsoType === 'darat') aria-current="page" @endif
                 ><i class="fas fa-road"></i> ISO Darat</a>
                 <a
-                    href="{{ route('admin.dashboard', array_filter(['type' => 'iso', 'iso_type' => 'laut', 'day' => $selectedDay, 'month' => $selectedMonth, 'year' => $selectedYear])) }}"
+                    href="{{ route('admin.dashboard', array_filter(['type' => 'iso', 'iso_type' => 'laut', 'start_date' => $selectedStartDate, 'end_date' => $selectedEndDate])) }}"
                     class="dashboard-tab {{ $selectedDashboard === 'iso' && $selectedIsoType === 'laut' ? 'active' : '' }}"
                     @if ($selectedDashboard === 'iso' && $selectedIsoType === 'laut') aria-current="page" @endif
                 ><i class="fas fa-ship"></i> ISO Laut</a>
@@ -115,31 +108,13 @@
                         <input type="hidden" name="iso_type" value="{{ $selectedIsoType }}">
                     @endif
                     <div class="dashboard-filter-field">
-                        <label for="dashboardDay">Tanggal</label>
-                        <select id="dashboardDay" name="day" class="form-select dashboard-period-input">
-                            <option value="">Semua Tanggal</option>
-                            @foreach (range(1, 31) as $value)
-                                <option value="{{ $value }}" @selected($selectedDay === $value)>{{ $value }}</option>
-                            @endforeach
-                        </select>
+                        <label for="dashboardStartDate">Tanggal Mulai</label>
+                        <input id="dashboardStartDate" name="start_date" type="date" value="{{ $selectedStartDate }}" max="{{ $selectedEndDate }}" class="form-control dashboard-period-input">
                     </div>
+                    <span class="dashboard-date-separator" aria-hidden="true">—</span>
                     <div class="dashboard-filter-field">
-                        <label for="dashboardMonth">Bulan</label>
-                        <select id="dashboardMonth" name="month" class="form-select dashboard-period-input">
-                            <option value="">Semua Bulan</option>
-                            @foreach ($monthOptions as $value => $label)
-                                <option value="{{ $value }}" @selected($selectedMonth === $value)>{{ $label }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="dashboard-filter-field">
-                        <label for="dashboardYear">Tahun</label>
-                        <select id="dashboardYear" name="year" class="form-select dashboard-period-input">
-                            <option value="">Semua Tahun</option>
-                            @foreach ($availableYears as $value)
-                                <option value="{{ $value }}" @selected($selectedYear === $value)>{{ $value }}</option>
-                            @endforeach
-                        </select>
+                        <label for="dashboardEndDate">Tanggal Akhir</label>
+                        <input id="dashboardEndDate" name="end_date" type="date" value="{{ $selectedEndDate }}" min="{{ $selectedStartDate }}" class="form-control dashboard-period-input">
                     </div>
                     <button type="submit" class="btn btn-primary"><i class="fas fa-filter"></i> Terapkan</button>
                     <a
@@ -491,7 +466,13 @@
 }
 
 .dashboard-period-input {
-    min-width: 145px;
+    min-width: 165px;
+}
+
+.dashboard-date-separator {
+    padding-bottom: 8px;
+    color: #94a3b8;
+    font-weight: 700;
 }
 
 .tso-table-scroll,
@@ -685,6 +666,23 @@
 }
 @endpush
 
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const startDate = document.getElementById('dashboardStartDate');
+    const endDate = document.getElementById('dashboardEndDate');
+
+    startDate.addEventListener('change', function () {
+        endDate.min = startDate.value;
+    });
+
+    endDate.addEventListener('change', function () {
+        startDate.max = endDate.value;
+    });
+});
+</script>
+@endpush
+
 @if (in_array($selectedDashboard, ['tso', 'iso'], true))
 @push('scripts')
 <script>
@@ -712,9 +710,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
             },
             data: function (payload) {
-                payload.day = @json($selectedDay);
-                payload.month = @json($selectedMonth);
-                payload.year = @json($selectedYear);
+                payload.start_date = @json($selectedStartDate);
+                payload.end_date = @json($selectedEndDate);
             }
         },
         pageLength: 10,

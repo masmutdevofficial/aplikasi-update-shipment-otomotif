@@ -89,9 +89,8 @@ document.addEventListener('DOMContentLoaded', function () {
         ajax: {
             url: '{{ route('admin.shipments.data') }}',
             data: function (payload) {
-                payload.day = @json($selectedDay);
-                payload.month = @json($selectedMonth);
-                payload.year = @json($selectedYear);
+                payload.start_date = @json($selectedStartDate);
+                payload.end_date = @json($selectedEndDate);
             }
         },
         scrollX: true,

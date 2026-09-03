@@ -9,6 +9,7 @@ use App\Http\Requests\Admin\UpdateShipmentRequest;
 use App\Imports\ShipmentImport;
 use App\Models\Shipment;
 use App\Services\ShipmentService;
+use App\Support\DashboardDateRange;
 use App\Support\DsoSla;
 use App\Support\ShipmentDashboard;
 use Illuminate\Http\Request;
@@ -52,13 +53,14 @@ class ShipmentController extends Controller
             'ata_storage_port_destination',
             'at_ptd_dooring',
         ];
-        $day = $this->validDay($request->input('day'));
-        $month = $this->validMonth($request->input('month'));
-        $year = $this->validYear($request->input('year'));
-        $query = Shipment::query()
-            ->when($day !== null, fn ($builder) => $builder->whereDay('terima_do', $day))
-            ->when($month !== null, fn ($builder) => $builder->whereMonth('terima_do', $month))
-            ->when($year !== null, fn ($builder) => $builder->whereYear('terima_do', $year));
+        [$startDate, $endDate] = DashboardDateRange::normalize(
+            $request->input('start_date'),
+            $request->input('end_date'),
+            $request->input('day'),
+            $request->input('month'),
+            $request->input('year'),
+        );
+        $query = DashboardDateRange::apply(Shipment::query(), 'terima_do', $startDate, $endDate);
         $recordsTotal = (clone $query)->count();
         $search = trim((string) $request->input('search.value', ''));
 
@@ -206,27 +208,6 @@ class ShipmentController extends Controller
         }
 
         return $shipment->{$field}?->format('d-M-y') ?? '-';
-    }
-
-    private function validMonth(mixed $value): ?int
-    {
-        $month = filter_var($value, FILTER_VALIDATE_INT);
-
-        return $month !== false && $month >= 1 && $month <= 12 ? $month : null;
-    }
-
-    private function validDay(mixed $value): ?int
-    {
-        $day = filter_var($value, FILTER_VALIDATE_INT);
-
-        return $day !== false && $day >= 1 && $day <= 31 ? $day : null;
-    }
-
-    private function validYear(mixed $value): ?int
-    {
-        $year = filter_var($value, FILTER_VALIDATE_INT);
-
-        return $year !== false && $year >= 2000 && $year <= 2100 ? $year : null;
     }
 
     public function create()

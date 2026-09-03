@@ -25,9 +25,9 @@ class TsoDashboard
      *
      * @return array<int, array{destination: string, total: int, positions: array<string, array{count: int, percentage: float|int}>}>
      */
-    public static function positionSummary(?int $month = null, ?int $year = null, ?int $day = null): array
+    public static function positionSummary(?int $month = null, ?int $year = null, ?int $day = null, ?string $startDate = null, ?string $endDate = null): array
     {
-        return self::periodQuery($month, $year, $day)
+        return self::periodQuery($month, $year, $day, $startDate, $endDate)
             ->whereNotNull('do_date')
             ->get()
             ->groupBy(fn (TsoShipment $shipment) => self::normalizedDestination($shipment->destination))
@@ -57,9 +57,9 @@ class TsoDashboard
     }
 
     /** @return array<string, array{count: int, percentage: float|int}> */
-    public static function doPerformanceStatistics(?int $month = null, ?int $year = null, ?int $day = null): array
+    public static function doPerformanceStatistics(?int $month = null, ?int $year = null, ?int $day = null, ?string $startDate = null, ?string $endDate = null): array
     {
-        $shipments = self::periodQuery($month, $year, $day)
+        $shipments = self::periodQuery($month, $year, $day, $startDate, $endDate)
             ->whereNotNull('do_date')
             ->get();
         $total = $shipments->count();
@@ -101,12 +101,20 @@ class TsoDashboard
         };
     }
 
-    private static function periodQuery(?int $month, ?int $year, ?int $day = null): Builder
+    private static function periodQuery(
+        ?int $month,
+        ?int $year,
+        ?int $day = null,
+        ?string $startDate = null,
+        ?string $endDate = null,
+    ): Builder
     {
-        return TsoShipment::query()
+        $query = TsoShipment::query()
             ->when($day !== null, fn (Builder $query) => $query->whereDay('do_date', $day))
             ->when($month !== null, fn (Builder $query) => $query->whereMonth('do_date', $month))
             ->when($year !== null, fn (Builder $query) => $query->whereYear('do_date', $year));
+
+        return DashboardDateRange::apply($query, 'do_date', $startDate, $endDate);
     }
 
     private static function normalizedDestination(?string $destination): string
