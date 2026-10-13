@@ -255,9 +255,9 @@ Sistem memiliki tiga level pengguna dengan hak akses yang berbeda:
 ### 7.2 Filter Data Laporan
 
 1. Pada halaman Laporan, pilih dashboard **DSO**, **TSO**, **ISO Darat**, atau **ISO Laut**.
-2. Di panel **Filter Periode**, pilih **Tanggal** (di sebelah kiri **Bulan**) untuk menentukan kolom tanggal yang digunakan, termasuk **Max Arrival**.
-3. Pilih **Bulan** dan **Tahun**. Pilihan semua bulan/tahun menampilkan seluruh periode untuk bagian tersebut.
-4. Klik **Terapkan**. Data difilter berdasarkan bulan/tahun dari kolom tanggal yang dipilih.
+2. Di panel **Filter Periode**, pilih **Kolom Tanggal** (di sebelah kiri **Bulan**) untuk menentukan kolom tanggal yang digunakan, termasuk **Max Arrival**.
+3. Setelah kolom dipilih, kalender **Tanggal** aktif. Pilih tanggal yang diinginkan. Filter bulan/tahun nonaktif saat tanggal diisi; kosongkan tanggal untuk memakai **Bulan** dan **Tahun** kembali.
+4. Klik **Terapkan**. Data difilter berdasarkan tanggal tertentu atau bulan/tahun dari kolom yang dipilih.
 5. Klik **Export** untuk mengunduh data dengan filter yang sama, atau **Reset** untuk kembali ke filter awal.
 
 ### 7.3 Mencari Berdasarkan No. Rangka

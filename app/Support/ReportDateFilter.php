@@ -38,20 +38,26 @@ class ReportDateFilter
         return [...$options, 'max_arrival' => 'Max Arrival'];
     }
 
-    public static function field(string $type, mixed $value): string
+    public static function selectedField(string $type, mixed $value): ?string
     {
         if (is_string($value) && array_key_exists($value, self::options($type))) {
             return $value;
         }
 
-        return $type === 'dso' ? 'terima_do' : SpecialShipmentType::get($type)['performance']['start'];
+        return null;
     }
 
-    public static function apply(Builder $query, string $type, ?string $field, ?int $month, ?int $year): Builder
+    public static function field(string $type, mixed $value): string
+    {
+        return self::selectedField($type, $value)
+            ?? ($type === 'dso' ? 'terima_do' : SpecialShipmentType::get($type)['performance']['start']);
+    }
+
+    public static function apply(Builder $query, string $type, ?string $field, ?int $month, ?int $year, ?string $selectedDate = null): Builder
     {
         $field = self::field($type, $field);
 
-        if ($month === null && $year === null) {
+        if ($month === null && $year === null && $selectedDate === null) {
             return $query;
         }
 
@@ -59,13 +65,13 @@ class ReportDateFilter
             $position = self::SCAN_POSITIONS[$field];
 
             // Use the vendor scan when present, just like the displayed report.
-            return $query->where(function (Builder $builder) use ($position, $field, $month, $year) {
-                $builder->whereHas('shipmentUpdates', function (Builder $updates) use ($position, $month, $year) {
-                    self::period($updates->where('position', $position), 'scan_date', $month, $year);
-                })->orWhere(function (Builder $master) use ($position, $field, $month, $year) {
+            return $query->where(function (Builder $builder) use ($position, $field, $month, $year, $selectedDate) {
+                $builder->whereHas('shipmentUpdates', function (Builder $updates) use ($position, $month, $year, $selectedDate) {
+                    self::period($updates->where('position', $position), 'scan_date', $month, $year, $selectedDate);
+                })->orWhere(function (Builder $master) use ($position, $field, $month, $year, $selectedDate) {
                     $master->whereDoesntHave('shipmentUpdates', fn (Builder $updates) => $updates
                         ->where('position', $position)->whereNotNull('scan_date'));
-                    self::period($master, $field, $month, $year);
+                    self::period($master, $field, $month, $year, $selectedDate);
                 });
             });
         }
@@ -76,8 +82,11 @@ class ReportDateFilter
             $ids = [];
             foreach ((clone $query)->reorder()->lazyById(500) as $shipment) {
                 $date = self::date($shipment, $type, $field);
-                if ($date !== null && ($month === null || $date->month === $month)
-                    && ($year === null || $date->year === $year)) {
+                $matches = $selectedDate !== null
+                    ? $date?->format('Y-m-d') === $selectedDate
+                    : $date !== null && ($month === null || $date->month === $month)
+                        && ($year === null || $date->year === $year);
+                if ($matches) {
                     $ids[] = $shipment->getKey();
                 }
             }
@@ -85,7 +94,7 @@ class ReportDateFilter
             return $query->whereIn($query->getModel()->getQualifiedKeyName(), $ids);
         }
 
-        return self::period($query, $field, $month, $year);
+        return self::period($query, $field, $month, $year, $selectedDate);
     }
 
     /** @return array<int, int> */
@@ -121,8 +130,12 @@ class ReportDateFilter
         return range(max($years), min($years));
     }
 
-    private static function period(Builder $query, string $field, ?int $month, ?int $year): Builder
+    private static function period(Builder $query, string $field, ?int $month, ?int $year, ?string $selectedDate = null): Builder
     {
+        if ($selectedDate !== null) {
+            return $query->whereDate($field, $selectedDate);
+        }
+
         return $query
             ->when($month !== null, fn (Builder $builder) => $builder->whereMonth($field, $month))
             ->when($year !== null, fn (Builder $builder) => $builder->whereYear($field, $year));

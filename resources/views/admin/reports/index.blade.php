@@ -29,7 +29,8 @@
         <p class="report-selector-description">Pilih dashboard yang ingin ditampilkan.</p>
         <nav class="report-tabs" aria-label="Pilihan laporan shipment">
             @foreach ($reportOptions as $type => $option)
-                <a href="{{ route('admin.reports.index', array_filter([...$option['query'], 'date_field' => \App\Support\ReportDateFilter::field($type, $selectedDateField), 'month' => $selectedMonth, 'year' => $selectedYear])) }}"
+                @php($tabDateField = $hasSelectedDateField ? \App\Support\ReportDateFilter::selectedField($type, $selectedDateField) : null)
+                <a href="{{ route('admin.reports.index', array_filter([...$option['query'], 'date_field' => $tabDateField, 'date' => $tabDateField ? $selectedDate : null, 'month' => $selectedMonth, 'year' => $selectedYear])) }}"
                    class="report-tab {{ $selectedReport === $type ? 'active' : '' }}"
                    @if ($selectedReport === $type) aria-current="page" @endif>
                     <i class="fas {{ $option['icon'] }}"></i> {{ $option['label'] }}
@@ -44,16 +45,23 @@
                     <input type="hidden" name="iso_type" value="{{ $selectedReport === 'iso-laut' ? 'laut' : 'darat' }}">
                 @endif
                 <div class="report-filter-field">
-                    <label for="reportDateField">Tanggal</label>
+                    <label for="reportDateField">Kolom Tanggal</label>
                     <select id="reportDateField" name="date_field" class="form-select report-period-input" aria-label="Kolom tanggal untuk filter periode">
+                        <option value="" @selected(! $hasSelectedDateField)>Pilih Kolom Tanggal</option>
                         @foreach ($dateOptions as $value => $label)
-                            <option value="{{ $value }}" @selected($selectedDateField === $value)>{{ $label }}</option>
+                            <option value="{{ $value }}" @selected($hasSelectedDateField && $selectedDateField === $value)>{{ $label }}</option>
                         @endforeach
                     </select>
                 </div>
                 <div class="report-filter-field">
+                    <label for="reportDate">Tanggal</label>
+                    <input id="reportDate" type="date" name="date" value="{{ $selectedDate }}"
+                           class="form-control report-period-input" @disabled(! $hasSelectedDateField)
+                           aria-describedby="reportDateHint">
+                </div>
+                <div class="report-filter-field">
                     <label for="reportMonth">Bulan</label>
-                    <select id="reportMonth" name="month" class="form-select report-period-input">
+                    <select id="reportMonth" name="month" class="form-select report-period-input" @disabled($selectedDate !== null)>
                         <option value="">Semua Bulan</option>
                         @foreach ($monthOptions as $value => $label)
                             <option value="{{ $value }}" @selected($selectedMonth === $value)>{{ $label }}</option>
@@ -62,7 +70,7 @@
                 </div>
                 <div class="report-filter-field">
                     <label for="reportYear">Tahun</label>
-                    <select id="reportYear" name="year" class="form-select report-period-input">
+                    <select id="reportYear" name="year" class="form-select report-period-input" @disabled($selectedDate !== null)>
                         <option value="">Semua Tahun</option>
                         @foreach ($availableYears as $value)
                             <option value="{{ $value }}" @selected($selectedYear === $value)>{{ $value }}</option>
@@ -71,10 +79,11 @@
                 </div>
                 <button type="submit" class="btn btn-primary"><i class="fas fa-filter"></i> Terapkan</button>
                 <a href="{{ route('admin.reports.index', $selectedQuery) }}" class="btn btn-default">Reset</a>
-                <a href="{{ route('admin.reports.export', array_filter([...$selectedQuery, 'date_field' => $selectedDateField, 'month' => $selectedMonth, 'year' => $selectedYear])) }}"
+                <a href="{{ route('admin.reports.export', array_filter([...$selectedQuery, 'date_field' => $hasSelectedDateField ? $selectedDateField : null, 'date' => $selectedDate, 'month' => $selectedMonth, 'year' => $selectedYear])) }}"
                    class="btn btn-success"><i class="fas fa-file-excel"></i> Export</a>
             </form>
         </div>
+        <p id="reportDateHint" class="report-date-hint">Pilih kolom tanggal terlebih dahulu, lalu pilih tanggal. Kosongkan tanggal untuk menggunakan filter bulan/tahun.</p>
     </div>
 </div>
 
@@ -105,19 +114,43 @@
 .report-tab.active { color:#fff; border-color:#2563eb; background:linear-gradient(135deg,#2563eb,#1d4ed8); box-shadow:0 5px 12px rgba(37,99,235,.24); }
 .report-period-row { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; padding-top:14px; overflow-x:auto; }
 .report-period-label { flex:0 0 auto; padding-bottom:9px; color:#475569; font-size:13px; font-weight:600; }
-.report-filter-form { display:flex; flex:0 0 auto; align-items:flex-end; gap:8px; min-width:max-content; }
+.report-filter-form { display:flex; flex:1 1 auto; flex-wrap:wrap; align-items:flex-end; gap:8px; min-width:0; }
 .report-filter-field label { display:block; margin-bottom:4px; color:#64748b; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
 .report-period-input { min-width:145px; }
 #reportDateField { min-width:210px; }
+.report-date-hint { margin:8px 0 0; color:#64748b; font-size:12px; }
 .report-table-scroll { width:100%; overflow-x:auto; }
 #table-reports th, #table-reports td { min-width:120px; white-space:nowrap; }
 #table-reports th:first-child, #table-reports td:first-child { min-width:55px; text-align:center; }
-@media (max-width:576px) { .report-period-row { align-items:flex-start; flex-direction:column; gap:6px; } .report-filter-form { width:max-content; } }
+@media (max-width:576px) { .report-period-row { align-items:flex-start; flex-direction:column; gap:6px; } .report-filter-form { width:100%; } }
 @endpush
 
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const dateField = document.getElementById('reportDateField');
+    const dateInput = document.getElementById('reportDate');
+    const monthInput = document.getElementById('reportMonth');
+    const yearInput = document.getElementById('reportYear');
+    const updateDateControls = () => {
+        dateInput.disabled = dateField.value === '';
+        if (dateInput.disabled) dateInput.value = '';
+        const hasDate = dateInput.value !== '';
+        monthInput.disabled = hasDate;
+        yearInput.disabled = hasDate;
+        if (hasDate) {
+            monthInput.value = '';
+            yearInput.value = '';
+        }
+    };
+    dateField.addEventListener('change', () => {
+        dateInput.value = '';
+        updateDateControls();
+    });
+    dateInput.addEventListener('input', updateDateControls);
+    dateInput.addEventListener('change', updateDateControls);
+    updateDateControls();
+
     const reportColumns = @json($reportColumns);
     const escapeHtml = value => $('<div>').text(value ?? '-').html();
     const renderers = {
@@ -149,6 +182,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 payload.month = @json($selectedMonth);
                 payload.year = @json($selectedYear);
                 payload.date_field = @json($selectedDateField);
+                payload.date = @json($selectedDate);
             },
         },
         columns:reportColumns.map(column => ({

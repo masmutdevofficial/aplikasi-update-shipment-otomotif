@@ -122,8 +122,9 @@ class ReportService
         ?int $month = null,
         ?int $year = null,
         ?string $dateField = null,
+        ?string $selectedDate = null,
     ): Collection {
-        return ReportDateFilter::apply(Shipment::query(), 'dso', $dateField, $month, $year)
+        return ReportDateFilter::apply(Shipment::query(), 'dso', $dateField, $month, $year, $selectedDate)
             ->with(['shipmentUpdates.vendor', 'uploadedDocument'])
             ->when($search, function ($query, $search) {
                 $query->where('no_rangka', 'like', "%{$search}%");

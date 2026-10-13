@@ -20,6 +20,7 @@ class SpecialShipmentReportExport implements FromArray, WithHeadings, WithStyles
         private readonly ?int $month = null,
         private readonly ?int $year = null,
         private readonly ?string $dateField = null,
+        private readonly ?string $selectedDate = null,
     ) {
         $this->config = SpecialShipmentType::get($type);
     }
@@ -41,7 +42,7 @@ class SpecialShipmentReportExport implements FromArray, WithHeadings, WithStyles
     public function array(): array
     {
         $model = $this->config['model'];
-        $shipments = ReportDateFilter::apply($model::query(), $this->type, $this->dateField, $this->month, $this->year)
+        $shipments = ReportDateFilter::apply($model::query(), $this->type, $this->dateField, $this->month, $this->year, $this->selectedDate)
             ->latest()
             ->get();
         $documentUrls = ReportService::specialDocumentUrls($shipments, $this->config['identity']);

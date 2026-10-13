@@ -223,7 +223,7 @@
         <h3>Melihat & Memfilter Laporan</h3>
         <div class="step-item"><span class="step-number">1</span><span>Dari menu navigasi, pilih <strong>Laporan</strong>.</span></div>
         <div class="step-item"><span class="step-number">2</span><span>Pilih dashboard <strong>DSO</strong>, <strong>TSO</strong>, <strong>ISO Darat</strong>, atau <strong>ISO Laut</strong>.</span></div>
-        <div class="step-item"><span class="step-number">3</span><span>Di <strong>Filter Periode</strong>, pilih <strong>Tanggal</strong> di sebelah kiri <strong>Bulan</strong> untuk menentukan kolom tanggal, termasuk <strong>Max Arrival</strong>. Pilih <strong>Bulan</strong> dan <strong>Tahun</strong>, lalu klik <strong>Terapkan</strong>. Export mengikuti filter yang sama; klik <strong>Reset</strong> untuk kembali ke filter awal.</span></div>
+        <div class="step-item"><span class="step-number">3</span><span>Di <strong>Filter Periode</strong>, pilih <strong>Kolom Tanggal</strong> di sebelah kiri <strong>Bulan</strong>, termasuk <strong>Max Arrival</strong>. Kalender <strong>Tanggal</strong> kemudian aktif: pilih tanggal, lalu klik <strong>Terapkan</strong>. Kosongkan tanggal untuk menggunakan <strong>Bulan</strong> dan <strong>Tahun</strong>. Export mengikuti filter yang sama; klik <strong>Reset</strong> untuk kembali ke filter awal.</span></div>
 
         <h3>Export ke Excel</h3>
         <div class="step-item"><span class="step-number">1</span><span>Terapkan filter sesuai kebutuhan (opsional).</span></div>

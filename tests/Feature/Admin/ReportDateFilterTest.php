@@ -10,6 +10,7 @@ use App\Models\TsoShipment;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Support\ReportDateFilter;
+use App\Support\SpecialShipmentPerformance;
 use App\Support\SpecialShipmentType;
 use Maatwebsite\Excel\Facades\Excel;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
@@ -41,7 +42,7 @@ class ReportDateFilterTest extends TestCase
                 'type' => 'tso', 'date_field' => 'pu_date', 'month' => 5, 'year' => 2018,
             ]))
             ->assertSee(route('admin.reports.index', [
-                'type' => 'iso', 'iso_type' => 'laut', 'date_field' => 'terima_do', 'month' => 5, 'year' => 2018,
+                'type' => 'iso', 'iso_type' => 'laut', 'month' => 5, 'year' => 2018,
             ]));
 
         foreach (['dso', 'tso', 'iso-darat', 'iso-laut'] as $type) {
@@ -81,7 +82,18 @@ class ReportDateFilterTest extends TestCase
                 $this->assertCount(1, $rows, $type.' '.$label);
                 $this->assertContains('DATE-MATCH', $rows[0]);
 
-                foreach ([$match, $other, $wrongYear, $missing] as $shipment) {
+                $otherDay = $this->shipment($type, [$identity => 'DATE-OTHER-DAY', $field => '2025-05-04']);
+                $this->postJson(route('admin.reports.data'), [
+                    'type' => $type, 'date_field' => $field, 'date' => '2025-05-03', 'month' => 6, 'year' => 2024,
+                ])->assertOk()->assertJsonPath('recordsFiltered', 1)
+                    ->assertJsonPath('data.0.'.$identity, 'DATE-MATCH');
+                $exactExport = $type === 'dso'
+                    ? new ShipmentExport(month: 6, year: 2024, dateField: $field, selectedDate: '2025-05-03')
+                    : new SpecialShipmentReportExport($type, 6, 2024, $field, '2025-05-03');
+                $this->assertCount(1, $exactExport->array());
+                $this->assertContains('DATE-MATCH', $exactExport->array()[0]);
+
+                foreach ([$match, $other, $wrongYear, $missing, $otherDay] as $shipment) {
                     $shipment->delete();
                 }
             }
@@ -106,6 +118,12 @@ class ReportDateFilterTest extends TestCase
         }
         $this->get(route('admin.reports.index', ['date_field' => 'at_storage_port']))
             ->assertOk()->assertViewHas('availableYears', fn ($years) => in_array(2024, $years, true));
+        foreach (['2024-06-04' => 1, '2025-05-03' => 0, '2024-06-05' => 0] as $date => $count) {
+            $this->postJson(route('admin.reports.data'), [
+                'type' => 'dso', 'date_field' => 'at_storage_port', 'date' => $date,
+            ])->assertOk()->assertJsonPath('recordsFiltered', $count);
+            $this->assertCount($count, (new ShipmentExport(dateField: 'at_storage_port', selectedDate: $date))->array());
+        }
         $this->assertSame('2025-05-03', $shipment->fresh()->at_storage_port->format('Y-m-d'));
     }
 
@@ -127,8 +145,21 @@ class ReportDateFilterTest extends TestCase
                 ? new ShipmentExport(month: 2, year: 2025, dateField: 'max_arrival')
                 : new SpecialShipmentReportExport($type, 2, 2025, 'max_arrival');
             $this->assertCount(1, $export->array());
+            $deadline = ($type === 'dso'
+                ? $match->maxArrival()
+                : SpecialShipmentPerformance::calculate($type, $match)['max_arrival'])->format('Y-m-d');
+            $otherDay = $this->shipment($type, [$identity => 'DATE-OTHER-DAY', $start => '2025-02-01', ...$attributes]);
+            $this->postJson(route('admin.reports.data'), [
+                'type' => $type, 'date_field' => 'max_arrival', 'date' => $deadline,
+            ])->assertOk()->assertJsonPath('recordsFiltered', 1)
+                ->assertJsonPath('data.0.'.$identity, 'DATE-DEADLINE');
+            $exactExport = $type === 'dso'
+                ? new ShipmentExport(dateField: 'max_arrival', selectedDate: $deadline)
+                : new SpecialShipmentReportExport($type, dateField: 'max_arrival', selectedDate: $deadline);
+            $this->assertCount(1, $exactExport->array());
             $match->delete();
             $missing->delete();
+            $otherDay->delete();
         }
     }
 
@@ -142,6 +173,10 @@ class ReportDateFilterTest extends TestCase
             'type' => 'iso', 'iso_type' => 'laut', 'date_field' => 'at_ptd_dtd', 'month' => 5, 'year' => 2025,
         ])->assertOk()->assertJsonPath('recordsFiltered', 2);
         $this->assertCount(2, (new SpecialShipmentReportExport('iso-laut', 5, 2025, 'at_ptd_dtd'))->array());
+        $this->postJson(route('admin.reports.data'), [
+            'type' => 'iso', 'iso_type' => 'laut', 'date_field' => 'at_ptd_dtd', 'date' => '2025-05-03',
+        ])->assertOk()->assertJsonPath('recordsFiltered', 2);
+        $this->assertCount(2, (new SpecialShipmentReportExport('iso-laut', dateField: 'at_ptd_dtd', selectedDate: '2025-05-03'))->array());
     }
 
     public function test_invalid_or_incompatible_date_fields_fall_back_to_the_default(): void
@@ -161,12 +196,50 @@ class ReportDateFilterTest extends TestCase
         Excel::fake();
         TsoShipment::create(['no_rangka' => 'DATE-EXPORT', 'do_date' => '2025-01-01', 'pu_date' => '2025-05-01']);
         Shipment::factory()->create(['no_rangka' => 'DATE-EXPORT-DSO', 'terima_do' => '2025-01-01', 'keluar_dari_pdc' => '2025-05-01']);
+        TsoShipment::create(['no_rangka' => 'DATE-OTHER-DAY', 'pu_date' => '2025-05-02']);
+        Shipment::factory()->create(['no_rangka' => 'DATE-OTHER-DAY', 'keluar_dari_pdc' => '2025-05-02']);
         foreach (['tso' => 'pu_date', 'dso' => 'keluar_dari_pdc'] as $type => $field) {
             $this->actingAs($this->admin)->get(route('admin.reports.export', [
-                'type' => $type, 'date_field' => $field, 'month' => 5, 'year' => 2025,
+                'type' => $type, 'date_field' => $field, 'date' => '2025-05-01',
             ]))->assertOk();
             Excel::assertDownloaded('laporan_shipment_'.$type.'_'.now()->format('Ymd_His').'.xlsx',
                 fn ($export) => count($export->array()) === 1);
+        }
+    }
+
+    public function test_calendar_is_disabled_until_a_column_is_selected_and_date_survives_export_links(): void
+    {
+        $this->actingAs($this->admin)->get(route('admin.reports.index'))
+            ->assertOk()->assertViewHas('hasSelectedDateField', false)
+            ->assertSee('Pilih Kolom Tanggal')
+            ->assertSeeInOrder(['id="reportDate"', 'disabled', 'id="reportMonth"'], false);
+
+        $response = $this->get(route('admin.reports.index', [
+            'type' => 'dso', 'date_field' => 'keluar_dari_pdc', 'date' => '2025-05-03', 'month' => 6, 'year' => 2024,
+        ]));
+        $response->assertOk()->assertViewHas('hasSelectedDateField', true)
+            ->assertViewHas('selectedDate', '2025-05-03')
+            ->assertViewHas('selectedMonth', null)->assertViewHas('selectedYear', null)
+            ->assertSee('name="date" value="2025-05-03"', false)
+            ->assertSee(route('admin.reports.export', ['type' => 'dso', 'date_field' => 'keluar_dari_pdc', 'date' => '2025-05-03']))
+            ->assertSee(route('admin.reports.index', ['type' => 'iso', 'iso_type' => 'laut', 'date_field' => 'keluar_dari_pdc', 'date' => '2025-05-03']))
+            ->assertSee(route('admin.reports.index', ['type' => 'tso']));
+        $this->assertMatchesRegularExpression('/id="reportDate"[^>]+(?<!disabled)>/', $response->getContent());
+        $this->assertDoesNotMatchRegularExpression('/id="reportDate"[^>]+disabled/', $response->getContent());
+    }
+
+    public function test_exact_date_requires_a_valid_column_and_valid_calendar_date_on_all_endpoints(): void
+    {
+        $this->actingAs($this->admin);
+        foreach ([
+            ['date' => '2025-05-03'],
+            ['date' => '2025-05-03', 'date_field' => 'unknown'],
+            ['date' => '2025-02-29', 'date_field' => 'terima_do'],
+            ['date' => 'tomorrow', 'date_field' => 'terima_do'],
+        ] as $parameters) {
+            $this->getJson(route('admin.reports.index', $parameters))->assertUnprocessable();
+            $this->getJson(route('admin.reports.export', $parameters))->assertUnprocessable();
+            $this->postJson(route('admin.reports.data'), $parameters)->assertUnprocessable();
         }
     }
 

@@ -12,6 +12,7 @@ use App\Support\SpecialShipmentPerformance;
 use App\Support\SpecialShipmentType;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
 
 class ReportController extends Controller
@@ -22,8 +23,9 @@ class ReportController extends Controller
             'search' => ['nullable', 'string', 'max:100'],
         ]);
         $selectedReport = $this->validType($request->query('type'), $request->query('iso_type'));
-        $selectedMonth = $this->validMonth($request->query('month'));
-        $selectedYear = $this->validYear($request->query('year'));
+        $selectedDate = $this->selectedDate($request, $selectedReport);
+        $selectedMonth = $selectedDate === null ? $this->validMonth($request->query('month')) : null;
+        $selectedYear = $selectedDate === null ? $this->validYear($request->query('year')) : null;
         $config = $selectedReport === 'dso' ? null : SpecialShipmentType::get($selectedReport);
         $dateField = ReportDateFilter::field($selectedReport, $request->query('date_field'));
 
@@ -32,6 +34,8 @@ class ReportController extends Controller
             'selectedMonth' => $selectedMonth,
             'selectedYear' => $selectedYear,
             'selectedDateField' => $dateField,
+            'hasSelectedDateField' => ReportDateFilter::selectedField($selectedReport, $request->query('date_field')) !== null,
+            'selectedDate' => $selectedDate,
             'dateOptions' => ReportDateFilter::options($selectedReport),
             'availableYears' => ReportDateFilter::years($selectedReport, $dateField, $selectedYear),
             'reportConfig' => $config,
@@ -44,6 +48,7 @@ class ReportController extends Controller
     public function data(Request $request)
     {
         $type = $this->validType($request->input('type'), $request->input('iso_type'));
+        $selectedDate = $this->selectedDate($request, $type);
         $month = $this->validMonth($request->input('month'));
         $year = $this->validYear($request->input('year'));
         $config = $type === 'dso' ? null : SpecialShipmentType::get($type);
@@ -56,7 +61,7 @@ class ReportController extends Controller
             ->filter(fn (array $column) => $column['orderable'])
             ->pluck('data')
             ->all();
-        $query = ReportDateFilter::apply($model::query(), $type, $dateField, $month, $year);
+        $query = ReportDateFilter::apply($model::query(), $type, $dateField, $month, $year, $selectedDate);
         $recordsTotal = (clone $query)->count();
         $search = trim((string) $request->input('search.value', ''));
 
@@ -108,6 +113,7 @@ class ReportController extends Controller
             'search' => ['nullable', 'string', 'max:100'],
         ]);
         $type = $this->validType($request->query('type'), $request->query('iso_type'));
+        $selectedDate = $this->selectedDate($request, $type);
         $month = $this->validMonth($request->query('month'));
         $year = $this->validYear($request->query('year'));
         $dateField = ReportDateFilter::field($type, $request->query('date_field'));
@@ -119,8 +125,9 @@ class ReportController extends Controller
                 month: $month,
                 year: $year,
                 dateField: $dateField,
+                selectedDate: $selectedDate,
             )
-            : new SpecialShipmentReportExport($type, $month, $year, $dateField);
+            : new SpecialShipmentReportExport($type, $month, $year, $dateField, $selectedDate);
 
         return Excel::download($export, $filename);
     }
@@ -154,6 +161,19 @@ class ReportController extends Controller
                 'document_url' => ReportService::specialDocumentUrl($documentUrls, $shipment->{$config['identity']}) ?? '-',
             ];
         });
+    }
+
+    private function selectedDate(Request $request, string $type): ?string
+    {
+        $validated = $request->validate(['date' => ['nullable', 'date_format:Y-m-d']]);
+
+        if (isset($validated['date'])) {
+            $request->validate([
+                'date_field' => ['required', 'string', Rule::in(array_keys(ReportDateFilter::options($type)))],
+            ]);
+        }
+
+        return $validated['date'] ?? null;
     }
 
     private function validType(mixed $value, mixed $isoType = null): string
