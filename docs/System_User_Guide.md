@@ -262,9 +262,9 @@ Sistem memiliki tiga level pengguna dengan hak akses yang berbeda:
 
 ### 7.3 Mencari Berdasarkan No. Rangka
 
-1. Pada halaman Laporan, temukan kolom pencarian **No. Rangka**.
-2. Ketik VIN (minimal beberapa karakter) kendaraan yang dicari.
-3. Hasil pencarian akan tampil secara otomatis atau tekan **Enter**.
+1. Pada halaman Laporan, ketik VIN pada kotak **Cari No. Rangka** di bawah header kolom. Kotak **Cari** umum dapat digunakan untuk mencari di seluruh data master.
+2. Setiap header memiliki pencarian per kolom. Isi beberapa kotak untuk mencari data yang memenuhi seluruh filter tersebut, termasuk tanggal sesuai format tabel, SLA, hasil, dan progress. Pada kolom **Dokumen**, cari **Ada** atau **Kosong**.
+3. Hasil tampil otomatis atau tekan **Enter**. Kosongkan kotak untuk menghapus filter kolom tersebut. Pencarian tabel dapat dipakai bersama filter periode.
 
 ### 7.4 Export ke Excel
 

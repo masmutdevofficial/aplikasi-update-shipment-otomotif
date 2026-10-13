@@ -13,6 +13,7 @@ dan proyek ini mengikuti [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 > Bagian ini mencatat pekerjaan yang sedang berjalan dan belum dirilis.
 
 ### Added
+- Pencarian di setiap header kolom laporan menggunakan API `column().search()` DataTables, termasuk tanggal yang ditampilkan, SLA, hasil, progress, nomor baris, dan ketersediaan dokumen. Filter per kolom dapat digabungkan dengan pencarian umum dan filter periode.
 - Filter **Kolom Tanggal** dan kalender **Tanggal** di sebelah kiri **Bulan** pada laporan admin. Pilih kolom DSO, TSO, ISO Darat, atau ISO Laut (termasuk Max Arrival) sebelum memilih tanggal tertentu. Tabel dan export Excel mengikuti tanggal tersebut; kosongkan tanggal untuk memakai filter bulan/tahun.
 
 ---

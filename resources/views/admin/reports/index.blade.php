@@ -92,11 +92,22 @@
     <div class="card-body p-0">
         <div class="report-table-scroll">
             <table id="table-reports" class="table table-hover table-striped mb-0" style="font-size:.85rem;">
-                <thead><tr>
-                    @foreach ($reportColumns as $column)
-                        <th>{{ $column['label'] }}</th>
-                    @endforeach
-                </tr></thead>
+                <thead>
+                    <tr>
+                        @foreach ($reportColumns as $column)
+                            <th>{{ $column['label'] }}</th>
+                        @endforeach
+                    </tr>
+                    <tr class="report-column-filters" data-dt-order="disable">
+                        @foreach ($reportColumns as $column)
+                            <th>
+                                <input type="search" class="form-control form-control-sm report-column-search"
+                                       placeholder="{{ $column['kind'] === 'document' ? 'Ada / Kosong' : 'Cari '.$column['label'] }}"
+                                       aria-label="Cari kolom {{ $column['label'] }}" maxlength="100" autocomplete="off">
+                            </th>
+                        @endforeach
+                    </tr>
+                </thead>
                 <tbody></tbody>
             </table>
         </div>
@@ -122,6 +133,8 @@
 .report-table-scroll { width:100%; overflow-x:auto; }
 #table-reports th, #table-reports td { min-width:120px; white-space:nowrap; }
 #table-reports th:first-child, #table-reports td:first-child { min-width:55px; text-align:center; }
+.report-column-search { width:100%; min-width:110px; font-size:12px; font-weight:400; }
+.report-column-filters th { padding:6px 8px; }
 @media (max-width:576px) { .report-period-row { align-items:flex-start; flex-direction:column; gap:6px; } .report-filter-form { width:100%; } }
 @endpush
 
@@ -189,11 +202,30 @@ document.addEventListener('DOMContentLoaded', function () {
             data:column.data,
             name:column.data,
             orderable:column.orderable,
-            searchable:column.orderable,
+            searchable:true,
             render:(value, type) => type === 'display'
                 ? (renderers[column.kind] ?? renderers.text)(value)
                 : value,
         })),
+        initComplete:function () {
+            this.api().columns().every(function () {
+                const column = this;
+                const input = column.header(1).querySelector('.report-column-search');
+                const applySearch = () => {
+                    if (column.search() !== input.value) {
+                        column.search(input.value, {regex:false, smart:false, caseInsensitive:true}).draw();
+                    }
+                };
+                input.addEventListener('input', DataTable.util.debounce(applySearch, 300));
+                input.addEventListener('change', applySearch);
+                input.addEventListener('keydown', event => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        applySearch();
+                    }
+                });
+            });
+        },
         pageLength:25, lengthMenu:[[10,25,50,100],['10','25','50','100']], scrollX:true,
         language:{ search:'Cari:', lengthMenu:'Tampilkan _MENU_ data per halaman', info:'Menampilkan _START_ - _END_ dari _TOTAL_ data', infoEmpty:'Tidak ada data', emptyTable:'Belum ada data laporan {{ $reportLabel }}', infoFiltered:'(difilter dari _MAX_ total data)', zeroRecords:'Tidak ada data yang cocok', paginate:{first:'«',last:'»',next:'›',previous:'‹'} },
         order:[[1,'asc']]

@@ -225,6 +225,7 @@
         <div class="step-item"><span class="step-number">2</span><span>Pilih dashboard <strong>DSO</strong>, <strong>TSO</strong>, <strong>ISO Darat</strong>, atau <strong>ISO Laut</strong>.</span></div>
         <div class="step-item"><span class="step-number">3</span><span>Di <strong>Filter Periode</strong>, pilih <strong>Kolom Tanggal</strong> di sebelah kiri <strong>Bulan</strong>, termasuk <strong>Max Arrival</strong>. Kalender <strong>Tanggal</strong> kemudian aktif: pilih tanggal, lalu klik <strong>Terapkan</strong>. Kosongkan tanggal untuk menggunakan <strong>Bulan</strong> dan <strong>Tahun</strong>. Export mengikuti filter yang sama; klik <strong>Reset</strong> untuk kembali ke filter awal.</span></div>
 
+        <p>Gunakan kotak pencarian di bawah setiap header untuk mencari pada kolom tersebut. Beberapa pencarian dapat digabungkan dengan pencarian umum dan filter periode. Cari <strong>Ada</strong> atau <strong>Kosong</strong> pada kolom Dokumen; kosongkan kotak untuk menghapus filter.</p>
         <h3>Export ke Excel</h3>
         <div class="step-item"><span class="step-number">1</span><span>Terapkan filter sesuai kebutuhan (opsional).</span></div>
         <div class="step-item"><span class="step-number">2</span><span>Klik tombol <strong>Export Excel</strong>.</span></div>

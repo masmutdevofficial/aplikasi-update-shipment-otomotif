@@ -47,6 +47,11 @@ class ReportController extends Controller
 
     public function data(Request $request)
     {
+        $request->validate([
+            'search.value' => ['nullable', 'string', 'max:100'],
+            'columns' => ['sometimes', 'array', 'max:100'],
+            'columns.*.search.value' => ['nullable', 'string', 'max:100'],
+        ]);
         $type = $this->validType($request->input('type'), $request->input('iso_type'));
         $selectedDate = $this->selectedDate($request, $type);
         $month = $this->validMonth($request->input('month'));
@@ -73,31 +78,32 @@ class ReportController extends Controller
             });
         }
 
-        $recordsFiltered = (clone $query)->count();
         $orderIndex = (int) $request->input('order.0.column', 1);
         $defaultOrderColumn = $config['performance']['start'] ?? 'terima_do';
         $orderColumn = (string) $request->input("columns.{$orderIndex}.name", $defaultOrderColumn);
         $orderColumn = in_array($orderColumn, $databaseColumns, true) ? $orderColumn : $defaultOrderColumn;
         $orderDirection = strtolower((string) $request->input('order.0.dir', 'desc')) === 'asc' ? 'asc' : 'desc';
+        $query->orderBy($orderColumn, $orderDirection)->orderBy($query->getModel()->getQualifiedKeyName());
+        [$query, $rowNumbers] = $this->searchColumns($query, $request, $reportColumns, $type, $config);
+        $recordsFiltered = (clone $query)->count();
         $start = max(0, (int) $request->input('start', 0));
         $length = min(100, max(10, (int) $request->input('length', 25)));
         $shipments = $query
             ->when($type === 'dso', fn (Builder $builder) => $builder->with(['shipmentUpdates', 'uploadedDocument']))
-            ->orderBy($orderColumn, $orderDirection)
             ->skip($start)
             ->take($length)
             ->get();
 
         $data = $type === 'dso'
-            ? $shipments->map(function (Shipment $shipment, int $index) use ($start) {
+            ? $shipments->map(function (Shipment $shipment, int $index) use ($start, $rowNumbers) {
                 return [
-                    'row_number' => $start + $index + 1,
+                    'row_number' => $rowNumbers[$shipment->id] ?? $start + $index + 1,
                     ...collect(ReportService::flattenShipment($shipment))
                         ->map(fn (mixed $value) => $value ?? '-')
                         ->all(),
                 ];
             })
-            : $this->specialRows($shipments, $config, $type, $start);
+            : $this->specialRows($shipments, $config, $type, $start, $rowNumbers);
 
         return response()->json([
             'draw' => (int) $request->input('draw', 0),
@@ -132,13 +138,78 @@ class ReportController extends Controller
         return Excel::download($export, $filename);
     }
 
-    private function specialRows($shipments, array $config, string $type, int $start)
+    /** @return array{Builder, array<string, int>} */
+    private function searchColumns(Builder $query, Request $request, array $columns, string $type, ?array $config): array
+    {
+        $renderedFilters = [];
+        $casts = $query->getModel()->getCasts();
+
+        foreach ($columns as $index => $column) {
+            $value = trim((string) $request->input("columns.{$index}.search.value", ''));
+            if ($value === '') {
+                continue;
+            }
+            // Column names come from the report schema, never from the client.
+            $field = $column['data'];
+            $isDate = str_starts_with($casts[$field] ?? '', 'date')
+                || ($config['fields'][$field]['input_type'] ?? null) === 'date';
+            if ($column['orderable'] && ! $isDate && $field !== 'sla_customer') {
+                $wrapped = $query->getQuery()->getGrammar()->wrap($query->getModel()->qualifyColumn($field));
+                $pattern = '%'.strtr(mb_strtolower($value), ['!' => '!!', '%' => '!%', '_' => '!_']).'%';
+                $query->whereRaw("LOWER(COALESCE({$wrapped}, ?)) LIKE ? ESCAPE '!'", ['-', $pattern]);
+            } else {
+                $renderedFilters[$field] = $value;
+            }
+        }
+
+        if ($renderedFilters === []) {
+            return [$query, []];
+        }
+
+        // Dates, scan milestones and performance columns must be searched as
+        // displayed. Filter all matching rows before counts and pagination.
+        $matchingIds = [];
+        $rowNumbers = [];
+        $offset = 0;
+        (clone $query)
+            ->when($type === 'dso', fn (Builder $builder) => $builder->with(['shipmentUpdates', 'uploadedDocument']))
+            ->chunk(500, function ($shipments) use ($type, $config, $renderedFilters, &$matchingIds, &$rowNumbers, &$offset) {
+                $rows = $type === 'dso'
+                    ? $shipments->map(fn (Shipment $shipment, int $index) => [
+                        'row_number' => $offset + $index + 1,
+                        ...ReportService::flattenShipment($shipment),
+                    ])
+                    : $this->specialRows($shipments, $config, $type, $offset);
+
+                foreach ($rows as $index => $row) {
+                    foreach ($renderedFilters as $field => $term) {
+                        $value = $row[$field] ?? '-';
+                        if ($field === 'document_url') {
+                            $value = $value === '-' ? 'Kosong' : 'Ada '.$value;
+                        }
+                        if (mb_stripos((string) $value, $term) === false) {
+                            continue 2;
+                        }
+                    }
+                    $id = $shipments[$index]->getKey();
+                    $matchingIds[] = $id;
+                    if (isset($renderedFilters['row_number'])) {
+                        $rowNumbers[$id] = $row['row_number'];
+                    }
+                }
+                $offset += $shipments->count();
+            });
+
+        return [$query->whereIn($query->getModel()->getQualifiedKeyName(), $matchingIds), $rowNumbers];
+    }
+
+    private function specialRows($shipments, array $config, string $type, int $start, array $rowNumbers = [])
     {
         $documentUrls = ReportService::specialDocumentUrls($shipments, $config['identity']);
 
-        return $shipments->map(function ($shipment, int $index) use ($config, $type, $start, $documentUrls) {
+        return $shipments->map(function ($shipment, int $index) use ($config, $type, $start, $documentUrls, $rowNumbers) {
             $metrics = SpecialShipmentPerformance::calculate($type, $shipment);
-            $row = ['row_number' => $start + $index + 1];
+            $row = ['row_number' => $rowNumbers[$shipment->id] ?? $start + $index + 1];
 
             foreach ($config['fields'] as $field => $fieldConfig) {
                 $value = $field === 'sla_customer' ? $metrics['sla_customer'] : $shipment->{$field};
