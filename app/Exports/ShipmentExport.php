@@ -14,6 +14,7 @@ class ShipmentExport implements FromArray, WithHeadings, WithStyles
         protected ?string $search = null,
         protected ?int $month = null,
         protected ?int $year = null,
+        protected ?string $dateField = null,
     ) {}
 
     public function headings(): array
@@ -29,6 +30,7 @@ class ShipmentExport implements FromArray, WithHeadings, WithStyles
             search: $this->search,
             month: $this->month,
             year: $this->year,
+            dateField: $this->dateField,
         );
 
         $rows = [];

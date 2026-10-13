@@ -3,9 +3,9 @@
 namespace App\Exports;
 
 use App\Services\ReportService;
+use App\Support\ReportDateFilter;
 use App\Support\SpecialShipmentPerformance;
 use App\Support\SpecialShipmentType;
-use Illuminate\Database\Eloquent\Builder;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithStyles;
@@ -19,6 +19,7 @@ class SpecialShipmentReportExport implements FromArray, WithHeadings, WithStyles
         private readonly string $type,
         private readonly ?int $month = null,
         private readonly ?int $year = null,
+        private readonly ?string $dateField = null,
     ) {
         $this->config = SpecialShipmentType::get($type);
     }
@@ -40,10 +41,7 @@ class SpecialShipmentReportExport implements FromArray, WithHeadings, WithStyles
     public function array(): array
     {
         $model = $this->config['model'];
-        $dateField = $this->config['performance']['start'];
-        $shipments = $model::query()
-            ->when($this->month !== null, fn (Builder $query) => $query->whereMonth($dateField, $this->month))
-            ->when($this->year !== null, fn (Builder $query) => $query->whereYear($dateField, $this->year))
+        $shipments = ReportDateFilter::apply($model::query(), $this->type, $this->dateField, $this->month, $this->year)
             ->latest()
             ->get();
         $documentUrls = ReportService::specialDocumentUrls($shipments, $this->config['identity']);

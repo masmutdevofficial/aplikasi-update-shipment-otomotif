@@ -15,11 +15,11 @@ use App\Models\User;
 use App\Models\Vendor;
 use App\Services\ReportService;
 use Illuminate\Support\Facades\Storage;
+use Maatwebsite\Excel\Facades\Excel;
 use Tests\TestCase;
 
 class ReportExportTest extends TestCase
 {
-
     private User $admin;
 
     protected function setUp(): void
@@ -60,7 +60,7 @@ class ReportExportTest extends TestCase
             ->assertSee('SLA Actual')
             ->assertSee('SLA Customer')
             ->assertSee('Keterlambatan (Hari)')
-            ->assertDontSee('AT PtD (Dooring)')
+            ->assertSee('AT PtD (Dooring)')
             ->assertDontSee('AT PTD/DTD')
             ->assertDontSee('Door to Port (DTP)')
             ->assertDontSee('Port to Port (PTP)')
@@ -142,7 +142,7 @@ class ReportExportTest extends TestCase
     public function test_admin_can_export_excel(): void
     {
         // Skip if maatwebsite/excel is not available in test environment
-        if (!class_exists(\Maatwebsite\Excel\Facades\Excel::class)) {
+        if (! class_exists(Excel::class)) {
             $this->markTestSkipped('Maatwebsite Excel package not available in test environment.');
         }
 
@@ -153,7 +153,7 @@ class ReportExportTest extends TestCase
 
     public function test_admin_can_export_each_special_report_type(): void
     {
-        if (!class_exists(\Maatwebsite\Excel\Facades\Excel::class)) {
+        if (! class_exists(Excel::class)) {
             $this->markTestSkipped('Maatwebsite Excel package not available in test environment.');
         }
 

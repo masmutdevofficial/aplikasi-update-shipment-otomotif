@@ -12,6 +12,9 @@ dan proyek ini mengikuti [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 > Bagian ini mencatat pekerjaan yang sedang berjalan dan belum dirilis.
 
+### Added
+- Filter **Tanggal** di sebelah kiri **Bulan** pada laporan admin untuk memilih kolom tanggal DSO, TSO, ISO Darat, dan ISO Laut, termasuk Max Arrival. Filter bulan/tahun dan export Excel mengikuti kolom yang dipilih.
+
 ---
 
 ## [6.5.0] - 2026-04-18

@@ -222,8 +222,8 @@
 
         <h3>Melihat & Memfilter Laporan</h3>
         <div class="step-item"><span class="step-number">1</span><span>Dari menu navigasi, pilih <strong>Laporan</strong>.</span></div>
-        <div class="step-item"><span class="step-number">2</span><span>Sistem menampilkan seluruh data shipment + update posisi semua vendor dalam satu tabel.</span></div>
-        <div class="step-item"><span class="step-number">3</span><span>Untuk memfilter, isi <strong>Dari Tanggal</strong> dan <strong>Sampai Tanggal</strong>, lalu klik <strong>Terapkan Filter</strong>.</span></div>
+        <div class="step-item"><span class="step-number">2</span><span>Pilih dashboard <strong>DSO</strong>, <strong>TSO</strong>, <strong>ISO Darat</strong>, atau <strong>ISO Laut</strong>.</span></div>
+        <div class="step-item"><span class="step-number">3</span><span>Di <strong>Filter Periode</strong>, pilih <strong>Tanggal</strong> di sebelah kiri <strong>Bulan</strong> untuk menentukan kolom tanggal, termasuk <strong>Max Arrival</strong>. Pilih <strong>Bulan</strong> dan <strong>Tahun</strong>, lalu klik <strong>Terapkan</strong>. Export mengikuti filter yang sama; klik <strong>Reset</strong> untuk kembali ke filter awal.</span></div>
 
         <h3>Export ke Excel</h3>
         <div class="step-item"><span class="step-number">1</span><span>Terapkan filter sesuai kebutuhan (opsional).</span></div>

@@ -7,9 +7,9 @@ use App\Exports\SpecialShipmentReportExport;
 use App\Http\Controllers\Controller;
 use App\Models\Shipment;
 use App\Services\ReportService;
+use App\Support\ReportDateFilter;
 use App\Support\SpecialShipmentPerformance;
 use App\Support\SpecialShipmentType;
-use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
@@ -25,14 +25,15 @@ class ReportController extends Controller
         $selectedMonth = $this->validMonth($request->query('month'));
         $selectedYear = $this->validYear($request->query('year'));
         $config = $selectedReport === 'dso' ? null : SpecialShipmentType::get($selectedReport);
-        $model = $config['model'] ?? \App\Models\Shipment::class;
-        $dateField = $config['performance']['start'] ?? 'terima_do';
+        $dateField = ReportDateFilter::field($selectedReport, $request->query('date_field'));
 
         return view('admin.reports.index', [
             'selectedReport' => $selectedReport,
             'selectedMonth' => $selectedMonth,
             'selectedYear' => $selectedYear,
-            'availableYears' => $this->availableYears($model, $dateField, $selectedYear),
+            'selectedDateField' => $dateField,
+            'dateOptions' => ReportDateFilter::options($selectedReport),
+            'availableYears' => ReportDateFilter::years($selectedReport, $dateField, $selectedYear),
             'reportConfig' => $config,
             'reportColumns' => $selectedReport === 'dso'
                 ? ReportService::dsoColumns()
@@ -47,7 +48,7 @@ class ReportController extends Controller
         $year = $this->validYear($request->input('year'));
         $config = $type === 'dso' ? null : SpecialShipmentType::get($type);
         $model = $config['model'] ?? Shipment::class;
-        $dateField = $config['performance']['start'] ?? 'terima_do';
+        $dateField = ReportDateFilter::field($type, $request->input('date_field'));
         $reportColumns = $type === 'dso'
             ? ReportService::dsoColumns()
             : ReportService::specialColumns($config);
@@ -55,9 +56,7 @@ class ReportController extends Controller
             ->filter(fn (array $column) => $column['orderable'])
             ->pluck('data')
             ->all();
-        $query = $model::query()
-            ->when($month !== null, fn (Builder $builder) => $builder->whereMonth($dateField, $month))
-            ->when($year !== null, fn (Builder $builder) => $builder->whereYear($dateField, $year));
+        $query = ReportDateFilter::apply($model::query(), $type, $dateField, $month, $year);
         $recordsTotal = (clone $query)->count();
         $search = trim((string) $request->input('search.value', ''));
 
@@ -71,8 +70,9 @@ class ReportController extends Controller
 
         $recordsFiltered = (clone $query)->count();
         $orderIndex = (int) $request->input('order.0.column', 1);
-        $orderColumn = (string) $request->input("columns.{$orderIndex}.name", $dateField);
-        $orderColumn = in_array($orderColumn, $databaseColumns, true) ? $orderColumn : $dateField;
+        $defaultOrderColumn = $config['performance']['start'] ?? 'terima_do';
+        $orderColumn = (string) $request->input("columns.{$orderIndex}.name", $defaultOrderColumn);
+        $orderColumn = in_array($orderColumn, $databaseColumns, true) ? $orderColumn : $defaultOrderColumn;
         $orderDirection = strtolower((string) $request->input('order.0.dir', 'desc')) === 'asc' ? 'asc' : 'desc';
         $start = max(0, (int) $request->input('start', 0));
         $length = min(100, max(10, (int) $request->input('length', 25)));
@@ -110,6 +110,7 @@ class ReportController extends Controller
         $type = $this->validType($request->query('type'), $request->query('iso_type'));
         $month = $this->validMonth($request->query('month'));
         $year = $this->validYear($request->query('year'));
+        $dateField = ReportDateFilter::field($type, $request->query('date_field'));
 
         $filename = 'laporan_shipment_'.str_replace('-', '_', $type).'_'.now()->format('Ymd_His').'.xlsx';
         $export = $type === 'dso'
@@ -117,8 +118,9 @@ class ReportController extends Controller
                 search: $request->input('search'),
                 month: $month,
                 year: $year,
+                dateField: $dateField,
             )
-            : new SpecialShipmentReportExport($type, $month, $year);
+            : new SpecialShipmentReportExport($type, $month, $year, $dateField);
 
         return Excel::download($export, $filename);
     }
@@ -177,22 +179,5 @@ class ReportController extends Controller
         $year = filter_var($value, FILTER_VALIDATE_INT);
 
         return $year !== false && $year >= 2000 && $year <= 2100 ? $year : null;
-    }
-
-    /** @return array<int, int> */
-    private function availableYears(string $model, string $dateField, ?int $selectedYear): array
-    {
-        $minimum = $model::query()->whereNotNull($dateField)->min($dateField);
-        $maximum = $model::query()->whereNotNull($dateField)->max($dateField);
-        $currentYear = (int) now()->year;
-        $minimumYear = $minimum ? Carbon::parse($minimum)->year : $currentYear;
-        $maximumYear = $maximum ? Carbon::parse($maximum)->year : $currentYear;
-
-        if ($selectedYear !== null) {
-            $minimumYear = min($minimumYear, $selectedYear);
-            $maximumYear = max($maximumYear, $selectedYear);
-        }
-
-        return range(max($currentYear, $maximumYear), min($minimumYear, $currentYear));
     }
 }

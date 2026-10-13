@@ -80,7 +80,7 @@ class SpecialShipmentPerformance
         foreach ($query->cursor() as $shipment) {
             $metrics = self::calculate($type, $shipment);
 
-            if (!in_array($metrics['sla_result'], ['OTD', 'LATE'], true)) {
+            if (! in_array($metrics['sla_result'], ['OTD', 'LATE'], true)) {
                 continue;
             }
 
@@ -121,7 +121,7 @@ class SpecialShipmentPerformance
         return max(0, (int) $from->diffInDays($to, false));
     }
 
-    private static function dateValue(mixed $value, ?int $fallbackYear = null): ?CarbonInterface
+    public static function dateValue(mixed $value, ?int $fallbackYear = null): ?CarbonInterface
     {
         if ($value instanceof CarbonInterface) {
             return $value;

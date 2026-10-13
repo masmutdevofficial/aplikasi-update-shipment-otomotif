@@ -29,7 +29,7 @@
         <p class="report-selector-description">Pilih dashboard yang ingin ditampilkan.</p>
         <nav class="report-tabs" aria-label="Pilihan laporan shipment">
             @foreach ($reportOptions as $type => $option)
-                <a href="{{ route('admin.reports.index', array_filter([...$option['query'], 'month' => $selectedMonth, 'year' => $selectedYear])) }}"
+                <a href="{{ route('admin.reports.index', array_filter([...$option['query'], 'date_field' => \App\Support\ReportDateFilter::field($type, $selectedDateField), 'month' => $selectedMonth, 'year' => $selectedYear])) }}"
                    class="report-tab {{ $selectedReport === $type ? 'active' : '' }}"
                    @if ($selectedReport === $type) aria-current="page" @endif>
                     <i class="fas {{ $option['icon'] }}"></i> {{ $option['label'] }}
@@ -43,6 +43,14 @@
                 @if (str_starts_with($selectedReport, 'iso-'))
                     <input type="hidden" name="iso_type" value="{{ $selectedReport === 'iso-laut' ? 'laut' : 'darat' }}">
                 @endif
+                <div class="report-filter-field">
+                    <label for="reportDateField">Tanggal</label>
+                    <select id="reportDateField" name="date_field" class="form-select report-period-input" aria-label="Kolom tanggal untuk filter periode">
+                        @foreach ($dateOptions as $value => $label)
+                            <option value="{{ $value }}" @selected($selectedDateField === $value)>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
                 <div class="report-filter-field">
                     <label for="reportMonth">Bulan</label>
                     <select id="reportMonth" name="month" class="form-select report-period-input">
@@ -63,7 +71,7 @@
                 </div>
                 <button type="submit" class="btn btn-primary"><i class="fas fa-filter"></i> Terapkan</button>
                 <a href="{{ route('admin.reports.index', $selectedQuery) }}" class="btn btn-default">Reset</a>
-                <a href="{{ route('admin.reports.export', array_filter([...$selectedQuery, 'month' => $selectedMonth, 'year' => $selectedYear])) }}"
+                <a href="{{ route('admin.reports.export', array_filter([...$selectedQuery, 'date_field' => $selectedDateField, 'month' => $selectedMonth, 'year' => $selectedYear])) }}"
                    class="btn btn-success"><i class="fas fa-file-excel"></i> Export</a>
             </form>
         </div>
@@ -100,6 +108,7 @@
 .report-filter-form { display:flex; flex:0 0 auto; align-items:flex-end; gap:8px; min-width:max-content; }
 .report-filter-field label { display:block; margin-bottom:4px; color:#64748b; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
 .report-period-input { min-width:145px; }
+#reportDateField { min-width:210px; }
 .report-table-scroll { width:100%; overflow-x:auto; }
 #table-reports th, #table-reports td { min-width:120px; white-space:nowrap; }
 #table-reports th:first-child, #table-reports td:first-child { min-width:55px; text-align:center; }
@@ -139,6 +148,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 payload.iso_type = @json(str_starts_with($selectedReport, 'iso-') ? ($selectedReport === 'iso-laut' ? 'laut' : 'darat') : null);
                 payload.month = @json($selectedMonth);
                 payload.year = @json($selectedYear);
+                payload.date_field = @json($selectedDateField);
             },
         },
         columns:reportColumns.map(column => ({

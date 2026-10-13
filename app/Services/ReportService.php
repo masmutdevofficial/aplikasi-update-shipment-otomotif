@@ -6,6 +6,7 @@ use App\Models\PendingVin;
 use App\Models\Shipment;
 use App\Models\ShipmentDocument;
 use App\Models\ShipmentUpdate;
+use App\Support\ReportDateFilter;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection as SupportCollection;
@@ -120,17 +121,12 @@ class ReportService
         ?string $search = null,
         ?int $month = null,
         ?int $year = null,
+        ?string $dateField = null,
     ): Collection {
-        return Shipment::query()
+        return ReportDateFilter::apply(Shipment::query(), 'dso', $dateField, $month, $year)
             ->with(['shipmentUpdates.vendor', 'uploadedDocument'])
             ->when($search, function ($query, $search) {
                 $query->where('no_rangka', 'like', "%{$search}%");
-            })
-            ->when($month !== null, function ($query) use ($month) {
-                $query->whereMonth('terima_do', $month);
-            })
-            ->when($year !== null, function ($query) use ($year) {
-                $query->whereYear('terima_do', $year);
             })
             ->latest()
             ->get();
