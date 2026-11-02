@@ -221,6 +221,7 @@ Sistem memiliki tiga level pengguna dengan hak akses yang berbeda:
 
 | Kode Posisi | Keterangan |
 |---|---|
+| Keluar dari PDC | Konfirmasi scan VIN mengisi tanggal Keluar dari PDC pada shipment DSO secara otomatis |
 | AT Storage Port | Tiba di Storage Port asal |
 | ATD Kapal (Loading) | Berangkat naik kapal (loading) |
 | ATA Kapal | Tiba di kapal |

@@ -71,6 +71,7 @@
         <table class="table table-bordered guide-table">
             <thead><tr><th>Posisi</th><th>Titik Pengiriman</th></tr></thead>
             <tbody>
+                <tr><td><span class="position-badge">Keluar dari PDC</span></td><td>Konfirmasi scan mengisi tanggal Keluar dari PDC pada data admin secara otomatis</td></tr>
                 <tr><td><span class="position-badge">AT Storage Port</span></td><td>Kendaraan tiba di Storage Port keberangkatan</td></tr>
                 <tr><td><span class="position-badge">ATD Kapal (Loading)</span></td><td>Kendaraan berangkat — proses loading ke kapal</td></tr>
                 <tr><td><span class="position-badge">ATA Kapal</span></td><td>Kendaraan tiba di kapal</td></tr>

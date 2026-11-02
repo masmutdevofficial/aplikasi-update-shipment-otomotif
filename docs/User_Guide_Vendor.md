@@ -128,6 +128,7 @@ Posisi menentukan di titik mana dalam rantai pengiriman Anda bertugas:
 
 | Posisi | Keterangan |
 |---|---|
+| Keluar dari PDC | Kendaraan keluar dari PDC; konfirmasi scan otomatis mengisi tanggal Keluar dari PDC pada data admin |
 | AT Storage Port | Kendaraan tiba di Storage Port keberangkatan |
 | ATD Kapal (Loading) | Kendaraan berangkat naik kapal (proses loading) |
 | ATA Kapal | Kendaraan tiba di kapal |
@@ -190,6 +191,8 @@ Data telah tersimpan.
 ```
 
 Tanggal akan otomatis tercatat sesuai tanggal saat scan dilakukan.
+
+For the **Keluar dari PDC** position, confirm the VIN after scanning or entering it manually. The server uses the application timezone and writes the departure date to the DSO shipment, so the admin form, dashboard, reports and exports reflect the scan automatically. The first confirmed scan replaces an existing departure date; scanning the same VIN at the same position again is rejected. If the VIN is not registered yet, verify it and choose to save it as pending. When admin creates or imports the shipment, the original scan date is applied instead of the import date.
 
 **Jika VIN Tidak Terdeteksi:**
 

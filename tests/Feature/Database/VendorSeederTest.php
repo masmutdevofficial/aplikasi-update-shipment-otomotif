@@ -4,6 +4,7 @@ namespace Tests\Feature\Database;
 
 use App\Models\User;
 use App\Models\Vendor;
+use Database\Seeders\KeluarPdcSeeder;
 use Database\Seeders\VendorSeeder;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -15,6 +16,7 @@ class VendorSeederTest extends TestCase
         User::factory()->superadmin()->create();
 
         $accounts = [
+            'vendor.keluarpdc@gmail.com' => ['Vendor@Pdc2026!', Vendor::POSITION_KELUAR_PDC],
             'iso.storageport@gmail.com' => ['ISO@Storage2026!', 'AT Storage Port'],
             'iso.loading@gmail.com' => ['ISO@Loading2026!', 'ATD Kapal (Loading)'],
             'iso.atakapal@gmail.com' => ['ISO@Kapal2026!', 'ATA Kapal'],
@@ -43,6 +45,7 @@ class VendorSeederTest extends TestCase
     public function test_vendor_positions_include_iso_and_tso_workflow_positions(): void
     {
         foreach ([
+            Vendor::POSITION_KELUAR_PDC,
             'AT PTD/DTD',
             'Door to Port (DTP)',
             'Port to Port (PTP)',
@@ -50,5 +53,20 @@ class VendorSeederTest extends TestCase
         ] as $position) {
             $this->assertContains($position, Vendor::positions());
         }
+    }
+
+    public function test_pdc_seeder_preserves_an_existing_accounts_password(): void
+    {
+        $this->seed(KeluarPdcSeeder::class);
+        $user = User::query()->where('email', 'vendor.keluarpdc@gmail.com')->firstOrFail();
+        $user->update(['password' => 'Changed@Password2026!']);
+
+        $this->seed(KeluarPdcSeeder::class);
+
+        $this->assertSame('vendor.keluarpdc', $user->username);
+        $this->assertTrue($user->fresh()->canLogin());
+        $this->assertTrue(Hash::check('Changed@Password2026!', $user->fresh()->password));
+        $this->assertSame(1, User::query()->where('email', $user->email)->count());
+        $this->assertSame(1, Vendor::query()->where('user_id', $user->id)->count());
     }
 }

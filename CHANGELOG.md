@@ -13,6 +13,7 @@ dan proyek ini mengikuti [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 > Bagian ini mencatat pekerjaan yang sedang berjalan dan belum dirilis.
 
 ### Added
+- Added the `Keluar dari PDC` vendor position and an idempotent `KeluarPdcSeeder` (`vendor.keluarpdc@gmail.com`). Confirmed DSO VIN scans now populate the admin departure date using the application timezone, including pending scans matched during manual creation or import. Scan/history/date writes are atomic and duplicate confirmations retain the first scan.
 - Pencarian di setiap header kolom laporan menggunakan API `column().search()` DataTables, termasuk tanggal yang ditampilkan, SLA, hasil, progress, nomor baris, dan ketersediaan dokumen. Filter per kolom dapat digabungkan dengan pencarian umum dan filter periode.
 - Filter **Kolom Tanggal** dan kalender **Tanggal** di sebelah kiri **Bulan** pada laporan admin. Pilih kolom DSO, TSO, ISO Darat, atau ISO Laut (termasuk Max Arrival) sebelum memilih tanggal tertentu. Tabel dan export Excel mengikuti tanggal tersebut; kosongkan tanggal untuk memakai filter bulan/tahun.
 

@@ -15,6 +15,8 @@ class VendorSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->call(KeluarPdcSeeder::class);
+
         $superadmin = User::where('level', 'superadmin')->first();
         $superadminId = $superadmin?->id;
 

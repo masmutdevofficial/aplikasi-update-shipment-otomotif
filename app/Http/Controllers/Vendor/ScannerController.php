@@ -6,9 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\PendingVin;
 use App\Models\ScanHistory;
 use App\Models\Shipment;
-use App\Models\ShipmentUpdate;
 use App\Services\OcrService;
 use App\Services\ShipmentDocumentService;
+use App\Services\ShipmentScanService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -18,6 +18,7 @@ class ScannerController extends Controller
     public function __construct(
         protected OcrService $ocrService,
         protected ShipmentDocumentService $documentService,
+        protected ShipmentScanService $scanService,
     ) {}
 
     public function index()
@@ -101,6 +102,7 @@ class ScannerController extends Controller
         }
 
         $noRangka = strtoupper($request->input('no_rangka'));
+        $scanDate = today();
 
         // Find shipment by VIN
         $shipment = Shipment::where('no_rangka', $noRangka)->first();
@@ -132,12 +134,12 @@ class ScannerController extends Controller
             }
 
             try {
-                DB::transaction(function () use ($vendor, $user, $noRangka, $scanPhotoPath) {
+                DB::transaction(function () use ($vendor, $user, $noRangka, $scanPhotoPath, $scanDate) {
                     PendingVin::create([
                         'no_rangka' => $noRangka,
                         'vendor_id' => $vendor->id,
                         'position' => $vendor->position,
-                        'scan_date' => today(),
+                        'scan_date' => $scanDate,
                         'scan_photo_path' => $scanPhotoPath,
                         'created_by' => $user->id,
                         'updated_by' => $user->id,
@@ -146,7 +148,7 @@ class ScannerController extends Controller
                     ScanHistory::create([
                         'user_id' => $user->id,
                         'no_rangka' => $noRangka,
-                        'scan_date' => today(),
+                        'scan_date' => $scanDate,
                     ]);
                 });
             } catch (\Throwable $exception) {
@@ -162,48 +164,42 @@ class ScannerController extends Controller
                 'data' => [
                     'no_rangka' => $noRangka,
                     'position' => $vendor->position,
-                    'scan_date' => today()->format('d-M-y'),
+                    'scan_date' => $scanDate->format('d-M-y'),
                 ],
             ], 201);
         }
 
-        // Check if this position already has an update for this shipment
-        $existing = ShipmentUpdate::where('shipment_id', $shipment->id)
-            ->where('position', $vendor->position)
-            ->first();
-
-        if ($existing) {
-            return response()->json([
-                'error' => 'Data posisi '.$vendor->position.' untuk VIN ini sudah tercatat pada '.$existing->scan_date->format('d-M-y').'.',
-            ], 409);
-        }
-
-        DB::transaction(function () use ($shipment, $vendor, $user, $noRangka) {
-            ShipmentUpdate::create([
-                'shipment_id' => $shipment->id,
+        return DB::transaction(function () use ($shipment, $vendor, $user, $noRangka, $scanDate) {
+            $update = $this->scanService->record($shipment, [
                 'vendor_id' => $vendor->id,
                 'position' => $vendor->position,
-                'scan_date' => today(),
+                'scan_date' => $scanDate,
                 'created_by' => $user->id,
                 'updated_by' => $user->id,
             ]);
 
+            if (! $update->wasRecentlyCreated) {
+                return response()->json([
+                    'error' => 'Data posisi '.$vendor->position.' untuk VIN ini sudah tercatat pada '.$update->scan_date->format('d-M-y').'.',
+                ], 409);
+            }
+
             ScanHistory::create([
                 'user_id' => $user->id,
                 'no_rangka' => $noRangka,
-                'scan_date' => today(),
+                'scan_date' => $scanDate,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Scan berhasil disimpan untuk posisi '.$vendor->position.'.',
+                'data' => [
+                    'no_rangka' => $noRangka,
+                    'position' => $vendor->position,
+                    'scan_date' => $scanDate->format('d-M-y'),
+                ],
             ]);
         });
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Scan berhasil disimpan untuk posisi '.$vendor->position.'.',
-            'data' => [
-                'no_rangka' => $noRangka,
-                'position' => $vendor->position,
-                'scan_date' => today()->format('d-M-y'),
-            ],
-        ]);
     }
 
     /** @return array{0: string, 1: string} */
@@ -225,5 +221,4 @@ class ScannerController extends Controller
 
         return [$contents, $matches[1] === 'png' ? 'png' : 'jpg'];
     }
-
 }

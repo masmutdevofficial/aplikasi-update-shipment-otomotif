@@ -194,7 +194,7 @@
             <tbody>
                 <tr><td>User</td><td>Pilih user dengan level Vendor yang sudah terdaftar dan belum terhubung ke vendor lain</td></tr>
                 <tr><td>Nama Vendor</td><td>Otomatis terisi dari data user yang dipilih</td></tr>
-                <tr><td>Posisi</td><td>Pilih salah satu dari 5 posisi pengiriman</td></tr>
+                <tr><td>Posisi</td><td>Pilih posisi pengiriman yang sesuai dengan tugas petugas</td></tr>
             </tbody>
         </table>
 
@@ -202,6 +202,7 @@
         <table class="table table-bordered guide-table">
             <thead><tr><th>Posisi</th><th>Keterangan</th></tr></thead>
             <tbody>
+                <tr><td>Keluar dari PDC</td><td>Konfirmasi scan mengisi tanggal Keluar dari PDC pada data admin secara otomatis</td></tr>
                 <tr><td>AT Storage Port</td><td>Kendaraan tiba di Storage Port keberangkatan</td></tr>
                 <tr><td>ATD Kapal (Loading)</td><td>Kendaraan berangkat naik kapal (proses loading)</td></tr>
                 <tr><td>ATA Kapal</td><td>Kendaraan tiba di kapal</td></tr>

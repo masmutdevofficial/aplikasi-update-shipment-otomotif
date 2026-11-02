@@ -4,11 +4,14 @@ namespace App\Services;
 
 use App\Models\PendingVin;
 use App\Models\Shipment;
-use App\Models\ShipmentUpdate;
 use Illuminate\Support\Facades\DB;
 
 class PendingVinService
 {
+    public function __construct(
+        protected ShipmentScanService $scanService,
+    ) {}
+
     /**
      * Move all matching pending scans into the shipment timeline.
      */
@@ -21,12 +24,10 @@ class PendingVinService
                 ->get();
 
             foreach ($pendingVins as $pending) {
-                ShipmentUpdate::firstOrCreate(
+                $this->scanService->record(
+                    $shipment,
                     [
-                        'shipment_id' => $shipment->id,
                         'position' => $pending->position,
-                    ],
-                    [
                         'vendor_id' => $pending->vendor_id,
                         'scan_date' => $pending->scan_date,
                         'document_path' => $pending->document_path,

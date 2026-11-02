@@ -189,19 +189,24 @@ Sistem menggunakan arsitektur **monolitik berbasis MVC (Model-View-Controller)**
 | `id` | `CHAR(36)` UUID | Primary Key |
 | `user_id` | `CHAR(36)` UUID | FK → `users.id` |
 | `vendor_name` | `VARCHAR(150)` | Nama vendor |
-| `position` | `ENUM(...)` | Posisi vendor (lihat enum di bawah) |
+| `position` | `VARCHAR(100)` | Validated against `Vendor::positions()` |
 | `created_by` | `CHAR(36)` UUID | FK → `users.id` |
 | `created_at` | `TIMESTAMP` | |
 | `updated_by` | `CHAR(36)` UUID | FK → `users.id` |
 | `updated_at` | `TIMESTAMP` | |
 
-**Enum `position`:**
+**Allowed `position` values:**
 ```
+'Keluar dari PDC'
 'AT Storage Port'
 'ATD Kapal (Loading)'
 'ATA Kapal'
 'ATA Storage Port (Destination)'
 'AT PtD (Dooring)'
+'AT PTD/DTD'
+'Door to Port (DTP)'
+'Port to Port (PTP)'
+'Port to Door (PTD)'
 ```
 
 ### 4.3 Tabel `shipments`
@@ -236,7 +241,7 @@ Tabel ini mencatat setiap update posisi yang dilakukan oleh vendor terhadap suat
 | `id` | `CHAR(36)` UUID | Primary Key |
 | `shipment_id` | `CHAR(36)` UUID | FK → `shipments.id` |
 | `vendor_id` | `CHAR(36)` UUID | FK → `vendors.id` |
-| `position` | `ENUM(...)` | Posisi yang diisi (sesuai posisi vendor) |
+| `position` | `VARCHAR(100)` | Posisi yang diisi (sesuai posisi vendor) |
 | `scan_date` | `DATE` | Tanggal hasil scan (format `DD-Mon-YY`) |
 | `document_link` | `TEXT` | Link Google Drive / Sharepoint (opsional) |
 | `created_by` | `CHAR(36)` UUID | FK → `users.id` |
@@ -466,7 +471,7 @@ Tersedia untuk Admin dan Superadmin. Field yang dikelola:
 | Field | Keterangan |
 |---|---|
 | Nama Vendor | Diambil dari relasi ke tabel `users` via UUID |
-| Posisi | Salah satu dari 5 pilihan posisi pengiriman |
+| Posisi | One of the positions returned by `Vendor::positions()` |
 
 Setiap vendor hanya dapat mengisi data pada posisi yang ditetapkan untuknya.
 
@@ -477,6 +482,7 @@ Setiap vendor hanya dapat mengisi data pada posisi yang ditetapkan untuknya.
 - Ekstraksi 17 digit VIN via Tesseract OCR.
 - Tanggal hasil scan otomatis terisi (format: `DD-Mon-YY`, contoh: `02-Apr-26`).
 - Hasil disimpan ke `shipment_updates` dan `scan_histories`.
+- For `Keluar dari PDC`, `ShipmentScanService` also persists the scan date in `shipments.keluar_dari_pdc` and records the operator as `updated_by`. The scan, departure date and history are committed in one transaction; a shipment row lock serializes duplicate confirmations. Pending VIN matching uses the same service and retains the original scan date. This applies to the existing DSO scanner; ISO/TSO scan routing is unchanged.
 
 ### 6.6 Modul Laporan
 

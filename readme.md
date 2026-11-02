@@ -281,6 +281,9 @@ php artisan db:seed
 php artisan db:seed --class=SuperadminSeeder
 php artisan db:seed --class=AdminSeeder
 php artisan db:seed --class=VendorSeeder
+
+# Seed only the Keluar PDC operator (also included in VendorSeeder)
+php artisan db:seed --class=KeluarPdcSeeder
 ```
 
 Setelah seeder selesai, buka `http://localhost:8000/login` dan gunakan salah satu akun di bawah.
@@ -309,6 +312,7 @@ Redirect setelah login: `/admin/dashboard`
 
 | Email | Password | Posisi |
 |---|---|---|
+| `vendor.keluarpdc@gmail.com` | `Vendor@Pdc2026!` | Keluar dari PDC |
 | `vendor.storageport1@gmail.com` | `Vendor@Port2026!` | AT Storage Port |
 | `vendor.loading@gmail.com` | `Vendor@Load2026!` | ATD Kapal (Loading) |
 | `vendor.atakapal@gmail.com` | `Vendor@Kapal2026!` | ATA Kapal |
@@ -324,6 +328,10 @@ Redirect setelah login: `/admin/dashboard`
 | `tso.ptd@gmail.com` | `TSO@Ptd2026!` | TSO — Port to Door (PTD) |
 
 Redirect setelah login: `/vendor/dashboard`
+
+The Keluar PDC operator uses username `vendor.keluarpdc` and the existing Vendor portal. After a VIN scan is confirmed, the server records the application date (Asia/Jakarta by default) in both the scan timeline and `shipments.keluar_dari_pdc`. This date is immediately available to admin forms, dashboard statistics, report filters and exports. The first confirmed PDC scan replaces any manually entered or imported departure date; duplicate scans are rejected without changing it. Pending VINs retain their original scan date when the shipment is later created or imported. This workflow uses the existing DSO VIN scanner (`shipments`); it does not add ISO/TSO scan routing.
+
+For an existing installation, run `php artisan migrate --force` before `php artisan db:seed --class=KeluarPdcSeeder`. The seeder preserves existing accounts and passwords.
 
 > **Jangan gunakan password ini di production.** Ganti semua password sebelum go-live.
 

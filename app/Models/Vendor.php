@@ -11,6 +11,8 @@ class Vendor extends Model
 {
     use HasUuids;
 
+    public const POSITION_KELUAR_PDC = 'Keluar dari PDC';
+
     protected $fillable = [
         'user_id',
         'vendor_name',
@@ -54,6 +56,7 @@ class Vendor extends Model
     public static function positions(): array
     {
         return [
+            self::POSITION_KELUAR_PDC,
             'AT Storage Port',
             'ATD Kapal (Loading)',
             'ATA Kapal',
